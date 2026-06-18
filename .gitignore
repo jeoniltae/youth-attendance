@@ -1,0 +1,35 @@
+# 환경변수 — Service Account 키, 관리자 비밀번호, 스프레드시트 ID 등 모든 비밀 값
+.env
+.env.local
+.env.*.local
+
+# 기존 GAS 원본 데이터 — 실제 학생/교사 개인정보 포함
+docs/legacy-gas.json
+
+# Google Service Account 키 파일 (별도 .json으로 다운로드한 경우)
+*-service-account.json
+service-account*.json
+
+# Next.js
+.next/
+out/
+build/
+
+# 의존성
+node_modules/
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# 로그
+*.log
+npm-debug.log*
+
+# OS / 에디터
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
