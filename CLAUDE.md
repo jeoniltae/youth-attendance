@@ -260,7 +260,8 @@ ADMIN_PASSWORD=
 - [x] 기술 스택 확정
 - [x] API 설계 완료
 - [x] 타입 정의 완료
-- [ ] Phase 1: 프로젝트 초기 세팅
-- [ ] Phase 2: Google Sheets API 연동 (Route Handlers)
-- [ ] Phase 3: 화면 구현 (4개 페이지)
-- [ ] Phase 4: Vercel 배포 및 검증
+- [x] Phase 1: 프로젝트 초기 세팅
+- [ ] Phase 2: UI 구현 (목업 데이터 기반, 4개 페이지)
+- [ ] Phase 3: Google Sheets API 연동 (Route Handlers)
+- [ ] Phase 4: UI-API 연결 (hooks에서 목업 → 실제 fetch로 교체)
+- [ ] Phase 5: Vercel 배포 및 검증
