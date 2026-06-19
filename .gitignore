@@ -33,3 +33,6 @@ npm-debug.log*
 .DS_Store
 .vscode/*
 !.vscode/extensions.json
+
+# Claude Code 개인 로컬 설정 (settings.json은 공유, local.json은 개인용)
+.claude/settings.local.json

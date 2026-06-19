@@ -1,7 +1,7 @@
-// 학년/교사/새가족 등 상위 그룹과 하위 그룹(반/팀)을 렌더링 — 살짝 기울어진 티켓 카드 스타일
+// 학년/교사/새친구 등 상위 그룹과 하위 그룹(반/팀)을 렌더링 — 살짝 기울어진 티켓 카드 스타일
 
-import { MemberCard } from './MemberCard';
-import { allMembers, countMembers, type TopGroup } from '@/lib/group-members';
+import { MemberCard } from "./MemberCard";
+import { allMembers, countMembers, type TopGroup } from "@/lib/group-members";
 
 interface GradeSectionProps {
   group: TopGroup;
@@ -10,29 +10,39 @@ interface GradeSectionProps {
   index: number;
 }
 
-const HEADER_COLOR: Record<TopGroup['variant'], string> = {
-  grade: 'text-ink',
-  teacher: 'text-teal',
-  newFamily: 'text-gold',
+const HEADER_COLOR: Record<TopGroup["variant"], string> = {
+  grade: "text-ink",
+  teacher: "text-teal",
+  newFamily: "text-gold",
 };
 
-const BAR_COLOR: Record<TopGroup['variant'], string> = {
-  grade: 'bg-ink',
-  teacher: 'bg-teal',
-  newFamily: 'bg-gold',
+const BAR_COLOR: Record<TopGroup["variant"], string> = {
+  grade: "bg-ink",
+  teacher: "bg-teal",
+  newFamily: "bg-gold",
 };
 
-const CARD_VARIANT: Record<TopGroup['variant'], 'default' | 'teacher' | 'newFamily'> = {
-  grade: 'default',
-  teacher: 'teacher',
-  newFamily: 'newFamily',
+const CARD_VARIANT: Record<
+  TopGroup["variant"],
+  "default" | "teacher" | "newFamily"
+> = {
+  grade: "default",
+  teacher: "teacher",
+  newFamily: "newFamily",
 };
 
-const TILT = ['', 'sm:rotate-[-0.5deg]', 'sm:rotate-[0.5deg]'];
+const TILT = ["", "sm:rotate-[-0.5deg]", "sm:rotate-[0.5deg]"];
 
-export function GradeSection({ group, attendedIds, onToggle, index }: GradeSectionProps) {
+export function GradeSection({
+  group,
+  attendedIds,
+  onToggle,
+  index,
+}: GradeSectionProps) {
   const total = countMembers(group);
-  const attended = allMembers(group).filter((m) => attendedIds.has(m.id)).length;
+  const attended = allMembers(group).filter((m) =>
+    attendedIds.has(m.id),
+  ).length;
   const ratio = total === 0 ? 0 : Math.round((attended / total) * 100);
   const cardVariant = CARD_VARIANT[group.variant];
 
@@ -43,7 +53,11 @@ export function GradeSection({ group, attendedIds, onToggle, index }: GradeSecti
       }`}
     >
       <div className="flex items-center justify-between">
-        <h2 className={`font-display text-xl font-bold ${HEADER_COLOR[group.variant]}`}>{group.label}</h2>
+        <h2
+          className={`font-display text-xl font-bold ${HEADER_COLOR[group.variant]}`}
+        >
+          {group.label}
+        </h2>
         <span className="font-display text-sm tabular-nums text-ink/40">
           {attended} / {total}
         </span>
@@ -58,11 +72,15 @@ export function GradeSection({ group, attendedIds, onToggle, index }: GradeSecti
       {group.subGroups && (
         <div className="mt-4 flex flex-col gap-4">
           {group.subGroups.map((sub) => {
-            const subAttended = sub.members.filter((m) => attendedIds.has(m.id)).length;
+            const subAttended = sub.members.filter((m) =>
+              attendedIds.has(m.id),
+            ).length;
             return (
               <div key={sub.key}>
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-ink/70">{sub.label}</h3>
+                  <h3 className="text-sm font-semibold text-ink/70">
+                    {sub.label}
+                  </h3>
                   <span className="text-xs tabular-nums text-ink/40">
                     {subAttended} / {sub.members.length}
                   </span>
