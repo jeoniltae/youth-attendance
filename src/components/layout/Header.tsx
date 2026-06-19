@@ -28,7 +28,7 @@ export function Header({ session, onSessionChange, lastUpdated, actions }: Heade
           )}
         </div>
         <div className="w-px shrink-0 self-stretch bg-[repeating-linear-gradient(to_bottom,var(--ink)_0,var(--ink)_4px,transparent_4px,transparent_9px)] opacity-20" />
-        <div className="flex items-center gap-2 px-5 py-3">
+        <div className="flex items-center gap-2 px-5 py-3 sm:max-lg:ml-auto">
           <span className="font-display text-[0.65rem] tracking-[0.2em] text-ink/50">예배</span>
           <div className="flex gap-1.5">
             {SESSIONS.map((s) => (

@@ -70,7 +70,7 @@ export default function Home() {
   };
 
   return (
-    <main className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8">
+    <main className="mx-auto flex max-w-[1368px] flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8">
       <div className="animate-[rise-in_0.5s_ease-out_both] text-center">
         <p className="font-display text-[0.7rem] tracking-[0.3em] text-stamp">
           SUNDAY WORSHIP ROLL CALL
