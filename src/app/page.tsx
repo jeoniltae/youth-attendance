@@ -34,7 +34,10 @@ function applyFilter(groups: TopGroup[], filter: FilterState): TopGroup[] {
 
 export default function Home() {
   const [session, setSession] = useState<Session>("오전");
-  const [attendedIds, setAttendedIds] = useState<Set<string>>(new Set());
+  const [attendedBySession, setAttendedBySession] = useState<Record<Session, Set<string>>>({
+    오전: new Set(),
+    오후: new Set(),
+  });
   const [filter, setFilter] = useState<FilterState>({ level: "all" });
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
@@ -44,9 +47,15 @@ export default function Home() {
     );
   }, []);
 
+  const attendedIds = attendedBySession[session];
+
   const groups = useMemo(
-    () => groupStudentsAndTeachers(mockStudents, mockTeachers),
-    [],
+    () =>
+      groupStudentsAndTeachers(
+        mockStudents.filter((s) => s.session === session),
+        mockTeachers.filter((t) => t.session === session),
+      ),
+    [session],
   );
   const visibleGroups = useMemo(
     () => applyFilter(groups, filter),
@@ -58,14 +67,14 @@ export default function Home() {
   );
 
   const toggleMember = (id: string) => {
-    setAttendedIds((prev) => {
-      const next = new Set(prev);
+    setAttendedBySession((prev) => {
+      const next = new Set(prev[session]);
       if (next.has(id)) {
         next.delete(id);
       } else {
         next.add(id);
       }
-      return next;
+      return { ...prev, [session]: next };
     });
   };
 
@@ -86,7 +95,10 @@ export default function Home() {
       >
         <Header
           session={session}
-          onSessionChange={setSession}
+          onSessionChange={(s) => {
+            setSession(s);
+            setFilter({ level: "all" });
+          }}
           lastUpdated={lastUpdated}
           actions={
             <>
