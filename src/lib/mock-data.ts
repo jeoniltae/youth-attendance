@@ -129,3 +129,29 @@ export const mockTeachers: Teacher[] = [
   ...buildTeachersForSession("오전", 0),
   ...buildTeachersForSession("오후", 5),
 ];
+
+// 출석현황(/history) 데모용 — id 해시 기반으로 매번 동일한 출석 결과를 만들어내는 가짜 출석부
+function hashToUnitInterval(id: string): number {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  }
+  return (hash % 1000) / 1000;
+}
+
+export function getMockAttendedIds(session: Session, dateSeed = ""): Set<string> {
+  const attended = new Set<string>();
+
+  for (const student of mockStudents) {
+    if (student.session === session && hashToUnitInterval(student.id + dateSeed) < 0.72) {
+      attended.add(student.id);
+    }
+  }
+  for (const teacher of mockTeachers) {
+    if (teacher.session === session && hashToUnitInterval(teacher.id + dateSeed) < 0.9) {
+      attended.add(teacher.id);
+    }
+  }
+
+  return attended;
+}

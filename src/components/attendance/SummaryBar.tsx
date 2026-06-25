@@ -1,16 +1,18 @@
-// 전체/출석/출석률 요약 통계 바 — 잉크 색 점수판 스타일
+// 전체/출석/(결석)/출석률 요약 통계 바 — 잉크 색 점수판 스타일
 
 interface SummaryBarProps {
   total: number;
   attended: number;
+  showAbsent?: boolean;
 }
 
-export function SummaryBar({ total, attended }: SummaryBarProps) {
+export function SummaryBar({ total, attended, showAbsent = false }: SummaryBarProps) {
   const rate = total === 0 ? 0 : Math.round((attended / total) * 100);
 
   const stats = [
     { label: '전체', value: String(total) },
     { label: '출석', value: String(attended) },
+    ...(showAbsent ? [{ label: '결석', value: String(total - attended) }] : []),
     { label: '출석률', value: `${rate}%` },
   ];
 

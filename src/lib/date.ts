@@ -13,3 +13,21 @@ export function formatDateLabel(date: Date): string {
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}(${WEEKDAY_LABELS[date.getDay()]})`;
 }
+
+export function toInputDateValue(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+export function parseInputDate(value: string): Date {
+  const [y, m, d] = value.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+export function addDays(value: string, days: number): string {
+  const date = parseInputDate(value);
+  date.setDate(date.getDate() + days);
+  return toInputDateValue(date);
+}
