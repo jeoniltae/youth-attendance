@@ -49,6 +49,23 @@ const TEAM_SIZES_BY_SESSION: Record<Session, Record<string, number>> = {
   오후: { 총무팀: 1, 예배지원팀: 2, "1학년교사": 2, "2학년교사": 2, "3학년교사": 1 },
 };
 
+// id 해시 기반으로 매번 동일한 결과를 만들어내는 더미 출생연월일 (실제 생일 아님)
+function hashToUnitInterval(seed: string): number {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  }
+  return (hash % 1000) / 1000;
+}
+
+function birthdateFromId(id: string, ageMin: number, ageMax: number): string {
+  const month = Math.floor(hashToUnitInterval(`${id}-m`) * 12) + 1;
+  const day = Math.floor(hashToUnitInterval(`${id}-d`) * 28) + 1;
+  const age = ageMin + Math.floor(hashToUnitInterval(`${id}-y`) * (ageMax - ageMin + 1));
+  const year = new Date().getFullYear() - age;
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
 function buildStudentsForSession(session: Session, nameOffset: number): Student[] {
   const students: Student[] = [];
   let nameIdx = nameOffset;
@@ -67,7 +84,7 @@ function buildStudentsForSession(session: Session, nameOffset: number): Student[
           phone: "010-0000-0000",
           parentPhone: "010-0000-0000",
           address: "",
-          birthdate: "",
+          birthdate: birthdateFromId(`2025-${grade}-${cls}-${seq}`, 16, 18),
           school: "",
           teacher: "",
           notes: "",
@@ -78,8 +95,9 @@ function buildStudentsForSession(session: Session, nameOffset: number): Student[
   }
 
   NEW_FRIEND_NAMES[session].forEach((name, i) => {
+    const id = `2025-새친구-0-${String(i + 1).padStart(3, "0")}`;
     students.push({
-      id: `2025-새친구-0-${String(i + 1).padStart(3, "0")}`,
+      id,
       session,
       grade: "새친구",
       class: "",
@@ -87,7 +105,7 @@ function buildStudentsForSession(session: Session, nameOffset: number): Student[
       phone: "010-0000-0000",
       parentPhone: "010-0000-0000",
       address: "",
-      birthdate: "",
+      birthdate: birthdateFromId(id, 16, 19),
       school: "",
       teacher: "",
       notes: "",
@@ -103,14 +121,15 @@ function buildTeachersForSession(session: Session, nameOffset: number): Teacher[
 
   Object.entries(TEAM_SIZES_BY_SESSION[session]).forEach(([team, size], teamIdx) => {
     for (let i = 0; i < size; i++) {
+      const id = `T-${session}-${teamIdx}-${i + 1}`;
       teachers.push({
-        id: `T-${session}-${teamIdx}-${i + 1}`,
+        id,
         session,
         team,
         name: TEACHER_NAME_POOL[nameIdx % TEACHER_NAME_POOL.length],
         phone: "010-0000-0000",
         address: "",
-        birthdate: "",
+        birthdate: birthdateFromId(id, 25, 45),
         notes: "",
       });
       nameIdx++;
@@ -131,14 +150,6 @@ export const mockTeachers: Teacher[] = [
 ];
 
 // 출석현황(/history) 데모용 — id 해시 기반으로 매번 동일한 출석 결과를 만들어내는 가짜 출석부
-function hashToUnitInterval(id: string): number {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
-  }
-  return (hash % 1000) / 1000;
-}
-
 export function getMockAttendedIds(session: Session, dateSeed = ""): Set<string> {
   const attended = new Set<string>();
 
