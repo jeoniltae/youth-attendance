@@ -16,6 +16,9 @@ export interface Student {
   school: string;
   teacher: string;
   notes: string;
+  attendanceRate: string;
+  baptism: string;
+  gender: string;
 }
 
 export interface Teacher {
@@ -38,5 +41,6 @@ export interface AttendanceRecord {
   name: string;
   status: '출석';
   timestamp: string;
+  note: string;
   type: MemberType;
 }

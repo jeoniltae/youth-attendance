@@ -73,6 +73,9 @@ Google Sheets는 WebSocket을 지원하지 않으므로 Polling 방식을 사용
 | School | string | 학교명 |
 | Teacher | string | 담당 교사 |
 | Notes | string | 비고 |
+| 출석률 | string | 출석률(%) — 실제 운영 시트 헤더가 한글, 컬럼명 그대로 표기 |
+| 세례 | string | 세례 여부/구분 — 실제 운영 시트 헤더가 한글, 컬럼명 그대로 표기 |
+| gender | string | `남` \| `여` — 실제 운영 시트 헤더가 영문 소문자, 컬럼명 그대로 표기 |
 
 ### Teachers 시트
 | 컬럼 | 타입 | 설명 |
@@ -97,7 +100,8 @@ Google Sheets는 WebSocket을 지원하지 않으므로 Polling 방식을 사용
 | Name | string | 이름 |
 | Status | string | `출석` (고정값, 레코드 없으면 결석으로 간주) |
 | Timestamp | string | 변경 시각 |
-| Type | string | `student` \| `teacher` |
+| Ect | string | 기타 비고(자유 텍스트, 예: `타교회 선교(OO목사님 확인)`) — `student`/`teacher` 구분과 무관한 별개 컬럼 |
+| Type | string | `student` \| `teacher` — 실제 운영 시트에는 존재하지 않아 Phase 3에서 신규 추가할 컬럼 |
 
 ### 출석 상태 처리 규칙
 - Attendance 시트에 해당 날짜 + StudentID 레코드가 **존재하면** → 출석
@@ -124,6 +128,9 @@ interface Student {
   school: string;
   teacher: string;
   notes: string;
+  attendanceRate: string;
+  baptism: string;
+  gender: string;
 }
 
 interface Teacher {
@@ -146,6 +153,7 @@ interface AttendanceRecord {
   name: string;
   status: '출석';
   timestamp: string;
+  note: string;
   type: MemberType;
 }
 ```
@@ -286,6 +294,19 @@ ADMIN_PASSWORD=
 - [x] 타입 정의 완료
 - [x] Phase 1: 프로젝트 초기 세팅
 - [ ] Phase 2: UI 구현 (목업 데이터 기반, 4개 페이지)
+  - [x] 출석체크 메인 (`/`)
+  - [x] 출석 현황 (`/history`)
+  - [x] 생일자 조회 (`/birthday`)
+  - [ ] 교적 관리 (`/students`) — 관리자 전용, 추후 진행 예정
 - [ ] Phase 3: Google Sheets API 연동 (Route Handlers)
+  - [x] Step 0. 외부 설정 (Google Cloud 프로젝트/Sheets API 활성화, Service Account 키 발급, 테스트용 스프레드시트 생성·더미 데이터 입력·Service Account에 편집자 공유, `.env.local` 채우기) — Sheets API로 탭 3개/헤더 전부 일치 확인 완료
+  - [ ] Step 1. `src/lib/sheets.ts`에 헬퍼 추가: `readSheet`, `appendRow`, `findRowNumber`, `deleteRow` (쓰기는 `valueInputOption: 'RAW'`, 읽기는 `valueRenderOption: 'FORMATTED_VALUE'`로 날짜 자동변환 방지)
+  - [ ] Step 2. `src/app/api/summary/route.ts` — `GET ?date=&session=` → `{ total, attended, absent, rate }`
+  - [ ] Step 3. `src/app/api/birthdays/route.ts` — `GET ?session=` → `{ students, teachers }` (월 필터링/그룹핑은 Phase 4의 `groupBirthdaysByMonth`에 위임)
+  - [ ] Step 4. `src/app/api/attendance/route.ts` — `GET ?date=&session=` → `{ studentIds }`, `POST`(토글: 기록 없으면 추가, 있으면 삭제)
+  - [ ] Step 5. 공통 에러 처리 (400/500 규칙 적용), `npm run build` 통과 확인
+  - [ ] Step 6. `.env.local` 채운 뒤 PowerShell로 각 엔드포인트 실동작 검증 (토글, 누락 파라미터 400, 날짜 셀 텍스트 저장 여부 육안 확인)
+  - 세부 계획: `C:\Users\전일태\.claude\plans\atomic-mapping-flamingo.md`
+  - 범위 외(Phase 4 이후): UI 페이지 연결, `students`/`teachers`/`auth` 엔드포인트, `src/hooks/`, `src/api/`, React Query 연동
 - [ ] Phase 4: UI-API 연결 (hooks에서 목업 → 실제 fetch로 교체)
 - [ ] Phase 5: Vercel 배포 및 검증

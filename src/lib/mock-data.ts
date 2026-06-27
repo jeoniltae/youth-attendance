@@ -66,6 +66,16 @@ function birthdateFromId(id: string, ageMin: number, ageMax: number): string {
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+const BAPTISM_OPTIONS = ["세례", "유아세례", "미세례"];
+
+// id 해시 기반 더미 출석률/세례/성별 (실제 운영 시트의 Notes 뒤 3개 컬럼에 대응)
+function studentExtrasFromId(id: string): { attendanceRate: string; baptism: string; gender: string } {
+  const attendanceRate = `${Math.floor(hashToUnitInterval(`${id}-rate`) * 100)}%`;
+  const baptism = BAPTISM_OPTIONS[Math.floor(hashToUnitInterval(`${id}-baptism`) * BAPTISM_OPTIONS.length)];
+  const gender = hashToUnitInterval(`${id}-gender`) < 0.5 ? "남" : "여";
+  return { attendanceRate, baptism, gender };
+}
+
 function buildStudentsForSession(session: Session, nameOffset: number): Student[] {
   const students: Student[] = [];
   let nameIdx = nameOffset;
@@ -75,8 +85,9 @@ function buildStudentsForSession(session: Session, nameOffset: number): Student[
       const cls = String(classIdx + 1);
       for (let i = 0; i < size; i++) {
         const seq = String(i + 1).padStart(3, "0");
+        const id = `2025-${grade}-${cls}-${seq}`;
         students.push({
-          id: `2025-${grade}-${cls}-${seq}`,
+          id,
           session,
           grade,
           class: cls,
@@ -84,10 +95,11 @@ function buildStudentsForSession(session: Session, nameOffset: number): Student[
           phone: "010-0000-0000",
           parentPhone: "010-0000-0000",
           address: "",
-          birthdate: birthdateFromId(`2025-${grade}-${cls}-${seq}`, 16, 18),
+          birthdate: birthdateFromId(id, 16, 18),
           school: "",
           teacher: "",
           notes: "",
+          ...studentExtrasFromId(id),
         });
         nameIdx++;
       }
@@ -109,6 +121,7 @@ function buildStudentsForSession(session: Session, nameOffset: number): Student[
       school: "",
       teacher: "",
       notes: "",
+      ...studentExtrasFromId(id),
     });
   });
 
