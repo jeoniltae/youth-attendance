@@ -10,7 +10,16 @@ import {
   type MouseEvent,
 } from "react";
 import Link from "next/link";
-import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ArrowLeft,
+  Cake,
+  ChevronLeft,
+  ChevronRight,
+  Gift,
+  PartyPopper,
+  Sparkles,
+  Star,
+} from "lucide-react";
 import { mockStudents, mockTeachers } from "@/lib/mock-data";
 import { groupBirthdaysByMonth, type BirthdayGroup } from "@/lib/birthdays";
 import { getTodayInSeoul } from "@/lib/date";
@@ -91,6 +100,31 @@ function buildBurst(seed: number) {
   });
 }
 
+// 평소엔 잠잠하다가 일정 주기로 화면 위에서 쏟아지는 "깜짝 비" 이벤트 — 색깔 배지에 담긴 생일 아이콘
+const RAIN_COUNT = 36;
+const RAIN_INTERVAL_MS = 10000;
+const RAIN_VISIBLE_MS = 8000;
+const RAIN_ICONS = [Cake, Gift, Star, PartyPopper, Sparkles];
+
+function buildRain(seed: number) {
+  return Array.from({ length: RAIN_COUNT }, (_, i) => {
+    const r1 = seededRandom(seed * 2000 + i * 11 + 1);
+    const r2 = seededRandom(seed * 2000 + i * 11 + 2);
+    const r3 = seededRandom(seed * 2000 + i * 11 + 3);
+    const r4 = seededRandom(seed * 2000 + i * 11 + 4);
+    const r5 = seededRandom(seed * 2000 + i * 11 + 5);
+    return {
+      left: r1 * 100,
+      delay: r2 * 1.6,
+      duration: 3.2 + r3 * 1.6,
+      size: 24 + r4 * 14,
+      color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+      rotate: r5 * 360,
+      Icon: RAIN_ICONS[i % RAIN_ICONS.length],
+    };
+  });
+}
+
 export default function BirthdayPage() {
   const today = getTodayInSeoul();
   const [month, setMonth] = useState(() => today.getMonth() + 1);
@@ -113,6 +147,31 @@ export default function BirthdayPage() {
   const burstPieces = useMemo(
     () => (burstSeed > 0 ? buildBurst(burstSeed) : []),
     [burstSeed],
+  );
+
+  const [rainSeed, setRainSeed] = useState(0);
+  const [showRain, setShowRain] = useState(false);
+
+  useEffect(() => {
+    let hideTimer: ReturnType<typeof setTimeout> | undefined;
+    function triggerRain() {
+      clearTimeout(hideTimer);
+      setRainSeed((s) => s + 1);
+      setShowRain(true);
+      hideTimer = setTimeout(() => setShowRain(false), RAIN_VISIBLE_MS);
+    }
+    const firstTimer = setTimeout(triggerRain, 3000);
+    const interval = setInterval(triggerRain, RAIN_INTERVAL_MS);
+    return () => {
+      clearTimeout(firstTimer);
+      clearTimeout(hideTimer);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const rainPieces = useMemo(
+    () => (showRain ? buildRain(rainSeed) : []),
+    [rainSeed, showRain],
   );
 
   const groups = useMemo(
@@ -201,6 +260,28 @@ export default function BirthdayPage() {
               animation: `confetti-rise ${c.duration}s linear ${c.delay}s infinite`,
             }}
           />
+        ))}
+
+        {rainPieces.map((r, i) => (
+          <span
+            key={`${rainSeed}-${i}`}
+            className="absolute flex select-none items-center justify-center rounded-full shadow-[0_2px_6px_rgba(30,34,51,0.18)]"
+            style={{
+              left: `${r.left}%`,
+              top: "-10%",
+              width: `${r.size}px`,
+              height: `${r.size}px`,
+              backgroundColor: r.color,
+              transform: `rotate(${r.rotate}deg)`,
+              animation: `confetti-rain ${r.duration}s ease-in ${r.delay}s 1 forwards`,
+            }}
+          >
+            <r.Icon
+              style={{ color: "var(--paper)" }}
+              size={r.size * 0.58}
+              strokeWidth={2.2}
+            />
+          </span>
         ))}
       </div>
 

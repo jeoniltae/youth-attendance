@@ -221,6 +221,32 @@
   }
 }
 
+@keyframes confetti-rain {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.95;
+  }
+  25% {
+    transform: translate(-16px, 28vh) rotate(110deg);
+  }
+  50% {
+    transform: translate(16px, 54vh) rotate(220deg);
+  }
+  75% {
+    transform: translate(-16px, 80vh) rotate(330deg);
+  }
+  92% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(8px, 115vh) rotate(420deg);
+    opacity: 0;
+  }
+}
+
 @keyframes confetti-burst {
   0% {
     transform: translate(-50%, -50%) translate(0, 0) scale(1) rotate(0deg);
@@ -282,6 +308,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   [style*="confetti-rise"],
+  [style*="confetti-rain"],
   [style*="confetti-burst"],
   [style*="blob-breathe"] {
     animation: none !important;
