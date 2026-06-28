@@ -298,14 +298,14 @@ ADMIN_PASSWORD=
   - [x] 출석 현황 (`/history`)
   - [x] 생일자 조회 (`/birthday`)
   - [ ] 교적 관리 (`/students`) — 관리자 전용, 추후 진행 예정
-- [ ] Phase 3: Google Sheets API 연동 (Route Handlers)
+- [x] Phase 3: Google Sheets API 연동 (Route Handlers)
   - [x] Step 0. 외부 설정 (Google Cloud 프로젝트/Sheets API 활성화, Service Account 키 발급, 테스트용 스프레드시트 생성·더미 데이터 입력·Service Account에 편집자 공유, `.env.local` 채우기) — Sheets API로 탭 3개/헤더 전부 일치 확인 완료
-  - [ ] Step 1. `src/lib/sheets.ts`에 헬퍼 추가: `readSheet`, `appendRow`, `findRowNumber`, `deleteRow` (쓰기는 `valueInputOption: 'RAW'`, 읽기는 `valueRenderOption: 'FORMATTED_VALUE'`로 날짜 자동변환 방지)
-  - [ ] Step 2. `src/app/api/summary/route.ts` — `GET ?date=&session=` → `{ total, attended, absent, rate }`
-  - [ ] Step 3. `src/app/api/birthdays/route.ts` — `GET ?session=` → `{ students, teachers }` (월 필터링/그룹핑은 Phase 4의 `groupBirthdaysByMonth`에 위임)
-  - [ ] Step 4. `src/app/api/attendance/route.ts` — `GET ?date=&session=` → `{ studentIds }`, `POST`(토글: 기록 없으면 추가, 있으면 삭제)
-  - [ ] Step 5. 공통 에러 처리 (400/500 규칙 적용), `npm run build` 통과 확인
-  - [ ] Step 6. `.env.local` 채운 뒤 PowerShell로 각 엔드포인트 실동작 검증 (토글, 누락 파라미터 400, 날짜 셀 텍스트 저장 여부 육안 확인)
+  - [x] Step 1. `src/lib/sheets.ts`에 헬퍼 추가: `readSheet`, `appendRow`, `findRowNumber`, `deleteRow` (쓰기는 `valueInputOption: 'RAW'`, 읽기는 `valueRenderOption: 'FORMATTED_VALUE'`로 날짜 자동변환 방지) — 실제 테스트 시트로 4개 함수 전부 동작 확인 완료
+  - [x] Step 2. `src/app/api/summary/route.ts` — `GET ?date=&session=` → `{ total, attended, absent, rate }` — 실서버 curl 검증 완료 (정상/오류 케이스, 출석 1건 추가 시 rate 계산 정확성 확인)
+  - [x] Step 3. `src/app/api/birthdays/route.ts` — `GET ?session=` → `{ students, teachers }` (월 필터링/그룹핑은 Phase 4의 `groupBirthdaysByMonth`에 위임) — 실서버 curl 검증 완료 (오류 케이스, 정상 데이터 필드 매핑 확인)
+  - [x] Step 4. `src/app/api/attendance/route.ts` — `GET ?date=&session=` → `{ studentIds }`, `POST`(토글: 기록 없으면 추가, 있으면 삭제) — 실서버 curl 검증 완료 (토글 출석↔결석, 학생/교사 케이스, 오류 케이스)
+  - [x] Step 5. 공통 에러 처리 (400/500 규칙 적용), `npm run build` 통과 확인 — 3개 라우트 전부 dynamic으로 정상 빌드
+  - [x] Step 6. `.env.local` 채운 뒤 PowerShell로 각 엔드포인트 실동작 검증 (토글, 누락 파라미터 400, 날짜 셀 텍스트 저장 여부 육안 확인) — curl로 전체 케이스 검증 완료
   - 세부 계획: `C:\Users\전일태\.claude\plans\atomic-mapping-flamingo.md`
   - 범위 외(Phase 4 이후): UI 페이지 연결, `students`/`teachers`/`auth` 엔드포인트, `src/hooks/`, `src/api/`, React Query 연동
 - [ ] Phase 4: UI-API 연결 (hooks에서 목업 → 실제 fetch로 교체)
