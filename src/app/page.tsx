@@ -11,13 +11,15 @@ import {
   type FilterState,
 } from "@/components/attendance/FilterChips";
 import { GradeSection } from "@/components/attendance/GradeSection";
-import { mockStudents, mockTeachers } from "@/lib/mock-data";
+import { useRoster } from "@/hooks/useRoster";
+import { useAttendance } from "@/hooks/useAttendance";
+import { getTodayInSeoul, toInputDateValue } from "@/lib/date";
 import {
   groupStudentsAndTeachers,
   countMembers,
   type TopGroup,
 } from "@/lib/group-members";
-import type { Session } from "@/types";
+import type { MemberType, Session } from "@/types";
 
 function applyFilter(groups: TopGroup[], filter: FilterState): TopGroup[] {
   if (filter.level === "all") return groups;
@@ -34,10 +36,7 @@ function applyFilter(groups: TopGroup[], filter: FilterState): TopGroup[] {
 
 export default function Home() {
   const [session, setSession] = useState<Session>("오전");
-  const [attendedBySession, setAttendedBySession] = useState<Record<Session, Set<string>>>({
-    오전: new Set(),
-    오후: new Set(),
-  });
+  const [date] = useState(() => toInputDateValue(getTodayInSeoul()));
   const [filter, setFilter] = useState<FilterState>({ level: "all" });
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
@@ -47,15 +46,20 @@ export default function Home() {
     );
   }, []);
 
-  const attendedIds = attendedBySession[session];
+  const { data: roster, isLoading: rosterLoading, isError: rosterError } = useRoster(session);
+  const {
+    attendedIds,
+    isLoading: attendanceLoading,
+    isError: attendanceError,
+    toggle,
+  } = useAttendance(date, session);
+
+  const isLoading = rosterLoading || attendanceLoading;
+  const isError = rosterError || attendanceError;
 
   const groups = useMemo(
-    () =>
-      groupStudentsAndTeachers(
-        mockStudents.filter((s) => s.session === session),
-        mockTeachers.filter((t) => t.session === session),
-      ),
-    [session],
+    () => groupStudentsAndTeachers(roster?.students ?? [], roster?.teachers ?? []),
+    [roster],
   );
   const visibleGroups = useMemo(
     () => applyFilter(groups, filter),
@@ -66,17 +70,25 @@ export default function Home() {
     [groups],
   );
 
-  const toggleMember = (id: string) => {
-    setAttendedBySession((prev) => {
-      const next = new Set(prev[session]);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return { ...prev, [session]: next };
-    });
-  };
+  const memberLookup = useMemo(() => {
+    const map = new Map<
+      string,
+      { grade: string; class: string; name: string; type: MemberType }
+    >();
+    for (const s of roster?.students ?? []) {
+      map.set(s.id, { grade: s.grade, class: s.class, name: s.name, type: "student" });
+    }
+    for (const t of roster?.teachers ?? []) {
+      map.set(t.id, { grade: "", class: "", name: t.name, type: "teacher" });
+    }
+    return map;
+  }, [roster]);
+
+  function toggleMember(id: string) {
+    const member = memberLookup.get(id);
+    if (!member) return;
+    toggle({ date, session, studentId: id, ...member });
+  }
 
   return (
     <main className="mx-auto flex w-full max-w-[1368px] flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8">
@@ -146,20 +158,26 @@ export default function Home() {
       </div>
 
       <div className="flex flex-col gap-4">
-        {visibleGroups.map((group, i) => (
-          <div
-            key={group.key}
-            className="animate-[rise-in_0.5s_ease-out_both]"
-            style={{ animationDelay: `${280 + i * 70}ms` }}
-          >
-            <GradeSection
-              group={group}
-              attendedIds={attendedIds}
-              onToggle={toggleMember}
-              index={i}
-            />
-          </div>
-        ))}
+        {isLoading ? (
+          <p className="py-12 text-center text-ink/40">불러오는 중…</p>
+        ) : isError ? (
+          <p className="py-12 text-center text-ink/40">데이터를 불러오지 못했습니다</p>
+        ) : (
+          visibleGroups.map((group, i) => (
+            <div
+              key={group.key}
+              className="animate-[rise-in_0.5s_ease-out_both]"
+              style={{ animationDelay: `${280 + i * 70}ms` }}
+            >
+              <GradeSection
+                group={group}
+                attendedIds={attendedIds}
+                onToggle={toggleMember}
+                index={i}
+              />
+            </div>
+          ))
+        )}
       </div>
     </main>
   );

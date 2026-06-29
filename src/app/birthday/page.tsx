@@ -20,7 +20,7 @@ import {
   Sparkles,
   Star,
 } from "lucide-react";
-import { mockStudents, mockTeachers } from "@/lib/mock-data";
+import { useBirthdays } from "@/hooks/useBirthdays";
 import { groupBirthdaysByMonth, type BirthdayGroup } from "@/lib/birthdays";
 import { getTodayInSeoul } from "@/lib/date";
 import type { Session } from "@/types";
@@ -174,14 +174,11 @@ export default function BirthdayPage() {
     [rainSeed, showRain],
   );
 
+  const { data, isLoading, isError } = useBirthdays(session);
+
   const groups = useMemo(
-    () =>
-      groupBirthdaysByMonth(
-        mockStudents.filter((s) => s.session === session),
-        mockTeachers.filter((t) => t.session === session),
-        month,
-      ),
-    [session, month],
+    () => groupBirthdaysByMonth(data?.students ?? [], data?.teachers ?? [], month),
+    [data, month],
   );
 
   const teacherCount =
@@ -411,7 +408,13 @@ export default function BirthdayPage() {
             🎀
           </span>
 
-          {groups.length === 0 ? (
+          {isLoading ? (
+            <p className="py-12 text-center text-ink/40">불러오는 중…</p>
+          ) : isError ? (
+            <p className="py-12 text-center text-ink/40">
+              생일자 명단을 불러오지 못했습니다
+            </p>
+          ) : groups.length === 0 ? (
             <p className="py-12 text-center text-ink/40">
               이번 달은 생일자가 없어요 🎈
             </p>

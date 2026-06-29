@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Gowun_Batang, IBM_Plex_Sans_KR } from "next/font/google";
+import { Providers } from "./providers";
 import "./globals.css";
 
 const display = Gowun_Batang({
@@ -28,7 +29,7 @@ export default function RootLayout({
       className={`${display.variable} ${body.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-paper text-ink font-body">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

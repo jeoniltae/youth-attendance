@@ -306,7 +306,17 @@ ADMIN_PASSWORD=
   - [x] Step 4. `src/app/api/attendance/route.ts` — `GET ?date=&session=` → `{ studentIds }`, `POST`(토글: 기록 없으면 추가, 있으면 삭제) — 실서버 curl 검증 완료 (토글 출석↔결석, 학생/교사 케이스, 오류 케이스)
   - [x] Step 5. 공통 에러 처리 (400/500 규칙 적용), `npm run build` 통과 확인 — 3개 라우트 전부 dynamic으로 정상 빌드
   - [x] Step 6. `.env.local` 채운 뒤 PowerShell로 각 엔드포인트 실동작 검증 (토글, 누락 파라미터 400, 날짜 셀 텍스트 저장 여부 육안 확인) — curl로 전체 케이스 검증 완료
-  - 세부 계획: `C:\Users\전일태\.claude\plans\atomic-mapping-flamingo.md`
   - 범위 외(Phase 4 이후): UI 페이지 연결, `students`/`teachers`/`auth` 엔드포인트, `src/hooks/`, `src/api/`, React Query 연동
-- [ ] Phase 4: UI-API 연결 (hooks에서 목업 → 실제 fetch로 교체)
+- [x] Phase 4: UI-API 연결 (hooks에서 목업 → 실제 fetch로 교체)
+  - [x] Step 0. `src/app/providers.tsx` 신규(React Query `QueryClientProvider` + dev에서만 Devtools) 추가, `src/app/layout.tsx`는 `{children}`을 감싸는 한 줄만 수정 (폰트/메타데이터 불변) — `npm run build` 통과, 3개 페이지 콘솔 에러 0건·Devtools 버튼 노출 확인
+  - [x] Step 1. `src/app/api/roster/route.ts` 신규 — `GET ?session=` → `{ students, teachers }` (`birthdays/route.ts` 로직 복사+개명, 원본 미수정). `/`·`/history`가 쓸 명단 전용 엔드포인트 — `/api/birthdays`를 그대로 재사용하면 출석체크 화면이 "birthdays"를 호출하는 이름 불일치가 생기므로 분리 — curl로 `/api/birthdays`와 1:1 동일 데이터/오류 케이스 확인 완료
+  - [x] Step 2. `src/api/roster.ts`/`attendance.ts`/`birthdays.ts` 신규 — fetch+JSON+에러throw만 하는 얇은 래퍼 (`/api/summary`용은 안 만듦 — 아래 비고 참조) — 타입체크/`npm run build` 통과 (런타임 호출부는 Step 4에서 연결)
+  - [x] Step 3. `src/hooks/useRoster.ts`(30초 polling)/`useBirthdays.ts`(polling 없음)/`useAttendance.ts`(30초 polling + 토글 mutation, `onMutate`/`onError`/`onSettled` Optimistic Update, `attendedIds: Set<string>` 반환) 신규 — 타입체크/`npm run build` 통과 (런타임 호출부는 Step 4에서 연결)
+  - [x] Step 4a. `src/app/birthday/page.tsx` 연결 — `useBirthdays(session)`로 교체, 서버가 이미 session 필터링하므로 클라이언트 측 중복 필터 제거 — `npm run build` 통과, 브라우저 검증 완료 (실데이터 표시, 세션 전환, 폴링 없음 확인, 콘솔 에러 0건)
+  - [x] Step 4b. `src/app/history/page.tsx` 연결 — `useRoster`+`useAttendance`로 교체, `total`/`attended`는 클라이언트에서 직접 계산 — `npm run build` 통과, 브라우저 검증 완료 (출석 토글이 요약/차트에 정확히 반영, 날짜 이동 시 재요청, 콘솔 에러 0건)
+  - [x] Step 4c. `src/app/page.tsx` 연결 — `useRoster`+`useAttendance`로 교체, 이 페이지에 없던 `date`(오늘 고정값) 개념 추가, `toggleMember`를 roster 룩업 기반 `toggle()` 호출로 재작성 (가장 복잡, 마지막) — `npm run build` 통과, 브라우저 검증 완료 (낙관적 업데이트 즉시 반영, 새로고침 후 유지, 강제 실패 시 자동 롤백, 30초 폴링 동작, 콘솔 에러 0건)
+  - [x] Step 5. `grep -r "mock-data" src/`로 3개 페이지 밖 import 없는지 확인 (파일 자체는 보류 중인 `/students` 목업용으로 유지) — 0건 확인, Phase 4 전체 완료
+  - 비고: `/api/summary`는 Phase 4에서 쓰지 않음 — `/`·`/history` 모두 어차피 가져오는 roster+출석 데이터로 똑같은 공식을 클라이언트에서 계산하면 충분, 중복 폴링 요청을 만들지 않기로 결정. 엔드포인트 자체는 삭제하지 않고 보류
+  - 세부 계획: `C:\Users\전일태\.claude\plans\atomic-mapping-flamingo.md`
+  - 범위 외: `students`/`teachers`/`auth` 엔드포인트, `/students` 페이지, `/api/summary` 연동, `docs/coding-guidelines.md` 수정
 - [ ] Phase 5: Vercel 배포 및 검증

@@ -6,7 +6,8 @@ import Link from "next/link";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { SummaryBar } from "@/components/attendance/SummaryBar";
 import { GroupAttendanceChart } from "@/components/history/GroupAttendanceChart";
-import { getMockAttendedIds, mockStudents, mockTeachers } from "@/lib/mock-data";
+import { useRoster } from "@/hooks/useRoster";
+import { useAttendance } from "@/hooks/useAttendance";
 import { groupStudentsAndTeachers } from "@/lib/group-members";
 import {
   addDays,
@@ -24,26 +25,25 @@ export default function HistoryPage() {
   const [session, setSession] = useState<Session>("오전");
   const dateInputRef = useRef<HTMLInputElement>(null);
 
-  const members = useMemo(
-    () => [
-      ...mockStudents.filter((s) => s.session === session),
-      ...mockTeachers.filter((t) => t.session === session),
-    ],
-    [session],
-  );
+  const { data: roster, isLoading: rosterLoading, isError: rosterError } = useRoster(session);
+  const {
+    attendedIds,
+    isLoading: attendanceLoading,
+    isError: attendanceError,
+  } = useAttendance(date, session);
 
   const groups = useMemo(
-    () =>
-      groupStudentsAndTeachers(
-        mockStudents.filter((s) => s.session === session),
-        mockTeachers.filter((t) => t.session === session),
-      ),
-    [session],
+    () => groupStudentsAndTeachers(roster?.students ?? [], roster?.teachers ?? []),
+    [roster],
   );
 
-  const attendedIds = useMemo(() => getMockAttendedIds(session, date), [session, date]);
-  const total = members.length;
-  const attended = members.filter((m) => attendedIds.has(m.id)).length;
+  const total = (roster?.students.length ?? 0) + (roster?.teachers.length ?? 0);
+  const attended = [...(roster?.students ?? []), ...(roster?.teachers ?? [])].filter((m) =>
+    attendedIds.has(m.id),
+  ).length;
+
+  const isLoading = rosterLoading || attendanceLoading;
+  const isError = rosterError || attendanceError;
 
   const today = toInputDateValue(getTodayInSeoul());
   const isNextDisabled = addDays(date, 7) > today;
@@ -133,15 +133,23 @@ export default function HistoryPage() {
       </div>
 
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2 xl:grid-cols-3">
-        {groups.map((group, i) => (
-          <div
-            key={group.key}
-            className="animate-[rise-in_0.5s_ease-out_both]"
-            style={{ animationDelay: `${210 + i * 70}ms` }}
-          >
-            <GroupAttendanceChart group={group} attendedIds={attendedIds} />
-          </div>
-        ))}
+        {isLoading ? (
+          <p className="col-span-full py-12 text-center text-ink/40">불러오는 중…</p>
+        ) : isError ? (
+          <p className="col-span-full py-12 text-center text-ink/40">
+            데이터를 불러오지 못했습니다
+          </p>
+        ) : (
+          groups.map((group, i) => (
+            <div
+              key={group.key}
+              className="animate-[rise-in_0.5s_ease-out_both]"
+              style={{ animationDelay: `${210 + i * 70}ms` }}
+            >
+              <GroupAttendanceChart group={group} attendedIds={attendedIds} />
+            </div>
+          ))
+        )}
       </div>
     </main>
   );
