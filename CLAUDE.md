@@ -164,14 +164,18 @@ interface AttendanceRecord {
 |------|------|------|
 | `/` | `app/page.tsx` | 출석체크 메인 (카드 UI, 세션 필터, 요약 통계) |
 | `/history` | `app/history/page.tsx` | 출석 현황 (학년/반/팀별 그룹핑) |
-| `/students` | `app/students/page.tsx` | 교적 관리 — 관리자 전용 |
+| `/members` | `app/members/page.tsx` | 교적 관리 — 관리자 전용 (학생/교사 정보 추가·수정·삭제 + 특정 날짜 출석 상태 수정) |
 | `/birthday` | `app/birthday/page.tsx` | 생일자 조회 |
 
 ### 관리자 모드 진입 플로우
 1. 메인 화면에 "학생 관리" 버튼 존재
 2. 클릭 시 비밀번호 입력 모달 표시
 3. `POST /api/auth` 로 비밀번호 검증
-4. 성공 시 `sessionStorage`에 토큰 저장 후 `/students` 진입
+4. 성공 시 `sessionStorage`에 토큰 저장 후 `/members` 진입
+
+### `/members` 화면 기능 범위 (레거시 GAS `students.html` 1:1 대응)
+- 학생/교사 정보 추가·수정·삭제 (`/api/students`, `/api/teachers` 풀 CRUD)
+- 특정 학생/교사의 특정 날짜 출석 상태 수정 — `/api/attendance` 토글을 그대로 재사용(레거시의 `markAttendance`/`cancelAttendance`가 학생·교사 모두에 대해 관리자 화면에서도 호출됐던 것과 동일한 동작)
 
 ## 반응형 웹 설계
 
@@ -190,7 +194,7 @@ interface AttendanceRecord {
 ### 페이지별 반응형 동작
 - **출석체크 메인 (`/`)**: MemberCard 그리드 — 모바일 1열 → sm 2열 → md 3열 → lg 4열
 - **출석 현황 (`/history`)**: 학년/반 그룹 헤더 고정, 모바일에서 가로 스크롤 없이 세로 스택
-- **교적 관리 (`/students`)**: 데스크탑 테이블 뷰, 모바일 카드 리스트 뷰로 전환
+- **교적 관리 (`/members`)**: 데스크탑 테이블 뷰, 모바일 카드 리스트 뷰로 전환
 - **생일자 조회 (`/birthday`)**: 모바일/데스크탑 모두 단순 리스트
 
 ### 터치 인터랙션
@@ -210,6 +214,8 @@ DELETE /api/students/[id]                            → 학생 삭제
 
 GET  /api/teachers?session=오전                      → 교사 목록 조회
 POST /api/teachers                                   → 신규 교사 등록
+PUT  /api/teachers/[id]                              → 교사 정보 수정
+DELETE /api/teachers/[id]                            → 교사 삭제
 
 GET  /api/birthdays?month=1                          → 월별 생일자 조회
 
@@ -224,14 +230,16 @@ src/
 ├── app/
 │   ├── page.tsx                    # 출석체크 메인
 │   ├── history/page.tsx            # 출석 현황
-│   ├── students/page.tsx           # 교적 관리 (관리자)
+│   ├── members/page.tsx            # 교적 관리 (관리자)
 │   ├── birthday/page.tsx           # 생일자 조회
 │   └── api/
 │       ├── attendance/route.ts
 │       ├── students/
 │       │   ├── route.ts
 │       │   └── [id]/route.ts
-│       ├── teachers/route.ts
+│       ├── teachers/
+│       │   ├── route.ts
+│       │   └── [id]/route.ts
 │       ├── birthdays/route.ts
 │       ├── summary/route.ts
 │       └── auth/route.ts
@@ -244,13 +252,17 @@ src/
 │   │   └── SummaryBar.tsx          # 전체/출석/결석/출석률
 │   ├── students/
 │   │   ├── StudentForm.tsx         # 학생 추가/수정 폼
-│   │   └── StudentTable.tsx        # 교적 목록
+│   │   └── StudentTable.tsx        # 학생 교적 목록
+│   ├── teachers/
+│   │   ├── TeacherForm.tsx         # 교사 추가/수정 폼
+│   │   └── TeacherTable.tsx        # 교사 교적 목록
 │   └── common/
 │       ├── AdminModal.tsx          # 비밀번호 입력 모달
 │       └── LoadingOverlay.tsx
 ├── hooks/
 │   ├── useAttendance.ts            # 출석 데이터 + 30초 polling
 │   ├── useStudents.ts              # 학생 CRUD
+│   ├── useTeachers.ts              # 교사 CRUD
 │   └── useAdminAuth.ts             # 관리자 인증 상태 (sessionStorage)
 ├── api/                            # fetch 함수 모음 (클라이언트 → Route Handler)
 │   ├── attendance.ts
@@ -297,7 +309,7 @@ ADMIN_PASSWORD=
   - [x] 출석체크 메인 (`/`)
   - [x] 출석 현황 (`/history`)
   - [x] 생일자 조회 (`/birthday`)
-  - [ ] 교적 관리 (`/students`) — 관리자 전용, 추후 진행 예정
+  - [ ] 교적 관리 (`/members`) — 관리자 전용, 추후 진행 예정
 - [x] Phase 3: Google Sheets API 연동 (Route Handlers)
   - [x] Step 0. 외부 설정 (Google Cloud 프로젝트/Sheets API 활성화, Service Account 키 발급, 테스트용 스프레드시트 생성·더미 데이터 입력·Service Account에 편집자 공유, `.env.local` 채우기) — Sheets API로 탭 3개/헤더 전부 일치 확인 완료
   - [x] Step 1. `src/lib/sheets.ts`에 헬퍼 추가: `readSheet`, `appendRow`, `findRowNumber`, `deleteRow` (쓰기는 `valueInputOption: 'RAW'`, 읽기는 `valueRenderOption: 'FORMATTED_VALUE'`로 날짜 자동변환 방지) — 실제 테스트 시트로 4개 함수 전부 동작 확인 완료
@@ -315,8 +327,8 @@ ADMIN_PASSWORD=
   - [x] Step 4a. `src/app/birthday/page.tsx` 연결 — `useBirthdays(session)`로 교체, 서버가 이미 session 필터링하므로 클라이언트 측 중복 필터 제거 — `npm run build` 통과, 브라우저 검증 완료 (실데이터 표시, 세션 전환, 폴링 없음 확인, 콘솔 에러 0건)
   - [x] Step 4b. `src/app/history/page.tsx` 연결 — `useRoster`+`useAttendance`로 교체, `total`/`attended`는 클라이언트에서 직접 계산 — `npm run build` 통과, 브라우저 검증 완료 (출석 토글이 요약/차트에 정확히 반영, 날짜 이동 시 재요청, 콘솔 에러 0건)
   - [x] Step 4c. `src/app/page.tsx` 연결 — `useRoster`+`useAttendance`로 교체, 이 페이지에 없던 `date`(오늘 고정값) 개념 추가, `toggleMember`를 roster 룩업 기반 `toggle()` 호출로 재작성 (가장 복잡, 마지막) — `npm run build` 통과, 브라우저 검증 완료 (낙관적 업데이트 즉시 반영, 새로고침 후 유지, 강제 실패 시 자동 롤백, 30초 폴링 동작, 콘솔 에러 0건)
-  - [x] Step 5. `grep -r "mock-data" src/`로 3개 페이지 밖 import 없는지 확인 (파일 자체는 보류 중인 `/students` 목업용으로 유지) — 0건 확인, Phase 4 전체 완료
+  - [x] Step 5. `grep -r "mock-data" src/`로 3개 페이지 밖 import 없는지 확인 (파일 자체는 보류 중인 `/members` 목업용으로 유지) — 0건 확인, Phase 4 전체 완료
   - 비고: `/api/summary`는 Phase 4에서 쓰지 않음 — `/`·`/history` 모두 어차피 가져오는 roster+출석 데이터로 똑같은 공식을 클라이언트에서 계산하면 충분, 중복 폴링 요청을 만들지 않기로 결정. 엔드포인트 자체는 삭제하지 않고 보류
   - 세부 계획: `C:\Users\전일태\.claude\plans\atomic-mapping-flamingo.md`
-  - 범위 외: `students`/`teachers`/`auth` 엔드포인트, `/students` 페이지, `/api/summary` 연동, `docs/coding-guidelines.md` 수정
+  - 범위 외: `students`/`teachers`/`auth` 엔드포인트, `/members` 페이지, `/api/summary` 연동, `docs/coding-guidelines.md` 수정
 - [ ] Phase 5: Vercel 배포 및 검증
