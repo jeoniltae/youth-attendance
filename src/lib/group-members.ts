@@ -5,6 +5,7 @@ import type { Student, Teacher } from "@/types";
 export interface MemberItem {
   id: string;
   name: string;
+  secondary?: string;
 }
 
 export interface SubGroup {
@@ -22,7 +23,7 @@ export interface TopGroup {
 }
 
 const GRADE_ORDER = ["1", "2", "3"];
-const TEAM_ORDER = [
+export const TEAM_ORDER = [
   "총무팀",
   "예배지원팀",
   "1학년교사",
@@ -54,7 +55,7 @@ export function groupStudentsAndTeachers(
         members: gradeStudents
           .filter((s) => s.class === cls)
           .sort((a, b) => a.name.localeCompare(b.name, "ko"))
-          .map((s) => ({ id: s.id, name: s.name })),
+          .map((s) => ({ id: s.id, name: s.name, secondary: s.teacher || undefined })),
       })),
     });
   }
@@ -85,7 +86,7 @@ export function groupStudentsAndTeachers(
       variant: "newFamily",
       members: newFamily
         .sort((a, b) => a.name.localeCompare(b.name, "ko"))
-        .map((s) => ({ id: s.id, name: s.name })),
+        .map((s) => ({ id: s.id, name: s.name, secondary: s.teacher || undefined })),
     });
   }
 

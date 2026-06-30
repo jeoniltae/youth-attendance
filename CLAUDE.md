@@ -194,7 +194,7 @@ interface AttendanceRecord {
 ### 페이지별 반응형 동작
 - **출석체크 메인 (`/`)**: MemberCard 그리드 — 모바일 1열 → sm 2열 → md 3열 → lg 4열
 - **출석 현황 (`/history`)**: 학년/반 그룹 헤더 고정, 모바일에서 가로 스크롤 없이 세로 스택
-- **교적 관리 (`/members`)**: 데스크탑 테이블 뷰, 모바일 카드 리스트 뷰로 전환
+- **교적 관리 (`/members`)**: 카드/필 그리드(`/`·`/history`와 동일한 티켓 스타일) — 단일 레이아웃이 `flex-wrap`으로 데스크탑/모바일 모두 자연스럽게 줄바꿈, 별도의 `<table>` 뷰는 두지 않음
 - **생일자 조회 (`/birthday`)**: 모바일/데스크탑 모두 단순 리스트
 
 ### 터치 인터랙션
@@ -251,11 +251,9 @@ src/
 │   │   ├── GradeSection.tsx        # 학년별 그룹
 │   │   └── SummaryBar.tsx          # 전체/출석/결석/출석률
 │   ├── students/
-│   │   ├── StudentForm.tsx         # 학생 추가/수정 폼
-│   │   └── StudentTable.tsx        # 학생 교적 목록
+│   │   └── StudentForm.tsx         # 학생 추가/수정/삭제 모달 폼
 │   ├── teachers/
-│   │   ├── TeacherForm.tsx         # 교사 추가/수정 폼
-│   │   └── TeacherTable.tsx        # 교사 교적 목록
+│   │   └── TeacherForm.tsx         # 교사 추가/수정/삭제 모달 폼
 │   └── common/
 │       ├── AdminModal.tsx          # 비밀번호 입력 모달
 │       └── LoadingOverlay.tsx
@@ -305,11 +303,11 @@ ADMIN_PASSWORD=
 - [x] API 설계 완료
 - [x] 타입 정의 완료
 - [x] Phase 1: 프로젝트 초기 세팅
-- [ ] Phase 2: UI 구현 (목업 데이터 기반, 4개 페이지)
+- [x] Phase 2: UI 구현 (목업 데이터 기반, 4개 페이지)
   - [x] 출석체크 메인 (`/`)
   - [x] 출석 현황 (`/history`)
   - [x] 생일자 조회 (`/birthday`)
-  - [ ] 교적 관리 (`/members`) — 관리자 전용, 추후 진행 예정
+  - [x] 교적 관리 (`/members`) — 관리자 전용, 학생/교사 추가·수정·삭제 모달 폼 + 학년/반/팀/새친구 필터(기존 `FilterChips`/`group-members.ts` 재사용), 로컬 state 기반 목업 CRUD(새로고침 버튼으로 mock-data 원상복구). 출석 상태 수정 기능은 보류(스크린샷에 없었고 별도 설계 필요 — 후속 작업). `/api/students`/`/api/teachers` 실연동과 비밀번호 게이트(`AdminModal`/`useAdminAuth`)는 Phase 3/4와 동일하게 후속 단계로 분리
 - [x] Phase 3: Google Sheets API 연동 (Route Handlers)
   - [x] Step 0. 외부 설정 (Google Cloud 프로젝트/Sheets API 활성화, Service Account 키 발급, 테스트용 스프레드시트 생성·더미 데이터 입력·Service Account에 편집자 공유, `.env.local` 채우기) — Sheets API로 탭 3개/헤더 전부 일치 확인 완료
   - [x] Step 1. `src/lib/sheets.ts`에 헬퍼 추가: `readSheet`, `appendRow`, `findRowNumber`, `deleteRow` (쓰기는 `valueInputOption: 'RAW'`, 읽기는 `valueRenderOption: 'FORMATTED_VALUE'`로 날짜 자동변환 방지) — 실제 테스트 시트로 4개 함수 전부 동작 확인 완료

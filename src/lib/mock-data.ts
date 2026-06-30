@@ -162,6 +162,17 @@ export const mockTeachers: Teacher[] = [
   ...buildTeachersForSession("오후", 5),
 ];
 
+// 학년별 담임교사 풀에서 반 순서대로 순환 배정 (교적 관리 화면에 표시할 더미 부담임 정보)
+for (const student of mockStudents) {
+  if (!student.class) continue;
+  const homeroomPool = mockTeachers.filter(
+    (t) => t.session === student.session && t.team === `${student.grade}학년교사`,
+  );
+  if (homeroomPool.length === 0) continue;
+  const classIdx = Number(student.class) - 1;
+  student.teacher = homeroomPool[classIdx % homeroomPool.length].name;
+}
+
 // 출석현황(/history) 데모용 — id 해시 기반으로 매번 동일한 출석 결과를 만들어내는 가짜 출석부
 export function getMockAttendedIds(session: Session, dateSeed = ""): Set<string> {
   const attended = new Set<string>();

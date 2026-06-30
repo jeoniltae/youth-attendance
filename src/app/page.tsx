@@ -132,7 +132,7 @@ export default function Home() {
               </div>
               <div className="hidden h-7 w-[1.5px] self-center rounded-full bg-ink/40 lg:block" />
               <Link
-                href="/students"
+                href="/members"
                 className="flex items-center gap-1.5 rounded-full bg-ink px-3.5 py-2 text-sm font-semibold text-paper hover:bg-ink/85"
               >
                 <Lock className="size-3.5" />
