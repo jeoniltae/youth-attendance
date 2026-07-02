@@ -97,7 +97,7 @@ export default function Home() {
           SUNDAY WORSHIP ROLL CALL
         </p>
         <h1 className="font-display text-3xl font-bold text-ink">
-          광염 고등부 출석체크
+          광염 고등부 전자출석부
         </h1>
       </div>
 
@@ -173,7 +173,6 @@ export default function Home() {
                 group={group}
                 attendedIds={attendedIds}
                 onToggle={toggleMember}
-                index={i}
               />
             </div>
           ))

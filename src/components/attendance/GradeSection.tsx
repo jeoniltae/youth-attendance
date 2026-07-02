@@ -1,4 +1,4 @@
-// 학년/교사/새친구 등 상위 그룹과 하위 그룹(반/팀)을 렌더링 — 살짝 기울어진 티켓 카드 스타일
+// 학년/교사/새친구 등 상위 그룹과 하위 그룹(반/팀)을 렌더링
 
 import { MemberCard } from "./MemberCard";
 import { allMembers, countMembers, type TopGroup } from "@/lib/group-members";
@@ -7,7 +7,6 @@ interface GradeSectionProps {
   group: TopGroup;
   attendedIds: Set<string>;
   onToggle: (id: string) => void;
-  index: number;
 }
 
 const HEADER_COLOR: Record<TopGroup["variant"], string> = {
@@ -31,13 +30,10 @@ const CARD_VARIANT: Record<
   newFamily: "newFamily",
 };
 
-const TILT = ["", "sm:rotate-[-0.5deg]", "sm:rotate-[0.5deg]"];
-
 export function GradeSection({
   group,
   attendedIds,
   onToggle,
-  index,
 }: GradeSectionProps) {
   const total = countMembers(group);
   const attended = allMembers(group).filter((m) =>
@@ -48,9 +44,7 @@ export function GradeSection({
 
   return (
     <section
-      className={`rounded-2xl border-[1.5px] border-ink/12 bg-paper-deep p-4 shadow-[0_3px_0_rgba(30,34,51,0.06)] sm:p-5 ${
-        TILT[index % TILT.length]
-      }`}
+      className="rounded-2xl border-[1.5px] border-ink/12 bg-paper-deep p-4 shadow-[0_3px_0_rgba(30,34,51,0.06)] sm:p-5"
     >
       <div className="flex items-center justify-between">
         <h2

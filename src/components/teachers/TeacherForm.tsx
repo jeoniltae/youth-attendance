@@ -293,12 +293,21 @@ export function TeacherForm({
               <span />
             )}
 
-            <button
-              type="submit"
-              className="rounded-full bg-teal px-4 py-1.5 text-sm font-semibold text-paper hover:opacity-90"
-            >
-              {teacher ? "수정 완료" : "등록"}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onOpenChange(false)}
+                className="rounded-full border border-ink/20 px-4 py-1.5 text-sm font-medium text-ink/60 hover:border-ink/40 hover:text-ink"
+              >
+                취소
+              </button>
+              <button
+                type="submit"
+                className="rounded-full bg-teal px-4 py-1.5 text-sm font-semibold text-paper hover:opacity-90"
+              >
+                {teacher ? "수정 완료" : "등록"}
+              </button>
+            </div>
           </div>
         </form>
       </DialogContent>

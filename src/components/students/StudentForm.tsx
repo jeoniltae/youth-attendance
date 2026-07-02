@@ -18,7 +18,7 @@ interface StudentFormProps {
   session: Session;
   /** null이면 신규 등록, 값이 있으면 수정 모드 */
   student: Student | null;
-  /** 신규 등록 시 미리 채워둘 학년 (예: 새가족 등록 버튼에서 "새친구" 고정) */
+  /** 신규 등록 시 미리 채워둘 학년 (예: 새친구 등록 버튼에서 "새친구" 고정) */
   defaultGrade?: string;
   onSave: (draft: StudentDraft) => void;
   onDelete?: (id: string) => void;

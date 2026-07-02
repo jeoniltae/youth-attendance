@@ -68,8 +68,6 @@ const CARD_STYLE: Record<"default" | "teacher" | "newFamily", string> = {
   newFamily: "border-gold/40 text-gold hover:border-gold/70 hover:bg-gold/5",
 };
 
-const TILT = ["", "sm:rotate-[-0.5deg]", "sm:rotate-[0.5deg]"];
-
 function RosterCard({
   name,
   secondary,
@@ -95,20 +93,16 @@ function RosterCard({
 
 function RosterSection({
   group,
-  index,
   onSelect,
 }: {
   group: TopGroup;
-  index: number;
   onSelect: (id: string) => void;
 }) {
   const cardVariant = CARD_VARIANT[group.variant];
 
   return (
     <section
-      className={`rounded-2xl border-[1.5px] border-ink/12 bg-paper-deep p-4 shadow-[0_3px_0_rgba(30,34,51,0.06)] sm:p-5 ${
-        TILT[index % TILT.length]
-      }`}
+      className="rounded-2xl border-[1.5px] border-ink/12 bg-paper-deep p-4 shadow-[0_3px_0_rgba(30,34,51,0.06)] sm:p-5"
     >
       <div className="flex items-center justify-between">
         <h2 className={`font-display text-xl font-bold ${HEADER_COLOR[group.variant]}`}>
@@ -302,7 +296,7 @@ export default function MembersPage() {
                 className="flex items-center gap-1.5 rounded-full bg-gold px-3 py-1.5 text-sm font-semibold text-paper hover:opacity-90"
               >
                 <UserPlus className="size-3.5" />
-                새가족 등록
+                새친구 등록
               </button>
             </div>
           }
@@ -323,7 +317,7 @@ export default function MembersPage() {
               className="animate-[rise-in_0.5s_ease-out_both]"
               style={{ animationDelay: `${210 + i * 70}ms` }}
             >
-              <RosterSection group={group} index={i} onSelect={openEditMember} />
+              <RosterSection group={group} onSelect={openEditMember} />
             </div>
           ))
         )}
