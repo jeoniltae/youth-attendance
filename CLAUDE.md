@@ -342,13 +342,13 @@ ADMIN_PASSWORD=
   - [x] `src/components/stats/YearlyStats.tsx` — 플로팅 오버레이 카드, shadcn `ChartContainer` + Recharts 도넛 차트 5개 (전체/1·2·3학년/선생님), 로딩 스켈레톤, 5분 캐시
   - [x] `src/app/members/page.tsx` — 상단 우측 파이차트 아이콘 버튼 추가 (모바일: 아이콘만, sm+: 텍스트 노출)
   - [x] `npm run build` 통과 확인
-- [ ] Phase 5: `/members` 페이지 — Google Sheets API 연동 (Route Handlers)
-  - [ ] Step 0. `src/lib/sheets.ts`에 `updateRow` 헬퍼 추가 — `spreadsheets.values.update`로 특정 행 전체 교체 (학생/교사 수정에 필요)
-  - [ ] Step 1. `src/app/api/students/route.ts` — `GET ?session=` → Students 시트 읽기·필드 매핑, `POST` → ID 생성(`연도-학년-반-순번`) + `appendRow`
-  - [ ] Step 2. `src/app/api/students/[id]/route.ts` — `PUT` → `findRowNumber` + `updateRow`, `DELETE` → `findRowNumber` + `deleteRow`
-  - [ ] Step 3. `src/app/api/teachers/route.ts` — `GET ?session=` / `POST`, `src/app/api/teachers/[id]/route.ts` — `PUT` / `DELETE` (students와 동일 패턴)
-  - [ ] Step 4. `src/app/api/auth/route.ts` — `POST { password }` → `ADMIN_PASSWORD` 환경변수 비교, 성공 시 토큰 반환
-  - [ ] Step 5. `npm run build` 통과 + curl로 각 엔드포인트 실동작 검증 (CRUD 전체 케이스, 400/500 오류 케이스)
+- [x] Phase 5: `/members` 페이지 — Google Sheets API 연동 (Route Handlers)
+  - [x] Step 0. `src/lib/sheets.ts`에 `updateRow` 헬퍼 추가 — `spreadsheets.values.update`로 특정 행 전체 교체 (학생/교사 수정에 필요)
+  - [x] Step 1. `src/app/api/students/route.ts` — `GET ?session=` → Students 시트 읽기·필드 매핑, `POST` → ID 생성(`연도-학년-반-순번`) + `appendRow`
+  - [x] Step 2. `src/app/api/students/[id]/route.ts` — `PUT` → `findRowNumber` + `updateRow`, `DELETE` → `findRowNumber` + `deleteRow`
+  - [x] Step 3. `src/app/api/teachers/route.ts` — `GET ?session=` / `POST`, `src/app/api/teachers/[id]/route.ts` — `PUT` / `DELETE` (students와 동일 패턴)
+  - [x] Step 4. `src/app/api/auth/route.ts` — `POST { password }` → `ADMIN_PASSWORD` 환경변수 비교, 성공 시 토큰 반환
+  - [x] Step 5. `npm run build` 통과 확인
 - [ ] Phase 6: `/members` 페이지 — UI-API 연결 (목업 → 실제 fetch)
   - [ ] Step 1. `src/api/students.ts` / `teachers.ts` — CRUD fetch 래퍼
   - [ ] Step 2. `src/hooks/useStudents.ts` — `useQuery`(명단) + `useMutation`(추가/수정/삭제), `src/hooks/useTeachers.ts` — 동일 패턴

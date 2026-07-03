@@ -87,6 +87,17 @@ export async function findRowNumber(
   return index === -1 ? null : index + 2;
 }
 
+// 특정 행 전체를 새 값으로 교체 (rowNumber는 1-based, 헤더 포함 절대 행 번호)
+export async function updateRow(sheetName: string, rowNumber: number, values: string[]): Promise<void> {
+  const sheets = getSheetsClient();
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${sheetName}!A${rowNumber}`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [values] },
+  });
+}
+
 // 특정 행 삭제 (rowNumber는 1-based, 헤더 포함 절대 행 번호)
 export async function deleteRow(sheetName: string, rowNumber: number): Promise<void> {
   const sheets = getSheetsClient();
