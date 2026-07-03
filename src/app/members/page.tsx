@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Plus, UserPlus } from "lucide-react";
+import { ArrowLeft, PieChart, Plus, UserPlus } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { FilterChips, type FilterState } from "@/components/attendance/FilterChips";
 import { StudentForm, type StudentDraft } from "@/components/students/StudentForm";
@@ -15,6 +15,7 @@ import {
   TEAM_ORDER,
   type TopGroup,
 } from "@/lib/group-members";
+import { YearlyStats } from "@/components/stats/YearlyStats";
 import type { Session, Student, Teacher } from "@/types";
 
 function applyFilter(groups: TopGroup[], filter: FilterState): TopGroup[] {
@@ -181,6 +182,7 @@ export default function MembersPage() {
     open: false,
     teacher: null,
   });
+  const [showStats, setShowStats] = useState(false);
 
   const sessionStudents = useMemo(
     () => students.filter((s) => s.session === session),
@@ -260,7 +262,14 @@ export default function MembersPage() {
           </p>
           <h1 className="font-display text-3xl font-bold text-ink">학생·교사 관리</h1>
         </div>
-        <div />
+        <button
+          type="button"
+          onClick={() => setShowStats(true)}
+          className="flex items-center gap-1.5 justify-self-end rounded-full border border-ink/20 px-3.5 py-2 text-sm font-medium text-ink/70 hover:border-ink/40 hover:text-ink"
+        >
+          <PieChart className="size-3.5" />
+          <span className="hidden sm:inline">1년 통계</span>
+        </button>
       </div>
 
       <div className="animate-[rise-in_0.5s_ease-out_both]" style={{ animationDelay: "70ms" }}>
@@ -340,6 +349,10 @@ export default function MembersPage() {
         onSave={handleSaveTeacher}
         onDelete={handleDeleteTeacher}
       />
+
+      {showStats && (
+        <YearlyStats session={session} onClose={() => setShowStats(false)} />
+      )}
     </main>
   );
 }

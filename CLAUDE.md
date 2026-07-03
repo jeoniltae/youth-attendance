@@ -225,51 +225,62 @@ POST /api/auth                                       → 관리자 비밀번호 
 
 ## 프로젝트 폴더 구조
 
+✅ = 구현 완료 / 🔲 = Phase 5·6 구현 예정
+
 ```
 src/
 ├── app/
-│   ├── page.tsx                    # 출석체크 메인
-│   ├── history/page.tsx            # 출석 현황
-│   ├── members/page.tsx            # 교적 관리 (관리자)
-│   ├── birthday/page.tsx           # 생일자 조회
+│   ├── page.tsx                        ✅ 출석체크 메인
+│   ├── history/page.tsx                ✅ 출석 현황
+│   ├── members/page.tsx                ✅ 교적 관리 (관리자) — 현재 목업 데이터 기반
+│   ├── birthday/page.tsx               ✅ 생일자 조회
 │   └── api/
-│       ├── attendance/route.ts
+│       ├── attendance/route.ts         ✅ 출석 조회/토글
+│       ├── roster/route.ts             ✅ 세션별 명단 조회
+│       ├── birthdays/route.ts          ✅ 생일자 조회
+│       ├── summary/route.ts            ✅ 요약 통계 (보류 중 — 미사용)
+│       ├── stats/route.ts              ✅ 1년 출석 통계
 │       ├── students/
-│       │   ├── route.ts
-│       │   └── [id]/route.ts
+│       │   ├── route.ts                🔲 학생 목록 조회(GET) / 신규 등록(POST)
+│       │   └── [id]/route.ts           🔲 학생 수정(PUT) / 삭제(DELETE)
 │       ├── teachers/
-│       │   ├── route.ts
-│       │   └── [id]/route.ts
-│       ├── birthdays/route.ts
-│       ├── summary/route.ts
-│       └── auth/route.ts
+│       │   ├── route.ts                🔲 교사 목록 조회(GET) / 신규 등록(POST)
+│       │   └── [id]/route.ts           🔲 교사 수정(PUT) / 삭제(DELETE)
+│       └── auth/route.ts               🔲 관리자 비밀번호 검증(POST)
 ├── components/
 │   ├── layout/
-│   │   └── Header.tsx              # 세션(오전/오후) 선택 + 날짜 표시
+│   │   └── Header.tsx                  ✅ 세션(오전/오후) 선택 + 날짜 표시
 │   ├── attendance/
-│   │   ├── MemberCard.tsx          # 출석 카드 (학생/교사 공통)
-│   │   ├── GradeSection.tsx        # 학년별 그룹
-│   │   └── SummaryBar.tsx          # 전체/출석/결석/출석률
+│   │   ├── MemberCard.tsx              ✅ 출석 카드 (학생/교사 공통)
+│   │   ├── GradeSection.tsx            ✅ 학년별 그룹
+│   │   └── SummaryBar.tsx              ✅ 전체/출석/결석/출석률
+│   ├── stats/
+│   │   └── YearlyStats.tsx             ✅ 1년 통계 플로팅 오버레이 (도넛 차트)
 │   ├── students/
-│   │   └── StudentForm.tsx         # 학생 추가/수정/삭제 모달 폼
+│   │   └── StudentForm.tsx             ✅ 학생 추가/수정/삭제 모달 폼
 │   ├── teachers/
-│   │   └── TeacherForm.tsx         # 교사 추가/수정/삭제 모달 폼
+│   │   └── TeacherForm.tsx             ✅ 교사 추가/수정/삭제 모달 폼
 │   └── common/
-│       ├── AdminModal.tsx          # 비밀번호 입력 모달
+│       ├── AdminModal.tsx              🔲 비밀번호 입력 모달
 │       └── LoadingOverlay.tsx
 ├── hooks/
-│   ├── useAttendance.ts            # 출석 데이터 + 30초 polling
-│   ├── useStudents.ts              # 학생 CRUD
-│   ├── useTeachers.ts              # 교사 CRUD
-│   └── useAdminAuth.ts             # 관리자 인증 상태 (sessionStorage)
-├── api/                            # fetch 함수 모음 (클라이언트 → Route Handler)
-│   ├── attendance.ts
-│   ├── students.ts
-│   └── teachers.ts
+│   ├── useAttendance.ts                ✅ 출석 데이터 + 30초 polling + Optimistic Update
+│   ├── useRoster.ts                    ✅ 학생/교사 명단 + 30초 polling
+│   ├── useBirthdays.ts                 ✅ 생일자 데이터 (polling 없음)
+│   ├── useStudents.ts                  🔲 학생 CRUD (React Query mutation)
+│   ├── useTeachers.ts                  🔲 교사 CRUD (React Query mutation)
+│   └── useAdminAuth.ts                 🔲 관리자 인증 상태 (sessionStorage)
+├── api/                                # fetch 함수 모음 (클라이언트 → Route Handler)
+│   ├── attendance.ts                   ✅
+│   ├── roster.ts                       ✅
+│   ├── birthdays.ts                    ✅
+│   ├── stats.ts                        ✅
+│   ├── students.ts                     🔲
+│   └── teachers.ts                     🔲
 ├── lib/
-│   └── sheets.ts                   # Google Sheets API v4 클라이언트
+│   └── sheets.ts                       ✅ Google Sheets API v4 클라이언트 (updateRow 추가 예정)
 └── types/
-    └── index.ts                    # 전역 타입 정의
+    └── index.ts                        ✅ 전역 타입 정의
 ```
 
 ## 비즈니스 로직 요약
@@ -307,26 +318,41 @@ ADMIN_PASSWORD=
   - [x] 출석체크 메인 (`/`)
   - [x] 출석 현황 (`/history`)
   - [x] 생일자 조회 (`/birthday`)
-  - [x] 교적 관리 (`/members`) — 관리자 전용, 학생/교사 추가·수정·삭제 모달 폼 + 학년/반/팀/새친구 필터(기존 `FilterChips`/`group-members.ts` 재사용), 로컬 state 기반 목업 CRUD(새로고침 버튼으로 mock-data 원상복구). 출석 상태 수정 기능은 보류(스크린샷에 없었고 별도 설계 필요 — 후속 작업). `/api/students`/`/api/teachers` 실연동과 비밀번호 게이트(`AdminModal`/`useAdminAuth`)는 Phase 3/4와 동일하게 후속 단계로 분리
-- [x] Phase 3: Google Sheets API 연동 (Route Handlers)
-  - [x] Step 0. 외부 설정 (Google Cloud 프로젝트/Sheets API 활성화, Service Account 키 발급, 테스트용 스프레드시트 생성·더미 데이터 입력·Service Account에 편집자 공유, `.env.local` 채우기) — Sheets API로 탭 3개/헤더 전부 일치 확인 완료
-  - [x] Step 1. `src/lib/sheets.ts`에 헬퍼 추가: `readSheet`, `appendRow`, `findRowNumber`, `deleteRow` (쓰기는 `valueInputOption: 'RAW'`, 읽기는 `valueRenderOption: 'FORMATTED_VALUE'`로 날짜 자동변환 방지) — 실제 테스트 시트로 4개 함수 전부 동작 확인 완료
-  - [x] Step 2. `src/app/api/summary/route.ts` — `GET ?date=&session=` → `{ total, attended, absent, rate }` — 실서버 curl 검증 완료 (정상/오류 케이스, 출석 1건 추가 시 rate 계산 정확성 확인)
-  - [x] Step 3. `src/app/api/birthdays/route.ts` — `GET ?session=` → `{ students, teachers }` (월 필터링/그룹핑은 Phase 4의 `groupBirthdaysByMonth`에 위임) — 실서버 curl 검증 완료 (오류 케이스, 정상 데이터 필드 매핑 확인)
-  - [x] Step 4. `src/app/api/attendance/route.ts` — `GET ?date=&session=` → `{ studentIds }`, `POST`(토글: 기록 없으면 추가, 있으면 삭제) — 실서버 curl 검증 완료 (토글 출석↔결석, 학생/교사 케이스, 오류 케이스)
-  - [x] Step 5. 공통 에러 처리 (400/500 규칙 적용), `npm run build` 통과 확인 — 3개 라우트 전부 dynamic으로 정상 빌드
-  - [x] Step 6. `.env.local` 채운 뒤 PowerShell로 각 엔드포인트 실동작 검증 (토글, 누락 파라미터 400, 날짜 셀 텍스트 저장 여부 육안 확인) — curl로 전체 케이스 검증 완료
-  - 범위 외(Phase 4 이후): UI 페이지 연결, `students`/`teachers`/`auth` 엔드포인트, `src/hooks/`, `src/api/`, React Query 연동
-- [x] Phase 4: UI-API 연결 (hooks에서 목업 → 실제 fetch로 교체)
-  - [x] Step 0. `src/app/providers.tsx` 신규(React Query `QueryClientProvider` + dev에서만 Devtools) 추가, `src/app/layout.tsx`는 `{children}`을 감싸는 한 줄만 수정 (폰트/메타데이터 불변) — `npm run build` 통과, 3개 페이지 콘솔 에러 0건·Devtools 버튼 노출 확인
-  - [x] Step 1. `src/app/api/roster/route.ts` 신규 — `GET ?session=` → `{ students, teachers }` (`birthdays/route.ts` 로직 복사+개명, 원본 미수정). `/`·`/history`가 쓸 명단 전용 엔드포인트 — `/api/birthdays`를 그대로 재사용하면 출석체크 화면이 "birthdays"를 호출하는 이름 불일치가 생기므로 분리 — curl로 `/api/birthdays`와 1:1 동일 데이터/오류 케이스 확인 완료
-  - [x] Step 2. `src/api/roster.ts`/`attendance.ts`/`birthdays.ts` 신규 — fetch+JSON+에러throw만 하는 얇은 래퍼 (`/api/summary`용은 안 만듦 — 아래 비고 참조) — 타입체크/`npm run build` 통과 (런타임 호출부는 Step 4에서 연결)
-  - [x] Step 3. `src/hooks/useRoster.ts`(30초 polling)/`useBirthdays.ts`(polling 없음)/`useAttendance.ts`(30초 polling + 토글 mutation, `onMutate`/`onError`/`onSettled` Optimistic Update, `attendedIds: Set<string>` 반환) 신규 — 타입체크/`npm run build` 통과 (런타임 호출부는 Step 4에서 연결)
-  - [x] Step 4a. `src/app/birthday/page.tsx` 연결 — `useBirthdays(session)`로 교체, 서버가 이미 session 필터링하므로 클라이언트 측 중복 필터 제거 — `npm run build` 통과, 브라우저 검증 완료 (실데이터 표시, 세션 전환, 폴링 없음 확인, 콘솔 에러 0건)
-  - [x] Step 4b. `src/app/history/page.tsx` 연결 — `useRoster`+`useAttendance`로 교체, `total`/`attended`는 클라이언트에서 직접 계산 — `npm run build` 통과, 브라우저 검증 완료 (출석 토글이 요약/차트에 정확히 반영, 날짜 이동 시 재요청, 콘솔 에러 0건)
-  - [x] Step 4c. `src/app/page.tsx` 연결 — `useRoster`+`useAttendance`로 교체, 이 페이지에 없던 `date`(오늘 고정값) 개념 추가, `toggleMember`를 roster 룩업 기반 `toggle()` 호출로 재작성 (가장 복잡, 마지막) — `npm run build` 통과, 브라우저 검증 완료 (낙관적 업데이트 즉시 반영, 새로고침 후 유지, 강제 실패 시 자동 롤백, 30초 폴링 동작, 콘솔 에러 0건)
-  - [x] Step 5. `grep -r "mock-data" src/`로 3개 페이지 밖 import 없는지 확인 (파일 자체는 보류 중인 `/members` 목업용으로 유지) — 0건 확인, Phase 4 전체 완료
-  - 비고: `/api/summary`는 Phase 4에서 쓰지 않음 — `/`·`/history` 모두 어차피 가져오는 roster+출석 데이터로 똑같은 공식을 클라이언트에서 계산하면 충분, 중복 폴링 요청을 만들지 않기로 결정. 엔드포인트 자체는 삭제하지 않고 보류
-  - 세부 계획: `C:\Users\전일태\.claude\plans\atomic-mapping-flamingo.md`
-  - 범위 외: `students`/`teachers`/`auth` 엔드포인트, `/members` 페이지, `/api/summary` 연동, `docs/coding-guidelines.md` 수정
-- [ ] Phase 5: Vercel 배포 및 검증
+  - [x] 교적 관리 (`/members`) — 관리자 전용, 학생/교사 추가·수정·삭제 모달 폼 + 학년/반/팀/새친구 필터(기존 `FilterChips`/`group-members.ts` 재사용), 로컬 state 기반 목업 CRUD. 출석 상태 수정·비밀번호 게이트·실 API 연동은 Phase 5/6에서 처리
+- [x] Phase 3: Google Sheets API 연동 — 출석/생일/통계 Route Handlers
+  - [x] Step 0. 외부 설정 (Google Cloud 프로젝트/Sheets API 활성화, Service Account 키 발급, 테스트용 스프레드시트 생성·더미 데이터 입력, `.env.local` 채우기) — Sheets API로 탭 3개/헤더 전부 일치 확인 완료
+  - [x] Step 1. `src/lib/sheets.ts`에 헬퍼 추가: `readSheet`, `appendRow`, `findRowNumber`, `deleteRow` (쓰기는 `valueInputOption: 'RAW'`, 읽기는 `valueRenderOption: 'FORMATTED_VALUE'`로 날짜 자동변환 방지) — 4개 함수 전부 동작 확인 완료
+  - [x] Step 2. `src/app/api/summary/route.ts` — `GET ?date=&session=` → `{ total, attended, absent, rate }` — curl 검증 완료
+  - [x] Step 3. `src/app/api/birthdays/route.ts` — `GET ?session=` → `{ students, teachers }` — curl 검증 완료
+  - [x] Step 4. `src/app/api/attendance/route.ts` — `GET ?date=&session=` → `{ studentIds }`, `POST`(토글) — curl 검증 완료 (토글 출석↔결석, 학생/교사 케이스)
+  - [x] Step 5. `src/app/api/roster/route.ts` — `GET ?session=` → `{ students, teachers }` (출석체크·출석현황 전용 명단 엔드포인트, birthdays와 별도 분리) — curl 검증 완료
+  - [x] Step 6. 공통 에러 처리 (400/500 규칙 적용), `npm run build` 통과 확인
+- [x] Phase 4: UI-API 연결 — 출석/생일/현황 3개 페이지 (목업 → 실제 fetch)
+  - [x] Step 0. `src/app/providers.tsx` 신규(React Query `QueryClientProvider`) 추가, `src/app/layout.tsx` 한 줄 수정 — `npm run build` 통과
+  - [x] Step 1. `src/api/roster.ts` / `attendance.ts` / `birthdays.ts` / `stats.ts` 신규 — fetch+JSON+에러throw 얇은 래퍼
+  - [x] Step 2. `src/hooks/useRoster.ts`(30초 polling) / `useBirthdays.ts` / `useAttendance.ts`(Optimistic Update, `onMutate`/`onError`/`onSettled`) 신규
+  - [x] Step 3a. `src/app/birthday/page.tsx` 실연동 — `useBirthdays` 교체, 브라우저 검증 완료
+  - [x] Step 3b. `src/app/history/page.tsx` 실연동 — `useRoster`+`useAttendance` 교체, 브라우저 검증 완료
+  - [x] Step 3c. `src/app/page.tsx` 실연동 — `useRoster`+`useAttendance` 교체, Optimistic Update·롤백·30초 폴링 브라우저 검증 완료
+  - [x] Step 4. `grep -r "mock-data" src/` 0건 확인 (파일 자체는 `/members` 목업용으로 보류)
+  - 비고: `/api/summary`는 미사용 — roster+출석 데이터로 클라이언트에서 직접 계산, 중복 폴링 방지. 엔드포인트는 삭제하지 않고 보류
+- [x] 부가 기능: 1년 출석 통계 (`/members` 화면)
+  - [x] `src/app/api/stats/route.ts` — `GET ?session=` → 최근 1년 학년별·교사별 출석률 집계 (Attendance+Students+Teachers 시트 병렬 읽기)
+  - [x] `src/api/stats.ts` — fetch 래퍼
+  - [x] `src/components/stats/YearlyStats.tsx` — 플로팅 오버레이 카드, shadcn `ChartContainer` + Recharts 도넛 차트 5개 (전체/1·2·3학년/선생님), 로딩 스켈레톤, 5분 캐시
+  - [x] `src/app/members/page.tsx` — 상단 우측 파이차트 아이콘 버튼 추가 (모바일: 아이콘만, sm+: 텍스트 노출)
+  - [x] `npm run build` 통과 확인
+- [ ] Phase 5: `/members` 페이지 — Google Sheets API 연동 (Route Handlers)
+  - [ ] Step 0. `src/lib/sheets.ts`에 `updateRow` 헬퍼 추가 — `spreadsheets.values.update`로 특정 행 전체 교체 (학생/교사 수정에 필요)
+  - [ ] Step 1. `src/app/api/students/route.ts` — `GET ?session=` → Students 시트 읽기·필드 매핑, `POST` → ID 생성(`연도-학년-반-순번`) + `appendRow`
+  - [ ] Step 2. `src/app/api/students/[id]/route.ts` — `PUT` → `findRowNumber` + `updateRow`, `DELETE` → `findRowNumber` + `deleteRow`
+  - [ ] Step 3. `src/app/api/teachers/route.ts` — `GET ?session=` / `POST`, `src/app/api/teachers/[id]/route.ts` — `PUT` / `DELETE` (students와 동일 패턴)
+  - [ ] Step 4. `src/app/api/auth/route.ts` — `POST { password }` → `ADMIN_PASSWORD` 환경변수 비교, 성공 시 토큰 반환
+  - [ ] Step 5. `npm run build` 통과 + curl로 각 엔드포인트 실동작 검증 (CRUD 전체 케이스, 400/500 오류 케이스)
+- [ ] Phase 6: `/members` 페이지 — UI-API 연결 (목업 → 실제 fetch)
+  - [ ] Step 1. `src/api/students.ts` / `teachers.ts` — CRUD fetch 래퍼
+  - [ ] Step 2. `src/hooks/useStudents.ts` — `useQuery`(명단) + `useMutation`(추가/수정/삭제), `src/hooks/useTeachers.ts` — 동일 패턴
+  - [ ] Step 3. `src/hooks/useAdminAuth.ts` — `sessionStorage` 기반 토큰 저장·검증, `src/components/common/AdminModal.tsx` — 비밀번호 입력 모달 (`POST /api/auth` 호출)
+  - [ ] Step 4. `src/app/members/page.tsx` 실연동 — 목업 state → `useStudents`/`useTeachers`로 교체, 비밀번호 게이트(`useAdminAuth` + `AdminModal`) 적용
+  - [ ] Step 5. `src/lib/mock-data.ts` `/members` 의존 제거 후 파일 삭제, `npm run build` 통과 + 브라우저 검증 (CRUD 전체 플로우, 비밀번호 게이트, 토큰 만료)
+- [ ] Phase 7: Vercel 배포 및 검증
