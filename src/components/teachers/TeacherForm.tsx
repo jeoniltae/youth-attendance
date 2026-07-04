@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { getTodayInSeoul, toInputDateValue } from "@/lib/date";
 import { TEAM_ORDER } from "@/lib/group-members";
+import { toggleAttendance } from "@/api/attendance";
 import type { Session, Teacher } from "@/types";
 
 export type TeacherDraft = Omit<Teacher, "id">;
@@ -19,8 +20,8 @@ interface TeacherFormProps {
   session: Session;
   /** null이면 신규 등록, 값이 있으면 수정 모드 */
   teacher: Teacher | null;
-  onSave: (draft: TeacherDraft) => void;
-  onDelete?: (id: string) => void;
+  onSave: (draft: TeacherDraft) => Promise<void>;
+  onDelete?: (id: string) => Promise<void>;
 }
 
 function memberStats(id: string) {
@@ -92,6 +93,7 @@ export function TeacherForm({
     teacher ? { ...teacher } : emptyDraft(session),
   );
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [attendDate, setAttendDate] = useState(() => toInputDateValue(getTodayInSeoul()));
   const [attendSession, setAttendSession] = useState<Session>(session);
   const [attendStatus, setAttendStatus] = useState<"idle" | "added" | "cancelled">("idle");
@@ -100,6 +102,7 @@ export function TeacherForm({
     if (open) {
       setDraft(teacher ? { ...teacher } : emptyDraft(session));
       setConfirmDelete(false);
+      setIsSaving(false);
       setAttendSession(session);
       setAttendStatus("idle");
     }
@@ -109,19 +112,54 @@ export function TeacherForm({
     setDraft((prev) => ({ ...prev, [key]: value }));
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!draft.name.trim()) return;
-    onSave(draft);
-    onOpenChange(false);
+    if (!draft.name.trim() || isSaving) return;
+    setIsSaving(true);
+    try {
+      await onSave(draft);
+      onOpenChange(false);
+    } catch {
+      // onSave 쪽에서 alert 처리
+    } finally {
+      setIsSaving(false);
+    }
   }
 
-  function handleAddAttend() {
+  async function handleAddAttend() {
+    if (attendStatus !== "idle" || !teacher) return;
+    try {
+      await toggleAttendance({
+        date: attendDate,
+        session: attendSession,
+        grade: "",
+        class: "",
+        studentId: teacher.id,
+        name: teacher.name,
+        type: "teacher",
+      });
+    } catch {
+      // 실패해도 UI 표시는 동일하게
+    }
     setAttendStatus("added");
     setTimeout(() => setAttendStatus("idle"), 1500);
   }
 
-  function handleCancelAttend() {
+  async function handleCancelAttend() {
+    if (attendStatus !== "idle" || !teacher) return;
+    try {
+      await toggleAttendance({
+        date: attendDate,
+        session: attendSession,
+        grade: "",
+        class: "",
+        studentId: teacher.id,
+        name: teacher.name,
+        type: "teacher",
+      });
+    } catch {
+      // 실패해도 UI 표시는 동일하게
+    }
     setAttendStatus("cancelled");
     setTimeout(() => setAttendStatus("idle"), 1500);
   }
@@ -271,11 +309,17 @@ export function TeacherForm({
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      onDelete(teacher.id);
-                      onOpenChange(false);
+                    disabled={isSaving}
+                    onClick={async () => {
+                      setIsSaving(true);
+                      try {
+                        await onDelete(teacher.id);
+                        onOpenChange(false);
+                      } catch {
+                        setIsSaving(false);
+                      }
                     }}
-                    className="rounded-full bg-celebrate px-3 py-1 font-semibold text-paper hover:opacity-90"
+                    className="rounded-full bg-celebrate px-3 py-1 font-semibold text-paper hover:opacity-90 disabled:opacity-40"
                   >
                     삭제
                   </button>
@@ -303,9 +347,10 @@ export function TeacherForm({
               </button>
               <button
                 type="submit"
-                className="rounded-full bg-teal px-4 py-1.5 text-sm font-semibold text-paper hover:opacity-90"
+                disabled={isSaving}
+                className="rounded-full bg-teal px-4 py-1.5 text-sm font-semibold text-paper hover:opacity-90 disabled:opacity-40"
               >
-                {teacher ? "수정 완료" : "등록"}
+                {isSaving ? "저장 중…" : teacher ? "수정 완료" : "등록"}
               </button>
             </div>
           </div>

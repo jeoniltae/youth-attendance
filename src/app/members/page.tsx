@@ -1,5 +1,5 @@
 "use client";
-// 교적 관리 메인 페이지 — 관리자 전용, 학생/교사 정보 추가·수정·삭제 (목업 데이터 기반, 로컬 상태만 변경)
+// 교적 관리 메인 페이지 — 관리자 전용, 학생/교사 정보 추가·수정·삭제
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
@@ -8,14 +8,16 @@ import { Header } from "@/components/layout/Header";
 import { FilterChips, type FilterState } from "@/components/attendance/FilterChips";
 import { StudentForm, type StudentDraft } from "@/components/students/StudentForm";
 import { TeacherForm, type TeacherDraft } from "@/components/teachers/TeacherForm";
-import { mockStudents, mockTeachers } from "@/lib/mock-data";
+import { AdminModal } from "@/components/common/AdminModal";
 import {
   groupStudentsAndTeachers,
   countMembers,
-  TEAM_ORDER,
   type TopGroup,
 } from "@/lib/group-members";
 import { YearlyStats } from "@/components/stats/YearlyStats";
+import { useStudents } from "@/hooks/useStudents";
+import { useTeachers } from "@/hooks/useTeachers";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import type { Session, Student, Teacher } from "@/types";
 
 function applyFilter(groups: TopGroup[], filter: FilterState): TopGroup[] {
@@ -29,26 +31,6 @@ function applyFilter(groups: TopGroup[], filter: FilterState): TopGroup[] {
       ...g,
       subGroups: g.subGroups?.filter((sg) => sg.key === filter.subKey),
     }));
-}
-
-// 레거시 GAS generateStudentId 규칙(연도-학년-반-순번 3자리, 그룹 내 최대 순번 + 1)과 동일
-function nextStudentId(students: Student[], grade: string, klass: string): string {
-  const year = new Date().getFullYear();
-  const classKey = grade === "새친구" ? "0" : klass;
-  const prefix = `${year}-${grade}-${classKey}-`;
-  const maxSeq = students.reduce((max, s) => {
-    if (!s.id.startsWith(prefix)) return max;
-    const seq = Number(s.id.slice(prefix.length));
-    return Number.isFinite(seq) && seq > max ? seq : max;
-  }, 0);
-  return `${prefix}${String(maxSeq + 1).padStart(3, "0")}`;
-}
-
-// mock-data.ts의 기존 교사 ID 컨벤션(T-세션-팀순번-순번)을 그대로 따름
-function nextTeacherId(teachers: Teacher[], session: Session, team: string): string {
-  const teamIdx = Math.max(TEAM_ORDER.indexOf(team), 0);
-  const sameGroup = teachers.filter((t) => t.session === session && t.team === team);
-  return `T-${session}-${teamIdx}-${sameGroup.length + 1}`;
 }
 
 const HEADER_COLOR: Record<TopGroup["variant"], string> = {
@@ -102,9 +84,7 @@ function RosterSection({
   const cardVariant = CARD_VARIANT[group.variant];
 
   return (
-    <section
-      className="rounded-2xl border-[1.5px] border-ink/12 bg-paper-deep p-4 shadow-[0_3px_0_rgba(30,34,51,0.06)] sm:p-5"
-    >
+    <section className="rounded-2xl border-[1.5px] border-ink/12 bg-paper-deep p-4 shadow-[0_3px_0_rgba(30,34,51,0.06)] sm:p-5">
       <div className="flex items-center justify-between">
         <h2 className={`font-display text-xl font-bold ${HEADER_COLOR[group.variant]}`}>
           {group.label}
@@ -120,9 +100,7 @@ function RosterSection({
             <div key={sub.key}>
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-ink/70">{sub.label}</h3>
-                <span className="text-xs tabular-nums text-ink/40">
-                  {sub.members.length}명
-                </span>
+                <span className="text-xs tabular-nums text-ink/40">{sub.members.length}명</span>
               </div>
               <div className="mt-2 flex flex-wrap gap-2.5">
                 {sub.members.map((m) => (
@@ -170,10 +148,7 @@ interface TeacherModalState {
 
 export default function MembersPage() {
   const [session, setSession] = useState<Session>("오전");
-  const [students, setStudents] = useState<Student[]>(() => mockStudents.map((s) => ({ ...s })));
-  const [teachers, setTeachers] = useState<Teacher[]>(() => mockTeachers.map((t) => ({ ...t })));
   const [filter, setFilter] = useState<FilterState>({ level: "all" });
-
   const [studentModal, setStudentModal] = useState<StudentModalState>({
     open: false,
     student: null,
@@ -184,18 +159,13 @@ export default function MembersPage() {
   });
   const [showStats, setShowStats] = useState(false);
 
-  const sessionStudents = useMemo(
-    () => students.filter((s) => s.session === session),
-    [students, session],
-  );
-  const sessionTeachers = useMemo(
-    () => teachers.filter((t) => t.session === session),
-    [teachers, session],
-  );
+  const { isAuthenticated, checked, login } = useAdminAuth();
+  const studentsHook = useStudents(session);
+  const teachersHook = useTeachers(session);
 
   const groups = useMemo(
-    () => groupStudentsAndTeachers(sessionStudents, sessionTeachers),
-    [sessionStudents, sessionTeachers],
+    () => groupStudentsAndTeachers(studentsHook.students, teachersHook.teachers),
+    [studentsHook.students, teachersHook.teachers],
   );
   const visibleGroups = useMemo(() => applyFilter(groups, filter), [groups, filter]);
   const total = useMemo(
@@ -203,51 +173,53 @@ export default function MembersPage() {
     [groups],
   );
 
-
-  function handleSaveStudent(draft: StudentDraft) {
-    setStudents((prev) => {
-      if (studentModal.student) {
-        const id = studentModal.student.id;
-        return prev.map((s) => (s.id === id ? { ...s, ...draft } : s));
-      }
-      const id = nextStudentId(prev, draft.grade, draft.class);
-      return [...prev, { ...draft, id, attendanceRate: "" }];
-    });
+  async function handleSaveStudent(draft: StudentDraft) {
+    if (studentModal.student) {
+      await studentsHook.update({
+        id: studentModal.student.id,
+        attendanceRate: studentModal.student.attendanceRate,
+        ...draft,
+      });
+    } else {
+      await studentsHook.create({ ...draft, attendanceRate: "" });
+    }
   }
 
-  function handleDeleteStudent(id: string) {
-    setStudents((prev) => prev.filter((s) => s.id !== id));
+  async function handleDeleteStudent(id: string) {
+    await studentsHook.remove(id);
   }
 
-  function handleSaveTeacher(draft: TeacherDraft) {
-    setTeachers((prev) => {
-      if (teacherModal.teacher) {
-        const id = teacherModal.teacher.id;
-        return prev.map((t) => (t.id === id ? { ...t, ...draft } : t));
-      }
-      const id = nextTeacherId(prev, draft.session, draft.team);
-      return [...prev, { ...draft, id }];
-    });
+  async function handleSaveTeacher(draft: TeacherDraft) {
+    if (teacherModal.teacher) {
+      await teachersHook.update({ id: teacherModal.teacher.id, ...draft });
+    } else {
+      await teachersHook.create(draft);
+    }
   }
 
-  function handleDeleteTeacher(id: string) {
-    setTeachers((prev) => prev.filter((t) => t.id !== id));
+  async function handleDeleteTeacher(id: string) {
+    await teachersHook.remove(id);
   }
 
   function openEditMember(memberId: string) {
-    const student = sessionStudents.find((s) => s.id === memberId);
+    const student = studentsHook.students.find((s) => s.id === memberId);
     if (student) {
       setStudentModal({ open: true, student });
       return;
     }
-    const teacher = sessionTeachers.find((t) => t.id === memberId);
+    const teacher = teachersHook.teachers.find((t) => t.id === memberId);
     if (teacher) {
       setTeacherModal({ open: true, teacher });
     }
   }
 
+  // sessionStorage 확인 전 — 빈 화면으로 flash 방지
+  if (!checked) return null;
+
   return (
     <main className="mx-auto flex w-full max-w-[1368px] flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8">
+      {!isAuthenticated && <AdminModal onLogin={login} />}
+
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 animate-[rise-in_0.5s_ease-out_both]">
         <Link
           href="/"
@@ -317,7 +289,15 @@ export default function MembersPage() {
       </div>
 
       <div className="flex flex-col gap-4">
-        {total === 0 ? (
+        {studentsHook.isLoading || teachersHook.isLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="size-8 animate-spin rounded-full border-2 border-ink/15 border-t-ink/60" />
+          </div>
+        ) : studentsHook.isError || teachersHook.isError ? (
+          <p className="py-12 text-center text-sm text-celebrate">
+            데이터를 불러오지 못했습니다. 새로고침 후 다시 시도해주세요.
+          </p>
+        ) : total === 0 ? (
           <p className="py-12 text-center text-ink/40">등록된 인원이 없습니다</p>
         ) : (
           visibleGroups.map((group, i) => (
@@ -350,9 +330,7 @@ export default function MembersPage() {
         onDelete={handleDeleteTeacher}
       />
 
-      {showStats && (
-        <YearlyStats session={session} onClose={() => setShowStats(false)} />
-      )}
+      {showStats && <YearlyStats session={session} onClose={() => setShowStats(false)} />}
     </main>
   );
 }

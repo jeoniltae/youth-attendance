@@ -225,62 +225,69 @@ POST /api/auth                                       → 관리자 비밀번호 
 
 ## 프로젝트 폴더 구조
 
-✅ = 구현 완료 / 🔲 = Phase 5·6 구현 예정
-
 ```
 src/
 ├── app/
 │   ├── page.tsx                        ✅ 출석체크 메인
 │   ├── history/page.tsx                ✅ 출석 현황
-│   ├── members/page.tsx                ✅ 교적 관리 (관리자) — 현재 목업 데이터 기반
+│   ├── members/page.tsx                ✅ 교적 관리 (관리자) — Google Sheets 실연동, 비밀번호 게이트
 │   ├── birthday/page.tsx               ✅ 생일자 조회
+│   ├── providers.tsx                   ✅ React Query QueryClientProvider
+│   ├── layout.tsx                      ✅ 루트 레이아웃
 │   └── api/
-│       ├── attendance/route.ts         ✅ 출석 조회/토글
-│       ├── roster/route.ts             ✅ 세션별 명단 조회
-│       ├── birthdays/route.ts          ✅ 생일자 조회
-│       ├── summary/route.ts            ✅ 요약 통계 (보류 중 — 미사용)
-│       ├── stats/route.ts              ✅ 1년 출석 통계
+│       ├── attendance/route.ts         ✅ 출석 조회(GET) / 토글(POST)
+│       ├── roster/route.ts             ✅ 세션별 학생·교사 명단 조회(GET)
+│       ├── birthdays/route.ts          ✅ 월별 생일자 조회(GET)
+│       ├── summary/route.ts            ✅ 요약 통계(GET) — 미사용 보류
+│       ├── stats/route.ts              ✅ 1년 출석 통계(GET)
 │       ├── students/
-│       │   ├── route.ts                🔲 학생 목록 조회(GET) / 신규 등록(POST)
-│       │   └── [id]/route.ts           🔲 학생 수정(PUT) / 삭제(DELETE)
+│       │   ├── route.ts                ✅ 학생 목록 조회(GET) / 신규 등록(POST)
+│       │   └── [id]/route.ts           ✅ 학생 수정(PUT) / 삭제(DELETE)
 │       ├── teachers/
-│       │   ├── route.ts                🔲 교사 목록 조회(GET) / 신규 등록(POST)
-│       │   └── [id]/route.ts           🔲 교사 수정(PUT) / 삭제(DELETE)
-│       └── auth/route.ts               🔲 관리자 비밀번호 검증(POST)
+│       │   ├── route.ts                ✅ 교사 목록 조회(GET) / 신규 등록(POST)
+│       │   └── [id]/route.ts           ✅ 교사 수정(PUT) / 삭제(DELETE)
+│       └── auth/route.ts               ✅ 관리자 비밀번호 검증(POST)
 ├── components/
 │   ├── layout/
 │   │   └── Header.tsx                  ✅ 세션(오전/오후) 선택 + 날짜 표시
 │   ├── attendance/
 │   │   ├── MemberCard.tsx              ✅ 출석 카드 (학생/교사 공통)
+│   │   ├── FilterChips.tsx             ✅ 학년·반·팀·새친구 필터
 │   │   ├── GradeSection.tsx            ✅ 학년별 그룹
 │   │   └── SummaryBar.tsx              ✅ 전체/출석/결석/출석률
+│   ├── history/
+│   │   ├── AttendanceListModal.tsx     ✅ 출석 현황 상세 모달
+│   │   └── GroupAttendanceChart.tsx    ✅ 그룹별 출석 차트
 │   ├── stats/
 │   │   └── YearlyStats.tsx             ✅ 1년 통계 플로팅 오버레이 (도넛 차트)
 │   ├── students/
-│   │   └── StudentForm.tsx             ✅ 학생 추가/수정/삭제 모달 폼
+│   │   └── StudentForm.tsx             ✅ 학생 추가/수정/삭제 모달 폼 (출석 수정 포함)
 │   ├── teachers/
-│   │   └── TeacherForm.tsx             ✅ 교사 추가/수정/삭제 모달 폼
+│   │   └── TeacherForm.tsx             ✅ 교사 추가/수정/삭제 모달 폼 (출석 수정 포함)
 │   └── common/
-│       ├── AdminModal.tsx              🔲 비밀번호 입력 모달
-│       └── LoadingOverlay.tsx
+│       └── AdminModal.tsx              ✅ 비밀번호 입력 모달 (인증 게이트)
 ├── hooks/
 │   ├── useAttendance.ts                ✅ 출석 데이터 + 30초 polling + Optimistic Update
 │   ├── useRoster.ts                    ✅ 학생/교사 명단 + 30초 polling
 │   ├── useBirthdays.ts                 ✅ 생일자 데이터 (polling 없음)
-│   ├── useStudents.ts                  🔲 학생 CRUD (React Query mutation)
-│   ├── useTeachers.ts                  🔲 교사 CRUD (React Query mutation)
-│   └── useAdminAuth.ts                 🔲 관리자 인증 상태 (sessionStorage)
+│   ├── useStudents.ts                  ✅ 학생 CRUD (useQuery + useMutation)
+│   ├── useTeachers.ts                  ✅ 교사 CRUD (useQuery + useMutation)
+│   └── useAdminAuth.ts                 ✅ 관리자 인증 상태 (sessionStorage)
 ├── api/                                # fetch 함수 모음 (클라이언트 → Route Handler)
 │   ├── attendance.ts                   ✅
 │   ├── roster.ts                       ✅
 │   ├── birthdays.ts                    ✅
 │   ├── stats.ts                        ✅
-│   ├── students.ts                     🔲
-│   └── teachers.ts                     🔲
+│   ├── students.ts                     ✅
+│   └── teachers.ts                     ✅
 ├── lib/
-│   └── sheets.ts                       ✅ Google Sheets API v4 클라이언트 (updateRow 추가 예정)
+│   ├── sheets.ts                       ✅ Google Sheets API v4 클라이언트 (readSheet / appendRow / findRowNumber / updateRow / deleteRow)
+│   ├── group-members.ts                ✅ 학생·교사 그룹핑 유틸 (학년→반→이름 정렬)
+│   ├── date.ts                         ✅ 한국 시간 기준 날짜 유틸
+│   ├── birthdays.ts                    ✅ 생일 계산 유틸
+│   └── utils.ts                        ✅ Tailwind clsx 유틸
 └── types/
-    └── index.ts                        ✅ 전역 타입 정의
+    └── index.ts                        ✅ 전역 타입 정의 (Session / MemberType / Student / Teacher / AttendanceRecord)
 ```
 
 ## 비즈니스 로직 요약
@@ -349,10 +356,10 @@ ADMIN_PASSWORD=
   - [x] Step 3. `src/app/api/teachers/route.ts` — `GET ?session=` / `POST`, `src/app/api/teachers/[id]/route.ts` — `PUT` / `DELETE` (students와 동일 패턴)
   - [x] Step 4. `src/app/api/auth/route.ts` — `POST { password }` → `ADMIN_PASSWORD` 환경변수 비교, 성공 시 토큰 반환
   - [x] Step 5. `npm run build` 통과 확인
-- [ ] Phase 6: `/members` 페이지 — UI-API 연결 (목업 → 실제 fetch)
-  - [ ] Step 1. `src/api/students.ts` / `teachers.ts` — CRUD fetch 래퍼
-  - [ ] Step 2. `src/hooks/useStudents.ts` — `useQuery`(명단) + `useMutation`(추가/수정/삭제), `src/hooks/useTeachers.ts` — 동일 패턴
-  - [ ] Step 3. `src/hooks/useAdminAuth.ts` — `sessionStorage` 기반 토큰 저장·검증, `src/components/common/AdminModal.tsx` — 비밀번호 입력 모달 (`POST /api/auth` 호출)
-  - [ ] Step 4. `src/app/members/page.tsx` 실연동 — 목업 state → `useStudents`/`useTeachers`로 교체, 비밀번호 게이트(`useAdminAuth` + `AdminModal`) 적용
-  - [ ] Step 5. `src/lib/mock-data.ts` `/members` 의존 제거 후 파일 삭제, `npm run build` 통과 + 브라우저 검증 (CRUD 전체 플로우, 비밀번호 게이트, 토큰 만료)
+- [x] Phase 6: `/members` 페이지 — UI-API 연결 (목업 → 실제 fetch)
+  - [x] Step 1. `src/api/students.ts` / `teachers.ts` — CRUD fetch 래퍼
+  - [x] Step 2. `src/hooks/useStudents.ts` — `useQuery`(명단) + `useMutation`(추가/수정/삭제), `src/hooks/useTeachers.ts` — 동일 패턴
+  - [x] Step 3. `src/hooks/useAdminAuth.ts` — `sessionStorage` 기반 토큰 저장·검증, `src/components/common/AdminModal.tsx` — 비밀번호 입력 모달 (`POST /api/auth` 호출)
+  - [x] Step 4. `src/app/members/page.tsx` 실연동 — 목업 state → `useStudents`/`useTeachers`로 교체, 비밀번호 게이트(`useAdminAuth` + `AdminModal`) 적용
+  - [x] Step 5. `src/lib/mock-data.ts` 파일 삭제, `npm run build` 통과 확인
 - [ ] Phase 7: Vercel 배포 및 검증

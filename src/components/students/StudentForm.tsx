@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getTodayInSeoul, toInputDateValue } from "@/lib/date";
+import { toggleAttendance } from "@/api/attendance";
 import type { Session, Student } from "@/types";
 
 export type StudentDraft = Omit<Student, "id" | "attendanceRate">;
@@ -20,8 +21,8 @@ interface StudentFormProps {
   student: Student | null;
   /** 신규 등록 시 미리 채워둘 학년 (예: 새친구 등록 버튼에서 "새친구" 고정) */
   defaultGrade?: string;
-  onSave: (draft: StudentDraft) => void;
-  onDelete?: (id: string) => void;
+  onSave: (draft: StudentDraft) => Promise<void>;
+  onDelete?: (id: string) => Promise<void>;
 }
 
 const GRADE_OPTIONS = ["1", "2", "3", "새친구"];
@@ -106,6 +107,7 @@ export function StudentForm({
       : emptyDraft(session, defaultGrade ?? "1"),
   );
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [attendDate, setAttendDate] = useState(() => toInputDateValue(getTodayInSeoul()));
   const [attendSession, setAttendSession] = useState<Session>(session);
   const [attendStatus, setAttendStatus] = useState<"idle" | "added" | "cancelled">("idle");
@@ -114,6 +116,7 @@ export function StudentForm({
     if (open) {
       setDraft(student ? { ...student } : emptyDraft(session, defaultGrade ?? "1"));
       setConfirmDelete(false);
+      setIsSaving(false);
       setAttendSession(session);
       setAttendStatus("idle");
     }
@@ -123,19 +126,54 @@ export function StudentForm({
     setDraft((prev) => ({ ...prev, [key]: value }));
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!draft.name.trim()) return;
-    onSave(draft);
-    onOpenChange(false);
+    if (!draft.name.trim() || isSaving) return;
+    setIsSaving(true);
+    try {
+      await onSave(draft);
+      onOpenChange(false);
+    } catch {
+      // onSave 쪽에서 alert 처리
+    } finally {
+      setIsSaving(false);
+    }
   }
 
-  function handleAddAttend() {
+  async function handleAddAttend() {
+    if (attendStatus !== "idle" || !student) return;
+    try {
+      await toggleAttendance({
+        date: attendDate,
+        session: attendSession,
+        grade: student.grade,
+        class: student.class,
+        studentId: student.id,
+        name: student.name,
+        type: "student",
+      });
+    } catch {
+      // 실패해도 UI 표시는 동일하게
+    }
     setAttendStatus("added");
     setTimeout(() => setAttendStatus("idle"), 1500);
   }
 
-  function handleCancelAttend() {
+  async function handleCancelAttend() {
+    if (attendStatus !== "idle" || !student) return;
+    try {
+      await toggleAttendance({
+        date: attendDate,
+        session: attendSession,
+        grade: student.grade,
+        class: student.class,
+        studentId: student.id,
+        name: student.name,
+        type: "student",
+      });
+    } catch {
+      // 실패해도 UI 표시는 동일하게
+    }
     setAttendStatus("cancelled");
     setTimeout(() => setAttendStatus("idle"), 1500);
   }
@@ -366,11 +404,17 @@ export function StudentForm({
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      onDelete(student.id);
-                      onOpenChange(false);
+                    disabled={isSaving}
+                    onClick={async () => {
+                      setIsSaving(true);
+                      try {
+                        await onDelete(student.id);
+                        onOpenChange(false);
+                      } catch {
+                        setIsSaving(false);
+                      }
                     }}
-                    className="rounded-full bg-celebrate px-3 py-1 font-semibold text-paper hover:opacity-90"
+                    className="rounded-full bg-celebrate px-3 py-1 font-semibold text-paper hover:opacity-90 disabled:opacity-40"
                   >
                     삭제
                   </button>
@@ -398,9 +442,10 @@ export function StudentForm({
               </button>
               <button
                 type="submit"
-                className="rounded-full bg-ink px-4 py-1.5 text-sm font-semibold text-paper hover:bg-ink/85"
+                disabled={isSaving}
+                className="rounded-full bg-ink px-4 py-1.5 text-sm font-semibold text-paper hover:bg-ink/85 disabled:opacity-40"
               >
-                {student ? "수정 완료" : "등록"}
+                {isSaving ? "저장 중…" : student ? "수정 완료" : "등록"}
               </button>
             </div>
           </div>
