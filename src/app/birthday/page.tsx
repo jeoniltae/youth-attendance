@@ -20,6 +20,7 @@ import {
   Sparkles,
   Star,
 } from "lucide-react";
+import { Skeleton } from "@/components/common/Skeleton";
 import { useBirthdays } from "@/hooks/useBirthdays";
 import { groupBirthdaysByMonth, type BirthdayGroup } from "@/lib/birthdays";
 import { getTodayInSeoul } from "@/lib/date";
@@ -409,7 +410,18 @@ export default function BirthdayPage() {
           </span>
 
           {isLoading ? (
-            <p className="py-12 text-center text-ink/40">불러오는 중…</p>
+            <div className="flex flex-col gap-6">
+              {[0, 1].map((group) => (
+                <div key={group}>
+                  <Skeleton className="h-7 w-16 rounded-full" />
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {["w-24", "w-20", "w-28", "w-20", "w-24"].map((width, i) => (
+                      <Skeleton key={i} className={`h-9 rounded-full ${width}`} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : isError ? (
             <p className="py-12 text-center text-ink/40">
               생일자 명단을 불러오지 못했습니다

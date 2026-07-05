@@ -11,6 +11,7 @@ import {
   type FilterState,
 } from "@/components/attendance/FilterChips";
 import { GradeSection } from "@/components/attendance/GradeSection";
+import { GradeSectionSkeleton } from "@/components/attendance/GradeSectionSkeleton";
 import { useRoster } from "@/hooks/useRoster";
 import { useAttendance } from "@/hooks/useAttendance";
 import { getTodayInSeoul, toInputDateValue } from "@/lib/date";
@@ -147,7 +148,7 @@ export default function Home() {
         className="animate-[rise-in_0.5s_ease-out_both]"
         style={{ animationDelay: "140ms" }}
       >
-        <SummaryBar total={total} attended={attendedIds.size} />
+        <SummaryBar total={total} attended={attendedIds.size} loading={isLoading} />
       </div>
 
       <div
@@ -159,7 +160,7 @@ export default function Home() {
 
       <div className="flex flex-col gap-4">
         {isLoading ? (
-          <p className="py-12 text-center text-ink/40">불러오는 중…</p>
+          Array.from({ length: 2 }).map((_, i) => <GradeSectionSkeleton key={i} />)
         ) : isError ? (
           <p className="py-12 text-center text-ink/40">데이터를 불러오지 못했습니다</p>
         ) : (

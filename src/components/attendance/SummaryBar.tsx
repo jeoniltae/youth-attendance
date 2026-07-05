@@ -1,12 +1,16 @@
 // 전체/출석/(결석)/출석률 요약 통계 바 — 잉크 색 점수판 스타일
+// loading 중에는 가짜 0 대신 pulse 박스를 표시 (어두운 배경이라 bg-paper/20 사용)
+
+import { Skeleton } from '@/components/common/Skeleton';
 
 interface SummaryBarProps {
   total: number;
   attended: number;
   showAbsent?: boolean;
+  loading?: boolean;
 }
 
-export function SummaryBar({ total, attended, showAbsent = false }: SummaryBarProps) {
+export function SummaryBar({ total, attended, showAbsent = false, loading = false }: SummaryBarProps) {
   const rate = total === 0 ? 0 : Math.round((attended / total) * 100);
 
   const stats = [
@@ -21,7 +25,11 @@ export function SummaryBar({ total, attended, showAbsent = false }: SummaryBarPr
       {stats.map((stat) => (
         <div key={stat.label} className="flex flex-1 flex-col items-center gap-0.5 px-4 py-4">
           <span className="font-display text-[0.65rem] tracking-[0.25em] text-paper/55">{stat.label}</span>
-          <span className="font-display text-2xl font-bold tabular-nums text-paper">{stat.value}</span>
+          {loading ? (
+            <Skeleton className="my-1 h-6 w-10 bg-paper/20" />
+          ) : (
+            <span className="font-display text-2xl font-bold tabular-nums text-paper">{stat.value}</span>
+          )}
         </div>
       ))}
     </div>

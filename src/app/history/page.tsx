@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { SummaryBar } from "@/components/attendance/SummaryBar";
 import { GroupAttendanceChart } from "@/components/history/GroupAttendanceChart";
+import { GroupAttendanceChartSkeleton } from "@/components/history/GroupAttendanceChartSkeleton";
 import { useRoster } from "@/hooks/useRoster";
 import { useAttendance } from "@/hooks/useAttendance";
 import { groupStudentsAndTeachers } from "@/lib/group-members";
@@ -129,12 +130,12 @@ export default function HistoryPage() {
       </div>
 
       <div className="animate-[rise-in_0.5s_ease-out_both]" style={{ animationDelay: "140ms" }}>
-        <SummaryBar total={total} attended={attended} showAbsent />
+        <SummaryBar total={total} attended={attended} showAbsent loading={isLoading} />
       </div>
 
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2 xl:grid-cols-3">
         {isLoading ? (
-          <p className="col-span-full py-12 text-center text-ink/40">불러오는 중…</p>
+          Array.from({ length: 3 }).map((_, i) => <GroupAttendanceChartSkeleton key={i} />)
         ) : isError ? (
           <p className="col-span-full py-12 text-center text-ink/40">
             데이터를 불러오지 못했습니다

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, PieChart, Plus, UserPlus } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { FilterChips, type FilterState } from "@/components/attendance/FilterChips";
+import { GradeSectionSkeleton } from "@/components/attendance/GradeSectionSkeleton";
 import { StudentForm, type StudentDraft } from "@/components/students/StudentForm";
 import { TeacherForm, type TeacherDraft } from "@/components/teachers/TeacherForm";
 import { AdminModal } from "@/components/common/AdminModal";
@@ -290,9 +291,7 @@ export default function MembersPage() {
 
       <div className="flex flex-col gap-4">
         {studentsHook.isLoading || teachersHook.isLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="size-8 animate-spin rounded-full border-2 border-ink/15 border-t-ink/60" />
-          </div>
+          Array.from({ length: 2 }).map((_, i) => <GradeSectionSkeleton key={i} />)
         ) : studentsHook.isError || teachersHook.isError ? (
           <p className="py-12 text-center text-sm text-celebrate">
             데이터를 불러오지 못했습니다. 새로고침 후 다시 시도해주세요.

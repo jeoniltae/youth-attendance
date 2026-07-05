@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { PieChart, Pie, Cell } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
+import { Skeleton } from "@/components/common/Skeleton";
 import { getStats, type GradeStats } from "@/api/stats";
 import type { Session } from "@/types";
 
@@ -136,10 +137,10 @@ function OverallBand({
 function SkeletonCard() {
   return (
     <div className="flex flex-col items-center gap-2 rounded-xl border-[1.5px] border-ink/10 bg-paper p-4">
-      <div className="h-24 w-24 animate-pulse rounded-full bg-ink/8" />
-      <div className="h-3 w-14 animate-pulse rounded bg-ink/8" />
-      <div className="h-2.5 w-20 animate-pulse rounded bg-ink/8" />
-      <div className="h-2.5 w-10 animate-pulse rounded bg-ink/8" />
+      <Skeleton className="h-24 w-24 rounded-full" />
+      <Skeleton className="h-3 w-14" />
+      <Skeleton className="h-2.5 w-20" />
+      <Skeleton className="h-2.5 w-10" />
     </div>
   );
 }
@@ -189,7 +190,7 @@ export function YearlyStats({ session, onClose }: { session: Session; onClose: (
             <div className="flex flex-col gap-3">
               {isLoading ? (
                 <>
-                  <div className="h-44 animate-pulse rounded-xl bg-ink/8 sm:h-36" />
+                  <Skeleton className="h-44 rounded-xl sm:h-36" />
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     {Array.from({ length: 4 }).map((_, i) => (
                       <SkeletonCard key={i} />
