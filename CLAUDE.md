@@ -387,5 +387,5 @@ ADMIN_PASSWORD=
     - **ID 형식 결정 (Step 2에서 보류했던 것)**: 최신 GAS의 `generateStudentId`도 새 앱과 동일한 `YYYY-학년-반-순번(3자리)` 형식을 생성함이 확인됨 — 실데이터의 `YY-` 형식 348건은 구버전 시절 데이터. **새 앱 코드 형식 유지 확정**. 교사 ID는 GAS가 `T-YYYY-팀-NNN`, 새 앱이 `T-YYYY-NNN`으로 다르지만 ID를 파싱하는 코드가 양쪽 어디에도 없어 무해 — 현행 유지
     - 사용자 확인: GAS는 6/3 내보내기 이후 수정된 적 없음 → `docs/legacy-gas.json`이 현행 코드 그대로이며 **위 호환성 결론 확정**. (참고: 내보내기에 새가족 기능이 없는데 레거시 화면 오전 인원 265가 새가족 포함으로 계산되는 점은 미해명 — 새 앱 동작과는 무관하므로 추적하지 않음)
   - [x] Step 7. 마무리 — 발견 문제 전부 수정 완료(stats 교사 판별, 차트 라벨, 반 정렬, 통계 팝업 UI), `npm run build` 통과, 결과·결정을 `docs/context-notes.md`에 기록, 보안 체크리스트 확인 완료(변경 파일 전체에서 시트 ID·서비스 계정·개인정보 검출 0건, `.env.local`/`legacy-gas.json` gitignore 정상)
-- [ ] Phase 7: Vercel 배포 및 검증
+- [ ] Phase 8: Vercel 배포 및 검증
   - 전환 시 할 일: 실시트에 서비스 계정 편집자 공유, 실시트 Attendance에 `Type` 컬럼 추가(Step 6 결론 반영), Vercel 환경변수에 실시트 ID 설정
