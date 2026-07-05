@@ -41,9 +41,10 @@ export function groupStudentsAndTeachers(
     const gradeStudents = students.filter((s) => s.grade === grade);
     if (gradeStudents.length === 0) continue;
 
+    // numeric: true — 반 번호가 문자열이라 "10"이 "1"과 "2" 사이로 정렬되는 것 방지 (1,2,…,9,10 순)
     const classKeys = Array.from(
       new Set(gradeStudents.map((s) => s.class)),
-    ).sort((a, b) => a.localeCompare(b, "ko"));
+    ).sort((a, b) => a.localeCompare(b, "ko", { numeric: true }));
 
     groups.push({
       key: `grade-${grade}`,

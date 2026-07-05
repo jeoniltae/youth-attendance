@@ -17,19 +17,43 @@ const teacherConfig = {
   absent:   { label: "결석", color: "oklch(0.92 0.014 175)" },
 } satisfies ChartConfig;
 
-function DonutChart({ rate, variant }: { rate: number; variant: "student" | "teacher" }) {
-  const config = variant === "teacher" ? teacherConfig : studentConfig;
+// 전체 밴드(잉크색 점수판)용 — 어두운 배경 위 스탬프색 링
+const overallConfig = {
+  attended: { label: "출석", color: "var(--stamp)" },
+  absent:   { label: "결석", color: "oklch(1 0 0 / 0.16)" },
+} satisfies ChartConfig;
+
+const DONUT_CONFIG = {
+  student: studentConfig,
+  teacher: teacherConfig,
+  overall: overallConfig,
+} as const;
+
+type DonutVariant = keyof typeof DONUT_CONFIG;
+
+function DonutChart({
+  rate,
+  variant,
+  size = "md",
+}: {
+  rate: number;
+  variant: DonutVariant;
+  size?: "md" | "lg";
+}) {
+  const config = DONUT_CONFIG[variant];
   const data = [{ value: rate }, { value: Math.max(0, 100 - rate) }];
+  const box = size === "lg" ? "h-28 w-28" : "h-24 w-24";
+  const [innerRadius, outerRadius] = size === "lg" ? [34, 47] : [28, 40];
 
   return (
-    <div className="relative mx-auto h-24 w-24">
-      <ChartContainer config={config} className="aspect-square h-24 w-24">
+    <div className={`relative mx-auto ${box}`}>
+      <ChartContainer config={config} className={`aspect-square ${box}`}>
         <PieChart>
           <Pie
             data={data}
             dataKey="value"
-            innerRadius={28}
-            outerRadius={40}
+            innerRadius={innerRadius}
+            outerRadius={outerRadius}
             startAngle={90}
             endAngle={-270}
             strokeWidth={0}
@@ -40,7 +64,13 @@ function DonutChart({ rate, variant }: { rate: number; variant: "student" | "tea
         </PieChart>
       </ChartContainer>
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <span className="text-base font-bold tabular-nums text-ink">{rate}%</span>
+        <span
+          className={`font-bold tabular-nums ${
+            variant === "overall" ? "text-lg text-paper" : "text-base text-ink"
+          }`}
+        >
+          {rate}%
+        </span>
       </div>
     </div>
   );
@@ -62,9 +92,43 @@ function StatCard({
       <DonutChart rate={stats.rate} variant={variant} />
       <p className="mt-1 text-sm font-semibold text-ink">{label}</p>
       <p className="tabular-nums text-xs text-ink/50">
-        {stats.attended.toLocaleString()} / {stats.total.toLocaleString()}
+        {`${stats.attended.toLocaleString()}회`} / {`${stats.total.toLocaleString()}회`}
       </p>
       <p className="text-xs text-ink/35">{sub}</p>
+    </div>
+  );
+}
+
+// 전체 통계 밴드 — 출석체크 메인 SummaryBar와 같은 잉크색 점수판 스타일로 학년/교사 카드와 위계를 구분
+function OverallBand({
+  overall,
+  weeks,
+}: {
+  overall: { rate: number; attended: number; total: number };
+  weeks: number;
+}) {
+  const weeklyAverage = weeks > 0 ? Math.round(overall.attended / weeks) : 0;
+
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-xl bg-ink px-5 py-4 shadow-[0_3px_0_rgba(30,34,51,0.12)] sm:flex-row sm:gap-6">
+      <DonutChart rate={overall.rate} variant="overall" size="lg" />
+      <div className="text-center sm:text-left">
+        <p className="font-display text-[0.65rem] tracking-[0.25em] text-stamp">OVERALL</p>
+        <p className="font-display text-lg font-bold text-paper">전체</p>
+        <p className="tabular-nums text-sm text-paper/60">
+          {`${overall.attended.toLocaleString()}회`} / {`${overall.total.toLocaleString()}회`}
+        </p>
+      </div>
+      <div className="flex divide-x divide-paper/15 sm:ml-auto">
+        <div className="px-4 text-center">
+          <p className="text-[0.65rem] text-paper/45">집계 기간</p>
+          <p className="font-display text-base font-bold tabular-nums text-paper">{weeks}주</p>
+        </div>
+        <div className="px-4 text-center">
+          <p className="text-[0.65rem] text-paper/45">주평균 출석</p>
+          <p className="font-display text-base font-bold tabular-nums text-paper">{weeklyAverage}명</p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -96,7 +160,9 @@ export function YearlyStats({ session, onClose }: { session: Session; onClose: (
         onClick={onClose}
       />
 
-      <div className="fixed inset-x-4 top-20 z-50 mx-auto max-w-4xl animate-[rise-in_0.2s_ease-out] rounded-2xl border-[1.5px] border-ink/15 bg-paper shadow-[0_8px_24px_rgba(30,34,51,0.12)]">
+      {/* 래퍼는 클릭을 통과시켜 배경 클릭 닫기를 유지하고, 모바일은 세로 중앙·sm+는 상단 고정 배치 */}
+      <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4 sm:items-start sm:pt-20">
+        <div className="pointer-events-auto max-h-[90dvh] w-full max-w-4xl overflow-y-auto animate-[rise-in_0.2s_ease-out] rounded-2xl border-[1.5px] border-ink/15 bg-paper shadow-[0_8px_24px_rgba(30,34,51,0.12)]">
         <div className="flex items-center justify-between border-b border-ink/8 px-5 py-4">
           <div>
             <p className="font-display text-[0.7rem] tracking-[0.3em] text-stamp">
@@ -120,46 +186,52 @@ export function YearlyStats({ session, onClose }: { session: Session; onClose: (
           {isError ? (
             <p className="py-8 text-center text-sm text-ink/40">통계를 불러오지 못했습니다</p>
           ) : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <div className="flex flex-col gap-3">
               {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} />)
+                <>
+                  <div className="h-44 animate-pulse rounded-xl bg-ink/8 sm:h-36" />
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <SkeletonCard key={i} />
+                    ))}
+                  </div>
+                </>
               ) : data ? (
                 <>
-                  <StatCard
-                    label="전체"
-                    sub={`총 ${data.weeks}주`}
-                    stats={data.overall}
-                  />
-                  <StatCard
-                    label="1학년"
-                    sub={`${data.grade1.count}명`}
-                    stats={data.grade1}
-                  />
-                  <StatCard
-                    label="2학년"
-                    sub={`${data.grade2.count}명`}
-                    stats={data.grade2}
-                  />
-                  <StatCard
-                    label="3학년"
-                    sub={`${data.grade3.count}명`}
-                    stats={data.grade3}
-                  />
-                  <StatCard
-                    label="선생님"
-                    sub={`${data.teachers.count}명`}
-                    variant="teacher"
-                    stats={data.teachers}
-                  />
+                  <OverallBand overall={data.overall} weeks={data.weeks} />
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <StatCard
+                      label="1학년"
+                      sub={`${data.grade1.count}명`}
+                      stats={data.grade1}
+                    />
+                    <StatCard
+                      label="2학년"
+                      sub={`${data.grade2.count}명`}
+                      stats={data.grade2}
+                    />
+                    <StatCard
+                      label="3학년"
+                      sub={`${data.grade3.count}명`}
+                      stats={data.grade3}
+                    />
+                    <StatCard
+                      label="선생님"
+                      sub={`${data.teachers.count}명`}
+                      variant="teacher"
+                      stats={data.teachers}
+                    />
+                  </div>
                 </>
               ) : null}
             </div>
           )}
         </div>
 
-        <p className="border-t border-ink/8 px-5 py-3 text-center text-xs text-ink/35">
-          최근 1년 기준 · 총 {data?.weeks ?? "—"}주 집계
-        </p>
+          <p className="border-t border-ink/8 px-5 py-3 text-center text-xs text-ink/35">
+            최근 1년 기준 · 총 {data?.weeks ?? "—"}주 집계
+          </p>
+        </div>
       </div>
     </>
   );

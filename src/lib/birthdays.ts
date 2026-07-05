@@ -37,7 +37,11 @@ export function groupBirthdaysByMonth(
   for (const grade of GRADE_ORDER) {
     const people = students
       .filter((s) => s.grade === grade && birthMonthOf(s.birthdate) === month)
-      .sort((a, b) => a.class.localeCompare(b.class, "ko") || a.name.localeCompare(b.name, "ko"))
+      .sort(
+        (a, b) =>
+          a.class.localeCompare(b.class, "ko", { numeric: true }) ||
+          a.name.localeCompare(b.name, "ko"),
+      )
       .map((s) => ({
         id: s.id,
         name: s.name,

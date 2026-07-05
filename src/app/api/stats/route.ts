@@ -45,16 +45,20 @@ export async function GET(request: NextRequest) {
 
     const weeks = new Set(filtered.map((r) => r.Date)).size;
 
-    // 학년별 출석 횟수 집계 (student 타입)
+    // 교사/학생 구분: 새 앱 행은 Type으로, 레거시 GAS 행(Type 빈 값)은 Grade '선생님'으로 판별
+    const isTeacherRow = (r: Record<string, string>) =>
+      r.Type === 'teacher' || (!r.Type && r.Grade === '선생님');
+
+    // 학년별 출석 횟수 집계 (교사 행 제외)
     const gradeAttended: Record<string, number> = {};
     for (const r of filtered) {
-      if (r.Type === 'student' || r.Type === '') {
+      if (!isTeacherRow(r)) {
         gradeAttended[r.Grade] = (gradeAttended[r.Grade] ?? 0) + 1;
       }
     }
 
     // 교사 출석 횟수
-    const teacherAttended = filtered.filter((r) => r.Type === 'teacher').length;
+    const teacherAttended = filtered.filter(isTeacherRow).length;
 
     // 세션별 학생 수 (학년별)
     const sessionStudents = students.filter((s) => s.Session === session);
@@ -87,8 +91,13 @@ export async function GET(request: NextRequest) {
     };
 
     // 전체: 모든 학생 + 교사
+    // 출석 횟수는 재적 중인 학년(gradeCount에 존재)만 합산 — 명단에 없는 레거시 '새가족' 기록 등이
+    // 분모 없이 분자만 부풀리는 것을 방지
     const allStudentCount = Object.values(gradeCount).reduce((s, c) => s + c, 0);
-    const allStudentAttended = Object.values(gradeAttended).reduce((s, c) => s + c, 0);
+    const allStudentAttended = Object.keys(gradeCount).reduce(
+      (s, g) => s + (gradeAttended[g] ?? 0),
+      0,
+    );
     const overallTotal = (allStudentCount + teacherCount) * weeks;
     const overallAttended = allStudentAttended + teacherAttended;
 

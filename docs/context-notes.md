@@ -137,3 +137,87 @@ Phase 3/4에서 `attendanceRate`는 항상 빈 문자열로 읽힐 것을 전제
 교사 출석 구분용 `Type`은 운영 시트에 존재하지 않으므로 Phase 3에서 **10번째 컬럼으로 신규 추가**해서
 `AttendanceRecord.type`에 매핑합니다. `appendRow`로 행을 쓸 때는 9번째(`Ect`) 자리를 빈 문자열로 두고
 10번째에 `type` 값을 씁니다 — `[date, session, grade, class, studentId, name, '출석', timestamp, '', type]`.
+
+---
+
+## Phase 7 사전 검증 — 검증용 사본 시트 준비 절차 (사본 교체 시 재실행)
+
+실시트가 업데이트되어 검증용 사본을 새로 만들 때마다, 새 사본에는 검증에 필요한
+변경 2가지를 다시 적용해야 합니다. 두 작업 모두 **멱등 스크립트**로 만들어져 있어
+아래 순서대로 실행만 하면 됩니다 (이미 적용된 사본에 재실행해도 안전).
+
+**사본 교체 절차:**
+
+1. (수동) 실시트 → 사본 만들기 → 사본에 서비스 계정 이메일을 **편집자**로 공유
+   - 사본이 공유 폴더에 생성되면 다른 사람 권한이 상속되므로 개인 위치로 이동 후 불필요한 권한 제거
+2. (수동) `.env.local`의 `GOOGLE_SPREADSHEET_ID`를 새 사본 ID로 교체
+3. `node scripts/verify-sheets.mjs` — 탭/헤더 구조가 코드 기대값과 일치하는지 확인
+4. `node scripts/verify-data.mjs` — **Attendance에 `Type` 헤더 자동 추가**(없을 때만) + 데이터 형식 점검
+5. `node scripts/migrate-newfamilies.mjs` — **NewFamilies 탭 → Students `Grade='새친구'` 마이그레이션**
+   (ID 기준 중복 건너뜀, NewFamilies 탭은 보존, ID 없는 행은 제외 후 보고)
+6. (선택) dev 서버 실행 후 `node scripts/verify-read-api.mjs` / `node scripts/verify-write-api.mjs`로 재검증
+
+**참고 사항:**
+
+- 검증 중 발견된 코드 버그 2건(stats 라우트의 레거시 행 교사 판별, 출석 현황 차트 라벨 밀림)은
+  코드 쪽 수정이라 사본 교체와 무관하게 유지됩니다.
+- 실시트에서 수동 수정이 권장되는 데이터 오류(Birthdate 오타, ID/Class 빈 값 등)는
+  사본 교체 시 행 번호가 달라질 수 있으나, 4번 `verify-data.mjs`가 다시 검출해 줍니다.
+  실시트에서 먼저 고치면 새 사본에는 문제가 아예 없습니다.
+- Phase 7 실시트 전환 시에도 같은 절차의 4~5번(Type 헤더 + 새친구 마이그레이션)을
+  실시트에 그대로 적용하면 됩니다 (Type 헤더는 Step 6 GAS 호환성 결론 확인 후).
+
+---
+
+## Phase 7 사전 검증 — 결과 및 결정 기록
+
+실시트 사본으로 전 API·전 화면을 검증 완료했습니다. 세부 체크리스트와 수치는 CLAUDE.md 진행 상태 참조.
+여기에는 결정 사항과 그 이유만 기록합니다.
+
+### 새친구 데이터 모델: NewFamilies 탭 → Students `Grade='새친구'`로 통합
+
+실제 운영에서 새친구는 Students가 아닌 `NewFamilies` 탭(19컬럼 별도 스키마)에 등록되고,
+등반 시 Students로 이동(ID 유지)하는 구조였습니다. 새 앱은 처음부터 Students의 `Grade='새친구'` 행으로
+설계했으므로, **NewFamilies를 Students로 마이그레이션하는 방식**을 채택했습니다 (`scripts/migrate-newfamilies.mjs`, 멱등).
+잔여 필드(본래학년/등록일/인도자 등)는 Notes에 합칩니다. NewFamilies 탭은 레거시 GAS 병행 운영을 위해 보존합니다.
+병행 기간 중 새로 등록되는 새친구는 한쪽에만 보이므로, 전환 직전에 스크립트를 재실행해 동기화합니다.
+
+### stats 라우트의 교사 판별: Type 컬럼 + Grade='선생님' fallback
+
+레거시 출석 행은 `Type`이 빈 값이고 `Grade='선생님'`으로 교사를 구분합니다(1,533건).
+초기 코드는 `Type===''`을 학생으로 집계해 교사 통계가 0%로 나오는 버그가 있어,
+`isTeacherRow`(Type='teacher' 또는 Grade='선생님') 판별로 수정했습니다.
+전체 출석 합산도 재적 학년(gradeCount에 존재하는 학년)만 포함해, 명단에 없는 레거시 '새가족' 기록이
+분모 없이 분자만 부풀리는 것을 방지했습니다.
+
+### ID 생성 형식: 새 앱 코드 형식 유지 확정
+
+실데이터 학생 ID 348건은 `YY-학년-반-순번(2자리)` 형식이지만, 최신 GAS의 `generateStudentId`는
+새 앱과 동일한 `YYYY-학년-반-순번(3자리)`을 생성합니다 — 구형식은 과거 데이터일 뿐입니다.
+연도 프리픽스가 달라 충돌이 불가능하고, 양쪽 어디에도 ID를 파싱하는 코드가 없어 형식 혼재는 무해합니다.
+교사 ID도 같은 이유로 새 앱 형식(`T-YYYY-NNN`)을 유지합니다.
+
+### 실시트 Type 컬럼 추가: GAS 호환 확인 완료
+
+GAS `markAttendance`는 앞 8개 컬럼만 `appendRow`하고, 삭제/읽기는 전부 헤더 이름 기반이므로
+Attendance 맨 끝(J열)에 `Type`을 추가해도 GAS는 영향받지 않습니다. GAS가 계속 쓰는 행은 Type이
+비지만 위의 fallback으로 처리됩니다. (GAS는 6/3 내보내기 이후 수정 없음 — 사용자 확인)
+
+### recharts 스택 막대의 LabelList는 index 대신 값으로 행을 찾아야 함
+
+값이 0인 스택 세그먼트는 라벨 목록에서 빠져 `index`가 데이터 배열과 어긋납니다
+(출석 현황에서 결석 0명인 팀이 있으면 이후 행 라벨이 한 칸씩 밀리던 버그의 원인).
+`dataKey`를 카테고리명으로 주고 `value`로 행을 역조회하는 방식으로 수정했습니다 (`GroupAttendanceChart.tsx`).
+
+### 반 정렬은 numeric localeCompare 필수
+
+반 번호가 문자열이라 기본 localeCompare로는 10반이 1반과 2반 사이에 옵니다.
+`localeCompare(..., { numeric: true })`로 수정 (`group-members.ts`, `birthdays.ts`).
+테스트 시트에는 10반 이상이 없어 실데이터 검증에서만 드러난 문제였습니다.
+
+### 실시트에서 수동 수정 필요한 데이터 (전환 전 권장)
+
+행 번호는 검증 당시 사본 기준이며, `scripts/verify-data.mjs`가 재검출 가능:
+Students 81행(Birthdate 하이픈 오타), 115행(ID 없음), 272행(Class 없음), NewFamilies 11행(ID 없음).
+115·272행은 레거시 화면에서 아예 숨겨져 출석 체크가 불가능했던 학생들로, 새 앱 인원수(267)와
+레거시(265)의 차이 원인이기도 합니다. 수정 시 양쪽 모두 267로 일치합니다.

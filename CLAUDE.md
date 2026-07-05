@@ -100,7 +100,7 @@ Google Sheets는 WebSocket을 지원하지 않으므로 Polling 방식을 사용
 | Name | string | 이름 |
 | Status | string | `출석` (고정값, 레코드 없으면 결석으로 간주) |
 | Timestamp | string | 변경 시각 |
-| Ect | string | 기타 비고(자유 텍스트, 예: `타교회 선교(OO목사님 확인)`) — `student`/`teacher` 구분과 무관한 별개 컬럼 |
+| ect | string | 기타 비고(자유 텍스트, 예: `타교회 선교(OO목사님 확인)`) — `student`/`teacher` 구분과 무관한 별개 컬럼. 실제 운영 시트 헤더가 소문자 `ect` (코드는 이 컬럼을 이름으로 읽지 않으므로 영향 없음) |
 | Type | string | `student` \| `teacher` — 실제 운영 시트에는 존재하지 않아 Phase 3에서 신규 추가할 컬럼 |
 
 ### 출석 상태 처리 규칙
@@ -362,4 +362,30 @@ ADMIN_PASSWORD=
   - [x] Step 3. `src/hooks/useAdminAuth.ts` — `sessionStorage` 기반 토큰 저장·검증, `src/components/common/AdminModal.tsx` — 비밀번호 입력 모달 (`POST /api/auth` 호출)
   - [x] Step 4. `src/app/members/page.tsx` 실연동 — 목업 state → `useStudents`/`useTeachers`로 교체, 비밀번호 게이트(`useAdminAuth` + `AdminModal`) 적용
   - [x] Step 5. `src/lib/mock-data.ts` 파일 삭제, `npm run build` 통과 확인
+- [ ] Phase 7 사전 검증: 실제 스프레드시트 연동 검증
+  - 전제: 실제 운영 시트를 직접 쓰지 않고 **사본을 만들어 사본으로 검증** (쓰기 API까지 안전하게 테스트). 레거시 GAS 웹앱이 아직 실시트로 운영 중이므로 실시트 구조 변경은 Phase 7 전환 시점에 수행. 테스트 시트의 서비스 계정 공유는 삭제하지 않고 유지 (실험용 롤백 환경)
+  - 핵심 리스크: `readSheet`는 헤더 **이름** 기반, `appendRow`/`updateRow`는 컬럼 **순서** 기반 → 둘 다 실시트와 일치해야 함. `FORMATTED_VALUE` 읽기라 실시트 Date/Birthdate 셀이 날짜 서식이면 `YYYY-MM-DD` 문자열 매칭 실패 위험. 실제 Attendance 시트에는 `Type` 컬럼 없음
+  - [x] Step 0. 외부 준비 (수동) — 실시트 사본 생성, 사본에 서비스 계정 편집자 공유, `.env.local`의 `GOOGLE_SPREADSHEET_ID`를 사본 ID로 교체 (테스트 시트 ID는 주석으로 보관)
+  - [x] Step 1. 구조 검증 스크립트 (`scripts/verify-sheets.mjs`) — 결과: Students(15개)·Teachers(8개) 헤더 완전 일치. Attendance 9열은 소문자 `ect`(코드는 이름으로 안 읽어 영향 없음, 문서만 수정), `Type` 컬럼 없음 확인(Step 2에서 추가). 실시트에 코드 미사용 탭 2개 존재(`NewFamilies`, `등반한 새친구`) — 새 앱은 새친구를 Students의 `Grade="새친구"`로 처리하므로 실데이터 위치 확인 필요(Step 2)
+  - [x] Step 2. 사본 Attendance에 `Type` 헤더 추가(J1) + 데이터 형식 점검 (`scripts/verify-data.mjs`) — 결과:
+    - ✅ 통과: Attendance Date 4,744건 전부 `YYYY-MM-DD` 문자열(최대 리스크 해소), Session 정확히 `오전`/`오후`, Status 전부 `출석`, Teachers Team 5개 팀명 일치, 학생/교사 ID 중복 없음
+    - ❌ 발견·수정: **stats 라우트 버그** — 레거시 행은 `Type`이 빈 값 + `Grade='선생님'`으로 교사를 구분(1,533건)하는데 기존 코드는 `Type===''`을 학생으로 집계 → 교사 통계 0%·전체율 왜곡. `isTeacherRow`(Type 또는 Grade='선생님') 판별로 수정, 전체 출석 합산도 재적 학년만 포함하도록 수정
+    - ✅ 발견·해결: **새친구는 Students가 아닌 `NewFamilies` 탭(별도 19컬럼 스키마, 12행)에만 존재**했음 — 새 앱은 Students의 `Grade='새친구'`를 기대. `scripts/migrate-newfamilies.mjs`(멱등, ID 기준 중복 건너뜀, NewFamilies 탭은 보존)로 사본에서 11명 Students로 이전 완료·검증. **Phase 7 실시트 전환 시 이 스크립트 재실행 필요**. 잔여 필드(본래학년/등록일/인도자 등)는 Notes에 합침
+    - ⚠️ 수동 수정 필요 (사본 기준 행 번호, 실시트도 동일할 것): Students 81행 Birthdate 형식 오류(`####-##--##`), Students 115행 ID 비어 있음, Students 272행 Class 비어 있음, NewFamilies 11행 ID 비어 있음(이 행은 마이그레이션에서 제외됨)
+    - ℹ️ 레거시 GAS와 전체 인원 차이(오전 265 vs 새 앱 267) 원인 규명: 레거시 `getStudents`는 ID/Grade/Class/Name 중 하나라도 빈 행을 **숨김** — 위의 115행(ID 없음)·272행(Class 없음) 2건이 차이의 전부. 새친구 7명은 양쪽 모두 포함(레거시는 NewFamilies 탭에서, 새 앱은 마이그레이션된 Students에서). 데이터 2건 수정 시 양쪽 모두 267로 일치함. **부가 발견: 운영 중인 GAS는 `docs/legacy-gas.json`(6/3 내보내기)에 없는 새가족 기능을 포함 — 내보내기가 구버전이므로 Step 6 판단 시 주의**
+    - ⚠️ 기록: 실제 학생 ID 형식은 `YY-학년-반-순번(2자리)`(348건)로 코드 생성 형식 `YYYY-학년-반-순번(3자리)`과 다름(충돌은 없음, 동작 문제 없음). 교사 ID도 `T-YYYY-팀-NNN` 형태로 코드 생성 `T-YYYY-NNN`과 다름. Attendance 새 앱 교사 행은 `Grade=''`+`Type='teacher'`, 레거시는 `Grade='선생님'`+Type 빈 값으로 공존. 고아 참조 42건(탈퇴 교사·학생의 과거 기록 — 무해). Students Birthdate 1건 형식 오류(`YYYY-MM--DD`)·17건 빈 값 → 실시트에서 수동 수정 권장
+  - [x] Step 3. 읽기 API 검증 (`scripts/verify-read-api.mjs` — API 응답을 Sheets 직접 읽기와 자동 대조, 오전/오후 각각) — 결과: **전 항목 통과**. roster/students/teachers/birthdays 인원수 시트와 완전 일치(오전 220+47, 오후 150+25), attendance 최근 예배일(2026-06-28) 날짜 매칭 정상(오전 93·오후 54건), 학생 15개·교사 8개 필드 매핑 전부 존재. stats 26주 집계, 교사 출석 정상 집계(오전 980·오후 553건 — Step 2 버그 수정 검증됨). 응답 시간 실데이터 규모(4,744행)에서 400~700ms(콜드 스타트 첫 요청만 2.1s)
+  - [x] Step 4. 쓰기 API 검증 (`scripts/verify-write-api.mjs`, 사본에서 실행) — 결과: **전 항목 통과**. 출석 토글 학생/교사 왕복(Type 컬럼 J열에 정상 기록), **Type 빈 값 레거시 행도 삭제·복구 정상**(findRowNumber가 Date+Session+StudentID로만 매칭하므로), 학생 CRUD(더미 `홍길동`, ID `2026-1-99-001` 생성 — 실데이터와 충돌 없음)·교사 CRUD(ID `T-2026-004`) 전부 시트 반영 확인, 최종 무결성 검사에서 세 시트의 행 수·ID 집합이 시작 스냅샷과 완전 동일(원상 복구)
+  - [x] Step 5. 브라우저 E2E — 4개 페이지 실데이터 렌더·세션 전환·필터·출석 토글·30초 폴링·`/members` 게이트·1년 통계·모바일 뷰포트 전부 사용자 확인 완료. 이 과정에서 발견·수정한 것:
+    - **출석 현황 차트 라벨 밀림 버그** (`GroupAttendanceChart.tsx`) — 결석 0명인 행(폭 0 막대)이 라벨 목록에서 빠지면 recharts `index`가 행과 어긋나 라벨이 한 칸씩 밀림 → `index` 대신 라벨 값(dataKey="label")으로 행을 찾도록 수정
+    - **반 정렬 버그** (`group-members.ts`, `birthdays.ts`) — 반 번호가 문자열이라 10반이 1반과 2반 사이에 정렬됨 → `localeCompare(..., { numeric: true })`로 수정 (테스트 시트에는 10반 이상이 없어 실데이터에서만 드러난 문제)
+    - **1년 통계 팝업 UI 개선** (`YearlyStats.tsx`) — '전체'를 학년/교사 카드와 분리해 상단 잉크색 점수판 밴드(SummaryBar와 동일 스타일)로 배치, 집계 기간·주평균 출석 수치 추가, 모바일에서 팝업 세로 중앙 정렬(+`max-h-[90dvh]` 스크롤)
+    - 레거시(265명)와 새 앱(267명)의 오전 인원 차이 원인 규명 — 위 Step 2의 ℹ️ 항목 참조 (새 앱 문제 아님, 데이터 2건 수정 필요)
+  - [x] Step 6. 레거시 GAS 호환성 분석 (6/3 내보내기 기준) — 결론: **실시트 맨 끝 `Type` 컬럼 추가는 GAS를 깨뜨리지 않음**
+    - GAS `markAttendance`는 `appendRow`로 앞 8개 컬럼(Date~Timestamp)만 쓰고 ect(I)·Type(J)는 빈 값으로 남김. `cancelAttendance`/모든 읽기는 `headerIndex()` 헤더 이름 기반이라 신규 컬럼 무영향
+    - 병행 운영 가능 결론: GAS가 쓰는 출석 행은 Type 빈 값 → 새 앱이 Grade 기반 fallback으로 처리(Step 2 수정·Step 4 검증 완료). 주의점 2가지 — ① 병행 기간에 새로 등록되는 새친구는 GAS는 NewFamilies에, 새 앱은 Students에 기록되어 한쪽에만 보임(`migrate-newfamilies.mjs` 재실행으로 동기화). ② 동시에 같은 사람을 토글하면 이론상 중복 행 가능(발생 확률 낮음, 레코드 유무 판정이라 치명적이지 않음)
+    - **ID 형식 결정 (Step 2에서 보류했던 것)**: 최신 GAS의 `generateStudentId`도 새 앱과 동일한 `YYYY-학년-반-순번(3자리)` 형식을 생성함이 확인됨 — 실데이터의 `YY-` 형식 348건은 구버전 시절 데이터. **새 앱 코드 형식 유지 확정**. 교사 ID는 GAS가 `T-YYYY-팀-NNN`, 새 앱이 `T-YYYY-NNN`으로 다르지만 ID를 파싱하는 코드가 양쪽 어디에도 없어 무해 — 현행 유지
+    - 사용자 확인: GAS는 6/3 내보내기 이후 수정된 적 없음 → `docs/legacy-gas.json`이 현행 코드 그대로이며 **위 호환성 결론 확정**. (참고: 내보내기에 새가족 기능이 없는데 레거시 화면 오전 인원 265가 새가족 포함으로 계산되는 점은 미해명 — 새 앱 동작과는 무관하므로 추적하지 않음)
+  - [x] Step 7. 마무리 — 발견 문제 전부 수정 완료(stats 교사 판별, 차트 라벨, 반 정렬, 통계 팝업 UI), `npm run build` 통과, 결과·결정을 `docs/context-notes.md`에 기록, 보안 체크리스트 확인 완료(변경 파일 전체에서 시트 ID·서비스 계정·개인정보 검출 0건, `.env.local`/`legacy-gas.json` gitignore 정상)
 - [ ] Phase 7: Vercel 배포 및 검증
+  - 전환 시 할 일: 실시트에 서비스 계정 편집자 공유, 실시트 Attendance에 `Type` 컬럼 추가(Step 6 결론 반영), Vercel 환경변수에 실시트 ID 설정

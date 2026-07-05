@@ -140,14 +140,14 @@ export function GroupAttendanceChart({ group, attendedIds }: GroupAttendanceChar
             style={{ cursor: "pointer" }}
             onClick={handleBarClick}
           >
-            {/* 결석이 0명이면 결석 막대 폭이 0이라 그 위의 라벨이 그려지지 않으므로, 그 경우엔 출석 막대 끝에 라벨을 붙인다 */}
+            {/* 결석이 0명이면 결석 막대 폭이 0이라 그 위의 라벨이 그려지지 않으므로, 그 경우엔 출석 막대 끝에 라벨을 붙인다.
+                주의: 폭 0인 막대가 라벨 목록에서 빠지면 index가 행과 어긋나므로, index 대신 라벨 값(dataKey="label")으로 행을 찾는다 */}
             <LabelList
-              dataKey="출석"
+              dataKey="label"
               position="right"
               content={(props) => {
-                const { x, y, width, height, index } = props;
-                if (typeof index !== "number") return null;
-                const row = chartData[index];
+                const { x, y, width, height, value } = props;
+                const row = chartData.find((r) => r.label === value);
                 if (!row || row.결석 !== 0) return null;
                 return renderCountLabel(x, y, width, height, row);
               }}
@@ -163,12 +163,11 @@ export function GroupAttendanceChart({ group, attendedIds }: GroupAttendanceChar
             onClick={handleBarClick}
           >
             <LabelList
-              dataKey="결석"
+              dataKey="label"
               position="right"
               content={(props) => {
-                const { x, y, width, height, index } = props;
-                if (typeof index !== "number") return null;
-                const row = chartData[index];
+                const { x, y, width, height, value } = props;
+                const row = chartData.find((r) => r.label === value);
                 if (!row || row.결석 === 0) return null;
                 return renderCountLabel(x, y, width, height, row);
               }}
