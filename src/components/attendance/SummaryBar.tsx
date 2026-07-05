@@ -1,6 +1,10 @@
 // 전체/출석/(결석)/출석률 요약 통계 바 — 잉크 색 점수판 스타일
 // loading 중에는 가짜 0 대신 pulse 박스를 표시 (어두운 배경이라 bg-paper/20 사용)
+// 숫자는 NumberFlow로 렌더 — 값이 바뀔 때(첫 로드, 출석 토글, 30초 폴링) 자릿수가 굴러가며 전환
 
+'use client';
+
+import { RollingNumber } from '@/components/common/RollingNumber';
 import { Skeleton } from '@/components/common/Skeleton';
 
 interface SummaryBarProps {
@@ -13,11 +17,11 @@ interface SummaryBarProps {
 export function SummaryBar({ total, attended, showAbsent = false, loading = false }: SummaryBarProps) {
   const rate = total === 0 ? 0 : Math.round((attended / total) * 100);
 
-  const stats = [
-    { label: '전체', value: String(total) },
-    { label: '출석', value: String(attended) },
-    ...(showAbsent ? [{ label: '결석', value: String(total - attended) }] : []),
-    { label: '출석률', value: `${rate}%` },
+  const stats: { label: string; value: number; suffix?: string }[] = [
+    { label: '전체', value: total },
+    { label: '출석', value: attended },
+    ...(showAbsent ? [{ label: '결석', value: total - attended }] : []),
+    { label: '출석률', value: rate, suffix: '%' },
   ];
 
   return (
@@ -28,7 +32,11 @@ export function SummaryBar({ total, attended, showAbsent = false, loading = fals
           {loading ? (
             <Skeleton className="my-1 h-6 w-10 bg-paper/20" />
           ) : (
-            <span className="font-display text-2xl font-bold tabular-nums text-paper">{stat.value}</span>
+            <RollingNumber
+              value={stat.value}
+              suffix={stat.suffix}
+              className="font-display text-2xl font-bold tabular-nums text-paper"
+            />
           )}
         </div>
       ))}

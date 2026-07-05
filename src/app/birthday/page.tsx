@@ -20,6 +20,7 @@ import {
   Sparkles,
   Star,
 } from "lucide-react";
+import { RollingNumber } from "@/components/common/RollingNumber";
 import { Skeleton } from "@/components/common/Skeleton";
 import { useBirthdays } from "@/hooks/useBirthdays";
 import { groupBirthdaysByMonth, type BirthdayGroup } from "@/lib/birthdays";
@@ -385,9 +386,14 @@ export default function BirthdayPage() {
               <span className="font-display text-[0.65rem] tracking-[0.25em] text-paper/55">
                 {stat.label}
               </span>
-              <span className="font-display text-2xl font-bold tabular-nums text-paper">
-                {stat.value}
-              </span>
+              {isLoading ? (
+                <Skeleton className="my-1 h-6 w-10 bg-paper/20" />
+              ) : (
+                <RollingNumber
+                  value={stat.value}
+                  className="font-display text-2xl font-bold tabular-nums text-paper"
+                />
+              )}
             </div>
           ))}
         </div>
