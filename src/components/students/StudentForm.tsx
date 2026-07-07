@@ -221,7 +221,15 @@ export function StudentForm({
               <select
                 className={inputClass}
                 value={draft.grade}
-                onChange={(e) => update("grade", e.target.value)}
+                onChange={(e) => {
+                  const grade = e.target.value;
+                  // 새친구는 반 개념이 없으므로 전환 시 기존 반 값을 함께 비움
+                  setDraft((prev) => ({
+                    ...prev,
+                    grade,
+                    class: grade === "새친구" ? "" : prev.class,
+                  }));
+                }}
               >
                 {GRADE_OPTIONS.map((g) => (
                   <option key={g} value={g}>
@@ -230,12 +238,14 @@ export function StudentForm({
                 ))}
               </select>
             </Field>
-            <Field label="반" required>
+            <Field label="반" required={draft.grade !== "새친구"}>
               <input
-                className={inputClass}
+                className={`${inputClass} disabled:cursor-not-allowed disabled:bg-ink/5 disabled:text-ink/40`}
                 value={draft.class}
                 onChange={(e) => update("class", e.target.value)}
                 placeholder={draft.grade === "새친구" ? "(없음)" : ""}
+                disabled={draft.grade === "새친구"}
+                required={draft.grade !== "새친구"}
               />
             </Field>
             <Field label="성별">
