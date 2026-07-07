@@ -1,11 +1,12 @@
 "use client";
 // 출석체크 메인 페이지 — 학생/교사 출석 토글 및 요약 통계
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Cake, ClipboardList, Lock } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { SummaryBar } from "@/components/attendance/SummaryBar";
+import { FloatingSummaryBar } from "@/components/attendance/FloatingSummaryBar";
 import {
   FilterChips,
   type FilterState,
@@ -40,6 +41,7 @@ export default function Home() {
   const [date] = useState(() => toInputDateValue(getTodayInSeoul()));
   const [filter, setFilter] = useState<FilterState>({ level: "all" });
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const summaryRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setLastUpdated(
@@ -145,11 +147,18 @@ export default function Home() {
       </div>
 
       <div
+        ref={summaryRef}
         className="animate-[rise-in_0.5s_ease-out_both]"
         style={{ animationDelay: "140ms" }}
       >
         <SummaryBar total={total} attended={attendedIds.size} loading={isLoading} />
       </div>
+      <FloatingSummaryBar
+        anchorRef={summaryRef}
+        total={total}
+        attended={attendedIds.size}
+        loading={isLoading}
+      />
 
       <div
         className="animate-[rise-in_0.5s_ease-out_both]"

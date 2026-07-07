@@ -7,14 +7,22 @@
 import { RollingNumber } from '@/components/common/RollingNumber';
 import { Skeleton } from '@/components/common/Skeleton';
 
-interface SummaryBarProps {
+export interface SummaryBarProps {
   total: number;
   attended: number;
   showAbsent?: boolean;
   loading?: boolean;
+  /** 플로팅(스크롤 고정) 표시용 축소 모드 — 패딩·글자 크기를 줄여 화면 점유를 최소화 */
+  compact?: boolean;
 }
 
-export function SummaryBar({ total, attended, showAbsent = false, loading = false }: SummaryBarProps) {
+export function SummaryBar({
+  total,
+  attended,
+  showAbsent = false,
+  loading = false,
+  compact = false,
+}: SummaryBarProps) {
   const rate = total === 0 ? 0 : Math.round((attended / total) * 100);
 
   const stats: { label: string; value: number; suffix?: string }[] = [
@@ -27,15 +35,18 @@ export function SummaryBar({ total, attended, showAbsent = false, loading = fals
   return (
     <div className="flex divide-x divide-paper/15 overflow-hidden rounded-2xl bg-ink">
       {stats.map((stat) => (
-        <div key={stat.label} className="flex flex-1 flex-col items-center gap-0.5 px-4 py-4">
+        <div
+          key={stat.label}
+          className={`flex flex-1 flex-col items-center gap-0.5 ${compact ? 'px-3 py-1.5' : 'px-4 py-4'}`}
+        >
           <span className="font-display text-[0.65rem] tracking-[0.25em] text-paper/55">{stat.label}</span>
           {loading ? (
-            <Skeleton className="my-1 h-6 w-10 bg-paper/20" />
+            <Skeleton className={`my-1 bg-paper/20 ${compact ? 'h-5 w-8' : 'h-6 w-10'}`} />
           ) : (
             <RollingNumber
               value={stat.value}
               suffix={stat.suffix}
-              className="font-display text-2xl font-bold tabular-nums text-paper"
+              className={`font-display font-bold tabular-nums text-paper ${compact ? 'text-lg' : 'text-2xl'}`}
             />
           )}
         </div>

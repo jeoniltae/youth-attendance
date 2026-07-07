@@ -5,6 +5,7 @@ import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { SummaryBar } from "@/components/attendance/SummaryBar";
+import { FloatingSummaryBar } from "@/components/attendance/FloatingSummaryBar";
 import { GroupAttendanceChart } from "@/components/history/GroupAttendanceChart";
 import { GroupAttendanceChartSkeleton } from "@/components/history/GroupAttendanceChartSkeleton";
 import { useRoster } from "@/hooks/useRoster";
@@ -25,6 +26,7 @@ export default function HistoryPage() {
   const [date, setDate] = useState(() => toInputDateValue(getTodayInSeoul()));
   const [session, setSession] = useState<Session>("오전");
   const dateInputRef = useRef<HTMLInputElement>(null);
+  const summaryRef = useRef<HTMLDivElement>(null);
 
   const { data: roster, isLoading: rosterLoading, isError: rosterError } = useRoster(session);
   const {
@@ -129,9 +131,20 @@ export default function HistoryPage() {
         </div>
       </div>
 
-      <div className="animate-[rise-in_0.5s_ease-out_both]" style={{ animationDelay: "140ms" }}>
+      <div
+        ref={summaryRef}
+        className="animate-[rise-in_0.5s_ease-out_both]"
+        style={{ animationDelay: "140ms" }}
+      >
         <SummaryBar total={total} attended={attended} showAbsent loading={isLoading} />
       </div>
+      <FloatingSummaryBar
+        anchorRef={summaryRef}
+        total={total}
+        attended={attended}
+        showAbsent
+        loading={isLoading}
+      />
 
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2 xl:grid-cols-3">
         {isLoading ? (

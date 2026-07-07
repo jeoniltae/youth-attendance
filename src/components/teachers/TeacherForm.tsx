@@ -1,15 +1,18 @@
 // 교사 추가/수정 폼 모달 — 교적 관리(/members) 화면 전용
 
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/common/Skeleton";
 import { getTodayInSeoul, toInputDateValue } from "@/lib/date";
 import { TEAM_ORDER } from "@/lib/group-members";
 import { toggleAttendance } from "@/api/attendance";
+import { getMemberStats } from "@/api/stats";
 import type { Session, Teacher } from "@/types";
 
 export type TeacherDraft = Omit<Teacher, "id">;
@@ -24,16 +27,8 @@ interface TeacherFormProps {
   onDelete?: (id: string) => Promise<void>;
 }
 
-function memberStats(id: string) {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  const r3m = (h % 400 + 300) / 1000;
-  const r1y = Math.min(1, r3m + ((h >> 8) % 200) / 1000 - 0.1);
-  return { count3m: Math.round(r3m * 13), total3m: 13, count1y: Math.round(r1y * 26), total1y: 26 };
-}
-
 function StatCard({ label, count, total }: { label: string; count: number; total: number }) {
-  const rate = Math.round((count / total) * 100);
+  const rate = total === 0 ? 0 : Math.round((count / total) * 100);
   return (
     <div className="rounded-xl bg-blue-50 p-3">
       <p className="text-xs text-ink/50">{label}</p>
@@ -98,6 +93,14 @@ export function TeacherForm({
   const [attendSession, setAttendSession] = useState<Session>(session);
   const [attendStatus, setAttendStatus] = useState<"idle" | "added" | "cancelled">("idle");
 
+  // 실제 Attendance 기록 기반 개인 출석 통계 (수정 모드에서만 조회)
+  const { data: memberStats, refetch: refetchStats } = useQuery({
+    queryKey: ["member-stats", teacher?.id, teacher?.session],
+    queryFn: () => getMemberStats(teacher!.id, teacher!.session),
+    enabled: open && !!teacher,
+    staleTime: 60_000,
+  });
+
   useEffect(() => {
     if (open) {
       setDraft(teacher ? { ...teacher } : emptyDraft(session));
@@ -141,6 +144,7 @@ export function TeacherForm({
     } catch {
       // 실패해도 UI 표시는 동일하게
     }
+    void refetchStats();
     setAttendStatus("added");
     setTimeout(() => setAttendStatus("idle"), 1500);
   }
@@ -160,6 +164,7 @@ export function TeacherForm({
     } catch {
       // 실패해도 UI 표시는 동일하게
     }
+    void refetchStats();
     setAttendStatus("cancelled");
     setTimeout(() => setAttendStatus("idle"), 1500);
   }
@@ -230,15 +235,22 @@ export function TeacherForm({
             />
           </Field>
 
-          {teacher && (() => {
-            const { count3m, total3m, count1y, total1y } = memberStats(teacher.id);
-            return (
+          {teacher && (
               <>
                 <div className="border-t border-teal/15" />
 
                 <div className="grid grid-cols-2 gap-3">
-                  <StatCard label="최근 3개월 출석률" count={count3m} total={total3m} />
-                  <StatCard label="최근 1년 출석률" count={count1y} total={total1y} />
+                  {memberStats ? (
+                    <>
+                      <StatCard label="최근 3개월 출석률" count={memberStats.count3m} total={memberStats.total3m} />
+                      <StatCard label="최근 1년 출석률" count={memberStats.count1y} total={memberStats.total1y} />
+                    </>
+                  ) : (
+                    <>
+                      <Skeleton className="h-[104px] rounded-xl" />
+                      <Skeleton className="h-[104px] rounded-xl" />
+                    </>
+                  )}
                 </div>
 
                 <div className="rounded-xl border border-teal/15 bg-teal/5 p-4">
@@ -292,8 +304,7 @@ export function TeacherForm({
                   </div>
                 </div>
               </>
-            );
-          })()}
+          )}
 
           <div className="flex items-center justify-between gap-2 pt-1">
             {teacher && onDelete ? (

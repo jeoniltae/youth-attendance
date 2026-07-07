@@ -82,10 +82,11 @@ const AMBIENT_CONFETTI = Array.from({ length: 100 }, (_, i) => {
   };
 });
 
-const BURST_COUNT = 150;
+// 월/세션 전환 시 선택 카드 정중앙에서 터지는 폭죽
+const CARD_BURST_COUNT = 150;
 
-function buildBurst(seed: number) {
-  return Array.from({ length: BURST_COUNT }, (_, i) => {
+function buildCardBurst(seed: number) {
+  return Array.from({ length: CARD_BURST_COUNT }, (_, i) => {
     const r1 = seededRandom(seed * 1000 + i * 9 + 1);
     const r2 = seededRandom(seed * 1000 + i * 9 + 2);
     const r3 = seededRandom(seed * 1000 + i * 9 + 3);
@@ -98,6 +99,40 @@ function buildBurst(seed: number) {
       rot: (r3 - 0.5) * 720,
       delay: r4 * 80,
       color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+    };
+  });
+}
+
+// 클릭/전환과 무관하게 배경 곳곳의 랜덤한 지점에서 주기적으로 터지는 폭죽
+const AMBIENT_BURST_CLUSTERS = 30;
+const AMBIENT_BURST_PIECES = 25;
+const AMBIENT_BURST_INTERVAL_MS = 4000;
+
+function buildAmbientBursts(seed: number) {
+  return Array.from({ length: AMBIENT_BURST_CLUSTERS }, (_, c) => {
+    const cr1 = seededRandom(seed * 3000 + c * 13 + 1);
+    const cr2 = seededRandom(seed * 3000 + c * 13 + 2);
+    const cr3 = seededRandom(seed * 3000 + c * 13 + 3);
+    return {
+      x: 6 + cr1 * 88, // 터지는 지점 가로 위치 (%)
+      y: 6 + cr2 * 62, // 터지는 지점 세로 위치 (%)
+      baseDelay: cr3 * 3500, // 주기 안에서 클러스터가 흩어져 터지도록 시차 분산
+      pieces: Array.from({ length: AMBIENT_BURST_PIECES }, (_, i) => {
+        const s = seed * 1000 + c * 100 + i * 9;
+        const r1 = seededRandom(s + 1);
+        const r2 = seededRandom(s + 2);
+        const r3 = seededRandom(s + 3);
+        const r4 = seededRandom(s + 4);
+        const angle = r1 * Math.PI * 2;
+        const distance = 90 + r2 * 160;
+        return {
+          dx: Math.cos(angle) * distance,
+          dy: Math.sin(angle) * distance,
+          rot: (r3 - 0.5) * 720,
+          delay: r4 * 80,
+          color: CONFETTI_COLORS[(c * AMBIENT_BURST_PIECES + i) % CONFETTI_COLORS.length],
+        };
+      }),
     };
   });
 }
@@ -146,9 +181,25 @@ export default function BirthdayPage() {
     setBurstSeed((s) => s + 1);
   }, [month, session]);
 
-  const burstPieces = useMemo(
-    () => (burstSeed > 0 ? buildBurst(burstSeed) : []),
+  const cardBurstPieces = useMemo(
+    () => (burstSeed > 0 ? buildCardBurst(burstSeed) : []),
     [burstSeed],
+  );
+
+  // 배경 폭죽 — 클릭/전환 없이도 주기적으로 새 랜덤 위치에서 자동 반복
+  const [ambientBurstSeed, setAmbientBurstSeed] = useState(1);
+
+  useEffect(() => {
+    const interval = setInterval(
+      () => setAmbientBurstSeed((s) => s + 1),
+      AMBIENT_BURST_INTERVAL_MS,
+    );
+    return () => clearInterval(interval);
+  }, []);
+
+  const ambientBurstClusters = useMemo(
+    () => buildAmbientBursts(ambientBurstSeed),
+    [ambientBurstSeed],
   );
 
   const [rainSeed, setRainSeed] = useState(0);
@@ -282,6 +333,33 @@ export default function BirthdayPage() {
             />
           </span>
         ))}
+
+        {/* 배경 곳곳에서 주기적으로 자동 반복되는 폭죽 */}
+        {ambientBurstClusters.map((cluster, ci) => (
+          <div
+            key={`${ambientBurstSeed}-${ci}`}
+            className="absolute"
+            style={{ left: `${cluster.x}%`, top: `${cluster.y}%` }}
+          >
+            {cluster.pieces.map((b, i) => (
+              <span
+                key={i}
+                className="absolute size-2 rounded-[2px]"
+                style={
+                  {
+                    backgroundColor: b.color,
+                    // 클러스터 시차 대기 중에는 숨김 — 키프레임 0%(opacity 1)가 시작되면 나타남
+                    opacity: 0,
+                    "--burst-dx": `${b.dx}px`,
+                    "--burst-dy": `${b.dy}px`,
+                    "--burst-rot": `${b.rot}deg`,
+                    animation: `confetti-burst 850ms ease-out ${cluster.baseDelay + b.delay}ms forwards`,
+                  } as CSSProperties
+                }
+              />
+            ))}
+          </div>
+        ))}
       </div>
 
       <main className="relative z-10 mx-auto flex w-full max-w-[1368px] flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8">
@@ -308,15 +386,16 @@ export default function BirthdayPage() {
           className="relative flex flex-col overflow-hidden rounded-2xl border-[1.5px] border-celebrate/20 bg-paper-deep shadow-[0_2px_0_rgba(30,34,51,0.08)] sm:flex-row animate-[rise-in_0.5s_ease-out_both]"
           style={{ animationDelay: "70ms" }}
         >
-          {burstPieces.length > 0 && (
+          {cardBurstPieces.length > 0 && (
             <div className="pointer-events-none absolute left-1/2 top-1/2 z-20">
-              {burstPieces.map((b, i) => (
+              {cardBurstPieces.map((b, i) => (
                 <span
                   key={`${burstSeed}-${i}`}
                   className="absolute size-2 rounded-[2px]"
                   style={
                     {
                       backgroundColor: b.color,
+                      opacity: 0,
                       "--burst-dx": `${b.dx}px`,
                       "--burst-dy": `${b.dy}px`,
                       "--burst-rot": `${b.rot}deg`,
