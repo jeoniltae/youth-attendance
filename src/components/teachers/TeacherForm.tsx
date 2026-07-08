@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/common/Skeleton";
 import { LoadingOverlay } from "@/components/common/LoadingOverlay";
 import { getTodayInSeoul, toInputDateValue } from "@/lib/date";
@@ -92,7 +93,9 @@ export function TeacherForm({
   const [isSaving, setIsSaving] = useState(false);
   const [attendDate, setAttendDate] = useState(() => toInputDateValue(getTodayInSeoul()));
   const [attendSession, setAttendSession] = useState<Session>(session);
-  const [attendStatus, setAttendStatus] = useState<"idle" | "added" | "cancelled">("idle");
+  const [attendStatus, setAttendStatus] = useState<
+    "idle" | "adding" | "added" | "cancelling" | "cancelled"
+  >("idle");
 
   // 실제 Attendance 기록 기반 개인 출석 통계 (수정 모드에서만 조회)
   const { data: memberStats, refetch: refetchStats } = useQuery({
@@ -132,6 +135,7 @@ export function TeacherForm({
 
   async function handleAddAttend() {
     if (attendStatus !== "idle" || !teacher) return;
+    setAttendStatus("adding");
     try {
       await toggleAttendance({
         date: attendDate,
@@ -145,13 +149,14 @@ export function TeacherForm({
     } catch {
       // 실패해도 UI 표시는 동일하게
     }
-    void refetchStats();
+    await refetchStats();
     setAttendStatus("added");
     setTimeout(() => setAttendStatus("idle"), 1500);
   }
 
   async function handleCancelAttend() {
     if (attendStatus !== "idle" || !teacher) return;
+    setAttendStatus("cancelling");
     try {
       await toggleAttendance({
         date: attendDate,
@@ -165,7 +170,7 @@ export function TeacherForm({
     } catch {
       // 실패해도 UI 표시는 동일하게
     }
-    void refetchStats();
+    await refetchStats();
     setAttendStatus("cancelled");
     setTimeout(() => setAttendStatus("idle"), 1500);
   }
@@ -294,24 +299,44 @@ export function TeacherForm({
                     <button
                       type="button"
                       onClick={handleAddAttend}
-                      className={`rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all ${
+                      disabled={attendStatus === "adding" || attendStatus === "cancelling"}
+                      className={`flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all disabled:opacity-60 ${
                         attendStatus === "added"
                           ? "bg-green-600 opacity-80"
                           : "bg-green-500 hover:bg-green-600"
                       }`}
                     >
-                      {attendStatus === "added" ? "추가됨 ✓" : "출석 추가"}
+                      {attendStatus === "adding" ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin" />
+                          추가 중…
+                        </>
+                      ) : attendStatus === "added" ? (
+                        "추가됨 ✓"
+                      ) : (
+                        "출석 추가"
+                      )}
                     </button>
                     <button
                       type="button"
                       onClick={handleCancelAttend}
-                      className={`rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all ${
+                      disabled={attendStatus === "adding" || attendStatus === "cancelling"}
+                      className={`flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all disabled:opacity-60 ${
                         attendStatus === "cancelled"
                           ? "bg-red-600 opacity-80"
                           : "bg-red-500 hover:bg-red-600"
                       }`}
                     >
-                      {attendStatus === "cancelled" ? "취소됨 ✓" : "출석 취소"}
+                      {attendStatus === "cancelling" ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin" />
+                          취소 중…
+                        </>
+                      ) : attendStatus === "cancelled" ? (
+                        "취소됨 ✓"
+                      ) : (
+                        "출석 취소"
+                      )}
                     </button>
                   </div>
                 </div>
