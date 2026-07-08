@@ -17,19 +17,26 @@ export function useTeachers(session: Session) {
     queryFn: () => getTeachers(session),
   });
 
+  // 명단 + 개인 출석 통계 캐시를 함께 무효화 — 삭제/재등록 시 ID가 재사용되면
+  // 옛 통계(예: 삭제 전 출석 1회)가 캐시에 남아 새 인원에 잘못 표시되는 것을 방지
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey });
+    queryClient.invalidateQueries({ queryKey: ["member-stats"] });
+  };
+
   const createMutation = useMutation({
     mutationFn: (body: TeacherPayload) => createTeacher(body),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey }),
+    onSuccess: invalidateAll,
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, ...body }: Teacher) => updateTeacher(id, body),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey }),
+    onSuccess: invalidateAll,
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteTeacher,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey }),
+    onSuccess: invalidateAll,
   });
 
   return {
