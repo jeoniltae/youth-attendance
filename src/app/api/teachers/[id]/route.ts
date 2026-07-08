@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { findRowNumber, updateRow, deleteRow, SHEET } from '@/lib/sheets';
+import { findRowNumber, updateRow, deleteRow, deleteRowsWhere, SHEET } from '@/lib/sheets';
 import { teacherToRow } from '@/app/api/teachers/route';
 import type { Session, Teacher } from '@/types';
 
@@ -63,6 +63,9 @@ export async function DELETE(
     }
 
     await deleteRow(SHEET.TEACHERS, rowNumber);
+    // 삭제된 교사의 출석 기록도 정리 — 남겨두면 ID가 재사용될 때 새 교사가
+    // 옛 출석 기록을 물려받아 출석률이 잘못 계산된다
+    await deleteRowsWhere(SHEET.ATTENDANCE, (r) => r.StudentID === id);
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('[api/teachers/[id]][DELETE]', error);

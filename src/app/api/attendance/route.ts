@@ -62,9 +62,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // 출석은 하루 1회 원칙 — 세션(오전/오후)을 판정에서 제외하고 날짜+StudentID로만 매칭.
+    // 세션까지 넣으면, 소속을 오전↔오후로 옮긴 뒤 취소할 때 옛 세션 행을 못 찾아
+    // 삭제 대신 새 행이 추가되어 같은 날 중복 출석(2회)이 생긴다.
     const rowNumber = await findRowNumber(
       SHEET.ATTENDANCE,
-      (r) => r.Date === date && r.Session === session && r.StudentID === studentId,
+      (r) => r.Date === date && r.StudentID === studentId,
     );
 
     if (rowNumber === null) {

@@ -1,21 +1,16 @@
-// 개인(학생/교사) 출석 통계 — 최근 3개월/1년 출석 횟수와 해당 기간의 예배 횟수
-// 분모는 해당 세션에서 출석 기록이 1건이라도 있는 날짜(=실제 예배일) 수
+// 개인(학생/교사) 출석 통계 — 최근 3개월/1년 출석일 수와 해당 기간의 예배일 수
+// 레거시 GAS(getStudentAttendanceStats)와 동일하게 세션 무관·날짜 단위로 집계.
+// 출석은 하루 1회 원칙이므로 같은 날 중복 행이 있어도 날짜 Set으로 1회만 센다.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { readSheet, SHEET } from '@/lib/sheets';
-import type { Session } from '@/types';
-
-const SESSIONS: Session[] = ['오전', '오후'];
 
 export async function GET(request: NextRequest) {
   const id = request.nextUrl.searchParams.get('id');
-  const session = request.nextUrl.searchParams.get('session');
+  // session 파라미터는 하위 호환을 위해 받되 집계에는 사용하지 않음 (세션 무관 날짜 기준)
 
-  if (!id || !session) {
-    return NextResponse.json({ error: 'id와 세션은 필수입니다' }, { status: 400 });
-  }
-  if (!SESSIONS.includes(session as Session)) {
-    return NextResponse.json({ error: '세션 값이 올바르지 않습니다' }, { status: 400 });
+  if (!id) {
+    return NextResponse.json({ error: 'id는 필수입니다' }, { status: 400 });
   }
 
   try {
@@ -34,18 +29,16 @@ export async function GET(request: NextRequest) {
       (r) => r.Status === '출석' && r.Date >= yearAgoStr && r.Date <= nowStr,
     );
 
-    // 분모: 조회 세션 기준 실제 예배일 수 (세션 이동과 무관하게 "그 세션에 몇 번 예배가 있었는지")
-    const inRangeSession = inRange.filter((r) => r.Session === session);
-    const total1y = new Set(inRangeSession.map((r) => r.Date)).size;
+    // 분모: 출석 기록이 있는 모든 날짜(=실제 예배일) 수 — 세션 무관
+    const total1y = new Set(inRange.map((r) => r.Date)).size;
     const total3m = new Set(
-      inRangeSession.filter((r) => r.Date >= threeMonthsAgoStr).map((r) => r.Date),
+      inRange.filter((r) => r.Date >= threeMonthsAgoStr).map((r) => r.Date),
     ).size;
 
-    // 분자: ID로만 매칭 (세션 필터 제외) — ID는 오전/오후 통틀어 고유하므로,
-    // 오전↔오후로 소속을 옮긴 이력이 있어도 과거 출석 기록이 사라지지 않아야 함
-    const mine = inRange.filter((r) => r.StudentID === id);
-    const count1y = mine.length;
-    const count3m = mine.filter((r) => r.Date >= threeMonthsAgoStr).length;
+    // 분자: 그 사람이 출석한 날짜 수 — 세션 무관, 날짜 Set으로 중복 제거(하루 1회)
+    const myDates = new Set(inRange.filter((r) => r.StudentID === id).map((r) => r.Date));
+    const count1y = myDates.size;
+    const count3m = [...myDates].filter((d) => d >= threeMonthsAgoStr).length;
 
     return NextResponse.json({ count3m, total3m, count1y, total1y });
   } catch (error) {

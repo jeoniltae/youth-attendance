@@ -98,6 +98,46 @@ export async function updateRow(sheetName: string, rowNumber: number, values: st
   });
 }
 
+// 조건에 맞는 모든 행을 삭제하고 삭제된 행 수를 반환.
+// 절대 행 번호를 내림차순으로 batchUpdate에 넣어(뒤 행부터 삭제) 인덱스 밀림을 방지한다.
+export async function deleteRowsWhere(
+  sheetName: string,
+  predicate: (row: Record<string, string>) => boolean,
+): Promise<number> {
+  const rows = await readSheet(sheetName);
+  const rowNumbers = rows
+    .map((row, i) => ({ row, num: i + 2 })) // +2: 헤더(1) + 0-based → 1-based
+    .filter(({ row }) => predicate(row))
+    .map(({ num }) => num)
+    .sort((a, b) => b - a);
+
+  if (rowNumbers.length === 0) return 0;
+
+  const sheets = getSheetsClient();
+  const sheetIdMap = await getSheetTitleToIdMap();
+  const sheetId = sheetIdMap[sheetName];
+  if (sheetId === undefined) {
+    throw new Error(`시트를 찾을 수 없습니다: ${sheetName}`);
+  }
+
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId: SPREADSHEET_ID,
+    requestBody: {
+      requests: rowNumbers.map((num) => ({
+        deleteDimension: {
+          range: {
+            sheetId,
+            dimension: 'ROWS',
+            startIndex: num - 1,
+            endIndex: num,
+          },
+        },
+      })),
+    },
+  });
+  return rowNumbers.length;
+}
+
 // 특정 행 삭제 (rowNumber는 1-based, 헤더 포함 절대 행 번호)
 export async function deleteRow(sheetName: string, rowNumber: number): Promise<void> {
   const sheets = getSheetsClient();
