@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2 } from "lucide-react";
+import { Loader2, TriangleAlert } from "lucide-react";
 import { Skeleton } from "@/components/common/Skeleton";
 import { LoadingOverlay } from "@/components/common/LoadingOverlay";
 import { getTodayInSeoul, toInputDateValue } from "@/lib/date";
@@ -96,6 +96,7 @@ export function TeacherForm({
   const [attendStatus, setAttendStatus] = useState<
     "idle" | "adding" | "added" | "cancelling" | "cancelled"
   >("idle");
+  const [attendMessage, setAttendMessage] = useState<string | null>(null);
 
   // 실제 Attendance 기록 기반 개인 출석 통계 (수정 모드에서만 조회)
   const { data: memberStats, refetch: refetchStats } = useQuery({
@@ -112,6 +113,7 @@ export function TeacherForm({
       setIsSaving(false);
       setAttendSession(session);
       setAttendStatus("idle");
+      setAttendMessage(null);
     }
   }, [open, teacher, session]);
 
@@ -133,21 +135,35 @@ export function TeacherForm({
     }
   }
 
+  function attendPayload() {
+    return {
+      date: attendDate,
+      session: attendSession,
+      grade: "",
+      class: "",
+      studentId: teacher!.id,
+      name: teacher!.name,
+      type: "teacher" as const,
+    };
+  }
+
   async function handleAddAttend() {
     if (attendStatus !== "idle" || !teacher) return;
+    setAttendMessage(null);
     setAttendStatus("adding");
     try {
-      await toggleAttendance({
-        date: attendDate,
-        session: attendSession,
-        grade: "",
-        class: "",
-        studentId: teacher.id,
-        name: teacher.name,
-        type: "teacher",
-      });
+      const res = await toggleAttendance(attendPayload());
+      // 토글은 상태 반전 — '결석'이 오면 이미 출석이던 걸 지운 것이므로 원복하고 안내
+      if (res.status === "결석") {
+        await toggleAttendance(attendPayload());
+        setAttendMessage("이미 출석 처리되어 있습니다.");
+        setAttendStatus("idle");
+        return;
+      }
     } catch {
-      // 실패해도 UI 표시는 동일하게
+      setAttendMessage("처리 중 오류가 발생했습니다. 다시 시도해주세요.");
+      setAttendStatus("idle");
+      return;
     }
     await refetchStats();
     setAttendStatus("added");
@@ -156,19 +172,21 @@ export function TeacherForm({
 
   async function handleCancelAttend() {
     if (attendStatus !== "idle" || !teacher) return;
+    setAttendMessage(null);
     setAttendStatus("cancelling");
     try {
-      await toggleAttendance({
-        date: attendDate,
-        session: attendSession,
-        grade: "",
-        class: "",
-        studentId: teacher.id,
-        name: teacher.name,
-        type: "teacher",
-      });
+      const res = await toggleAttendance(attendPayload());
+      // '출석'이 오면 원래 기록이 없어 새로 추가된 것 → 원복하고 안내 (0회에서 -1 방지)
+      if (res.status === "출석") {
+        await toggleAttendance(attendPayload());
+        setAttendMessage("취소할 출석 기록이 없습니다.");
+        setAttendStatus("idle");
+        return;
+      }
     } catch {
-      // 실패해도 UI 표시는 동일하게
+      setAttendMessage("처리 중 오류가 발생했습니다. 다시 시도해주세요.");
+      setAttendStatus("idle");
+      return;
     }
     await refetchStats();
     setAttendStatus("cancelled");
@@ -281,14 +299,20 @@ export function TeacherForm({
                         type="date"
                         className={inputClass}
                         value={attendDate}
-                        onChange={(e) => setAttendDate(e.target.value)}
+                        onChange={(e) => {
+                          setAttendDate(e.target.value);
+                          setAttendMessage(null);
+                        }}
                       />
                     </Field>
                     <Field label="예배">
                       <select
                         className={inputClass}
                         value={attendSession}
-                        onChange={(e) => setAttendSession(e.target.value as Session)}
+                        onChange={(e) => {
+                          setAttendSession(e.target.value as Session);
+                          setAttendMessage(null);
+                        }}
                       >
                         <option value="오전">오전</option>
                         <option value="오후">오후</option>
@@ -339,6 +363,13 @@ export function TeacherForm({
                       )}
                     </button>
                   </div>
+
+                  {attendMessage && (
+                    <div className="mt-3 flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-3 py-2.5 text-sm font-semibold text-red-600 animate-[rise-in_0.25s_ease-out]">
+                      <TriangleAlert className="size-4 shrink-0" />
+                      {attendMessage}
+                    </div>
+                  )}
                 </div>
               </>
           )}
