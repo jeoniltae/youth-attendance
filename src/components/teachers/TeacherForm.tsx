@@ -181,6 +181,16 @@ export function TeacherForm({
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-3">
+            <Field label="소속" required>
+              <select
+                className={inputClass}
+                value={draft.session}
+                onChange={(e) => update("session", e.target.value as Session)}
+              >
+                <option value="오전">오전반</option>
+                <option value="오후">오후반</option>
+              </select>
+            </Field>
             <Field label="이름" required>
               <input
                 className={inputClass}
@@ -210,15 +220,16 @@ export function TeacherForm({
                 placeholder="010-0000-0000"
               />
             </Field>
-            <Field label="생년월일">
-              <input
-                type="date"
-                className={inputClass}
-                value={draft.birthdate}
-                onChange={(e) => update("birthdate", e.target.value)}
-              />
-            </Field>
           </div>
+
+          <Field label="생년월일">
+            <input
+              type="date"
+              className={inputClass}
+              value={draft.birthdate}
+              onChange={(e) => update("birthdate", e.target.value)}
+            />
+          </Field>
 
           <Field label="주소">
             <input
