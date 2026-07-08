@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/common/Skeleton";
+import { LoadingOverlay } from "@/components/common/LoadingOverlay";
 import { getTodayInSeoul, toInputDateValue } from "@/lib/date";
 import { TEAM_ORDER } from "@/lib/group-members";
 import { toggleAttendance } from "@/api/attendance";
@@ -366,6 +367,8 @@ export function TeacherForm({
             </div>
           </div>
         </form>
+
+        {isSaving && <LoadingOverlay />}
       </DialogContent>
     </Dialog>
   );
