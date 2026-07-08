@@ -30,20 +30,20 @@ export async function GET(request: NextRequest) {
     const threeMonthsAgoStr = threeMonthsAgoKST.toISOString().slice(0, 10);
 
     const attendance = await readSheet(SHEET.ATTENDANCE);
-    const inYear = attendance.filter(
-      (r) =>
-        r.Session === session &&
-        r.Status === '출석' &&
-        r.Date >= yearAgoStr &&
-        r.Date <= nowStr,
+    const inRange = attendance.filter(
+      (r) => r.Status === '출석' && r.Date >= yearAgoStr && r.Date <= nowStr,
     );
 
-    const total1y = new Set(inYear.map((r) => r.Date)).size;
+    // 분모: 조회 세션 기준 실제 예배일 수 (세션 이동과 무관하게 "그 세션에 몇 번 예배가 있었는지")
+    const inRangeSession = inRange.filter((r) => r.Session === session);
+    const total1y = new Set(inRangeSession.map((r) => r.Date)).size;
     const total3m = new Set(
-      inYear.filter((r) => r.Date >= threeMonthsAgoStr).map((r) => r.Date),
+      inRangeSession.filter((r) => r.Date >= threeMonthsAgoStr).map((r) => r.Date),
     ).size;
 
-    const mine = inYear.filter((r) => r.StudentID === id);
+    // 분자: ID로만 매칭 (세션 필터 제외) — ID는 오전/오후 통틀어 고유하므로,
+    // 오전↔오후로 소속을 옮긴 이력이 있어도 과거 출석 기록이 사라지지 않아야 함
+    const mine = inRange.filter((r) => r.StudentID === id);
     const count1y = mine.length;
     const count3m = mine.filter((r) => r.Date >= threeMonthsAgoStr).length;
 

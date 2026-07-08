@@ -52,7 +52,8 @@ function emptyDraft(session: Session, grade: string): StudentDraft {
 }
 
 function StatCard({ label, count, total }: { label: string; count: number; total: number }) {
-  const rate = total === 0 ? 0 : Math.round((count / total) * 100);
+  // 세션 이동 이력이 있으면 분자(전체 이력)가 분모(현재 세션 예배일수)를 넘을 수 있어 100%로 클램프
+  const rate = total === 0 ? 0 : Math.min(100, Math.round((count / total) * 100));
   return (
     <div className="rounded-xl bg-blue-50 p-3">
       <p className="text-xs text-ink/50">{label}</p>
