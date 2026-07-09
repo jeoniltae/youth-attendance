@@ -11,22 +11,32 @@ import { GroupAttendanceChartSkeleton } from "@/components/history/GroupAttendan
 import { useRoster } from "@/hooks/useRoster";
 import { useAttendance } from "@/hooks/useAttendance";
 import { groupStudentsAndTeachers } from "@/lib/group-members";
-import {
-  addDays,
-  formatDateLabel,
-  getTodayInSeoul,
-  parseInputDate,
-  toInputDateValue,
-} from "@/lib/date";
+import { formatDateLabel, parseInputDate, sundaysThisYear } from "@/lib/date";
 import type { Session } from "@/types";
 
 const SESSIONS: Session[] = ["오전", "오후"];
 
 export default function HistoryPage() {
-  const [date, setDate] = useState(() => toInputDateValue(getTodayInSeoul()));
+  // 올해 일요일(예배일) 목록 — index 0이 가장 최근, 값이 클수록 과거
+  const sundayOptions = useMemo(() => sundaysThisYear(), []);
+  const [date, setDate] = useState(() => sundayOptions[0] ?? "");
   const [session, setSession] = useState<Session>("오전");
-  const dateInputRef = useRef<HTMLInputElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
+
+  const dateIndex = sundayOptions.indexOf(date);
+  const isPrevDisabled = dateIndex === -1 || dateIndex >= sundayOptions.length - 1;
+  const isNextDisabled = dateIndex <= 0;
+
+  function goToPrevSunday() {
+    if (dateIndex === -1) return;
+    const next = sundayOptions[dateIndex + 1];
+    if (next) setDate(next);
+  }
+
+  function goToNextSunday() {
+    if (dateIndex <= 0) return;
+    setDate(sundayOptions[dateIndex - 1]);
+  }
 
   const { data: roster, isLoading: rosterLoading, isError: rosterError } = useRoster(session);
   const {
@@ -47,9 +57,6 @@ export default function HistoryPage() {
 
   const isLoading = rosterLoading || attendanceLoading;
   const isError = rosterError || attendanceError;
-
-  const today = toInputDateValue(getTodayInSeoul());
-  const isNextDisabled = addDays(date, 7) > today;
 
   return (
     <main className="mx-auto flex w-full max-w-[1368px] flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8">
@@ -77,31 +84,31 @@ export default function HistoryPage() {
         <div className="flex flex-1 items-center justify-center gap-2 px-4 py-3">
           <button
             type="button"
-            onClick={() => setDate((d) => addDays(d, -7))}
+            onClick={goToPrevSunday}
+            disabled={isPrevDisabled}
             aria-label="이전 주일"
-            className="flex size-8 items-center justify-center rounded-full border border-ink/20 text-ink/60 hover:border-ink/40 hover:text-ink"
+            className="flex size-8 items-center justify-center rounded-full border border-ink/20 text-ink/60 hover:border-ink/40 hover:text-ink disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-ink/20 disabled:hover:text-ink/60"
           >
             <ChevronLeft className="size-4" />
           </button>
+          <div className="relative">
+            <select
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              aria-label="조회할 예배일 (일요일)"
+              className="appearance-none rounded-full border border-dashed border-ink/30 bg-paper py-1.5 pl-4 pr-8 font-display text-sm font-semibold text-ink hover:border-ink/50"
+            >
+              {sundayOptions.map((d) => (
+                <option key={d} value={d}>
+                  {formatDateLabel(parseInputDate(d))}
+                </option>
+              ))}
+            </select>
+            <ChevronRight className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 rotate-90 text-ink/40" />
+          </div>
           <button
             type="button"
-            onClick={() => dateInputRef.current?.showPicker?.()}
-            className="rounded-full border border-dashed border-ink/30 bg-paper px-4 py-1.5 font-display text-sm font-semibold text-ink hover:border-ink/50"
-          >
-            {formatDateLabel(parseInputDate(date))}
-          </button>
-          <input
-            ref={dateInputRef}
-            type="date"
-            value={date}
-            max={today}
-            onChange={(e) => setDate(e.target.value)}
-            className="sr-only"
-            tabIndex={-1}
-          />
-          <button
-            type="button"
-            onClick={() => setDate((d) => addDays(d, 7))}
+            onClick={goToNextSunday}
             disabled={isNextDisabled}
             aria-label="다음 주일"
             className="flex size-8 items-center justify-center rounded-full border border-ink/20 text-ink/60 hover:border-ink/40 hover:text-ink disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-ink/20 disabled:hover:text-ink/60"
