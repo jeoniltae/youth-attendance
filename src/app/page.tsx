@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Cake, ClipboardList, Lock } from "lucide-react";
+import { Cake, ClipboardList, Lock, TriangleAlert } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { SummaryBar } from "@/components/attendance/SummaryBar";
 import { FloatingSummaryBar } from "@/components/attendance/FloatingSummaryBar";
@@ -15,7 +15,7 @@ import { GradeSection } from "@/components/attendance/GradeSection";
 import { GradeSectionSkeleton } from "@/components/attendance/GradeSectionSkeleton";
 import { useRoster } from "@/hooks/useRoster";
 import { useAttendance } from "@/hooks/useAttendance";
-import { mostRecentSunday, toInputDateValue } from "@/lib/date";
+import { formatDateLabel, getTodayInSeoul, mostRecentSunday, parseInputDate, toInputDateValue } from "@/lib/date";
 import {
   groupStudentsAndTeachers,
   countMembers,
@@ -61,6 +61,11 @@ export default function Home() {
   const isLoading = rosterLoading || attendanceLoading;
   const isError = rosterError || attendanceError;
 
+  // 화면이 다루는 날짜(date)가 실제 오늘과 같을 때만 체크 가능 — 지난 예배는 조회만,
+  // 수정은 학생 관리 화면에서. 렌더마다 실시간 재계산되므로(30초 폴링 등으로 재렌더 시)
+  // 다음 일요일 당일이 되면 별도 처리 없이 자동으로 체크 가능해진다
+  const isCheckable = toInputDateValue(getTodayInSeoul()) === date;
+
   const groups = useMemo(
     () => groupStudentsAndTeachers(roster?.students ?? [], roster?.teachers ?? []),
     [roster],
@@ -89,6 +94,8 @@ export default function Home() {
   }, [roster]);
 
   function toggleMember(id: string) {
+    // 카드가 이미 잠겨 있어 클릭이 안 되지만, 방어적으로 한 번 더 막는다
+    if (!isCheckable) return;
     const member = memberLookup.get(id);
     if (!member) return;
     toggle({ date, session, studentId: id, ...member });
@@ -148,6 +155,16 @@ export default function Home() {
         />
       </div>
 
+      {!isLoading && !isCheckable && (
+        <div
+          className="flex items-center gap-2 rounded-xl border border-ink/15 bg-ink/5 px-4 py-2.5 text-sm font-medium text-ink/60 animate-[rise-in_0.4s_ease-out_both]"
+          style={{ animationDelay: "100ms" }}
+        >
+          <TriangleAlert className="size-4 shrink-0 text-ink/40" />
+          지난 예배({formatDateLabel(parseInputDate(date))}) 조회 중 — 출석 수정은 학생 관리에서 가능합니다
+        </div>
+      )}
+
       <div
         ref={summaryRef}
         className="animate-[rise-in_0.5s_ease-out_both]"
@@ -184,6 +201,7 @@ export default function Home() {
               <GradeSection
                 group={group}
                 attendedIds={attendedIds}
+                locked={!isCheckable}
                 onToggle={toggleMember}
               />
             </div>

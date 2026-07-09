@@ -6,6 +6,8 @@ import { allMembers, countMembers, type TopGroup } from "@/lib/group-members";
 interface GradeSectionProps {
   group: TopGroup;
   attendedIds: Set<string>;
+  /** true면 지난 예배 조회 중 — 카드 탭을 막고 잠금 표시 */
+  locked?: boolean;
   onToggle: (id: string) => void;
 }
 
@@ -33,6 +35,7 @@ const CARD_VARIANT: Record<
 export function GradeSection({
   group,
   attendedIds,
+  locked = false,
   onToggle,
 }: GradeSectionProps) {
   const total = countMembers(group);
@@ -86,6 +89,7 @@ export function GradeSection({
                       name={m.name}
                       attended={attendedIds.has(m.id)}
                       variant={cardVariant}
+                      locked={locked}
                       onToggle={() => onToggle(m.id)}
                     />
                   ))}
@@ -104,6 +108,7 @@ export function GradeSection({
               name={m.name}
               attended={attendedIds.has(m.id)}
               variant={cardVariant}
+              locked={locked}
               onToggle={() => onToggle(m.id)}
             />
           ))}
