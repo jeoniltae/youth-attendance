@@ -207,7 +207,7 @@ export function StudentForm({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} disablePointerDismissal>
       <DialogContent className="max-h-[90vh] overflow-y-auto rounded-2xl border-[1.5px] border-ink/15 bg-paper p-5 ring-0 sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="font-display text-lg font-bold text-ink">

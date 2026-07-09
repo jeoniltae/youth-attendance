@@ -193,7 +193,7 @@ export function TeacherForm({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} disablePointerDismissal>
       <DialogContent className="max-h-[85vh] overflow-y-auto rounded-2xl border-[1.5px] border-teal/25 bg-paper p-5 ring-0 sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="font-display text-lg font-bold text-teal">
