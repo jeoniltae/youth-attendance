@@ -106,7 +106,6 @@ export function StudentForm({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [attendDate, setAttendDate] = useState(() => toInputDateValue(getTodayInSeoul()));
-  const [attendSession, setAttendSession] = useState<Session>(session);
   const [attendStatus, setAttendStatus] = useState<
     "idle" | "adding" | "added" | "cancelling" | "cancelled"
   >("idle");
@@ -125,7 +124,6 @@ export function StudentForm({
       setDraft(student ? { ...student } : emptyDraft(session, defaultGrade ?? "1"));
       setConfirmDelete(false);
       setIsSaving(false);
-      setAttendSession(session);
       setAttendStatus("idle");
       setAttendMessage(null);
     }
@@ -152,7 +150,8 @@ export function StudentForm({
   function attendPayload() {
     return {
       date: attendDate,
-      session: attendSession,
+      // 출석 판정은 세션 무관(하루 1회)이며, 기록되는 세션 값은 저장된 소속을 따른다
+      session: student!.session,
       grade: student!.grade,
       class: student!.class,
       studentId: student!.id,
@@ -387,7 +386,7 @@ export function StudentForm({
                     <span className="text-base">📅</span>
                     <span className="text-sm font-semibold text-ink">출석 수정</span>
                   </div>
-                  <div className="mb-3 grid grid-cols-2 gap-3">
+                  <div className="mb-3">
                     <Field label="날짜">
                       <input
                         type="date"
@@ -399,19 +398,9 @@ export function StudentForm({
                         }}
                       />
                     </Field>
-                    <Field label="예배">
-                      <select
-                        className={inputClass}
-                        value={attendSession}
-                        onChange={(e) => {
-                          setAttendSession(e.target.value as Session);
-                          setAttendMessage(null);
-                        }}
-                      >
-                        <option value="오전">오전</option>
-                        <option value="오후">오후</option>
-                      </select>
-                    </Field>
+                    <p className="mt-1.5 text-xs text-ink/45">
+                      {student.session} 예배 기준으로 기록됩니다
+                    </p>
                   </div>
                   <div className="flex gap-2">
                     <button
