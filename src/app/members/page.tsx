@@ -16,6 +16,7 @@ import {
   type TopGroup,
 } from "@/lib/group-members";
 import { YearlyStats } from "@/components/stats/YearlyStats";
+import { mostRecentSunday, toInputDateValue } from "@/lib/date";
 import { useStudents } from "@/hooks/useStudents";
 import { useTeachers } from "@/hooks/useTeachers";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
@@ -149,6 +150,8 @@ interface TeacherModalState {
 
 export default function MembersPage() {
   const [session, setSession] = useState<Session>("오전");
+  // Header의 DATE 표시용 — 이 페이지의 출석 수정은 학생/교사 폼 내 날짜 드롭다운이 별도로 담당
+  const [headerDate] = useState(() => toInputDateValue(mostRecentSunday()));
   const [filter, setFilter] = useState<FilterState>({ level: "all" });
   const [studentModal, setStudentModal] = useState<StudentModalState>({
     open: false,
@@ -248,6 +251,7 @@ export default function MembersPage() {
       <div className="animate-[rise-in_0.5s_ease-out_both]" style={{ animationDelay: "70ms" }}>
         <Header
           session={session}
+          date={headerDate}
           onSessionChange={(s) => {
             setSession(s);
             setFilter({ level: "all" });

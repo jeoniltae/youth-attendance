@@ -15,7 +15,7 @@ import { GradeSection } from "@/components/attendance/GradeSection";
 import { GradeSectionSkeleton } from "@/components/attendance/GradeSectionSkeleton";
 import { useRoster } from "@/hooks/useRoster";
 import { useAttendance } from "@/hooks/useAttendance";
-import { getTodayInSeoul, toInputDateValue } from "@/lib/date";
+import { mostRecentSunday, toInputDateValue } from "@/lib/date";
 import {
   groupStudentsAndTeachers,
   countMembers,
@@ -38,7 +38,8 @@ function applyFilter(groups: TopGroup[], filter: FilterState): TopGroup[] {
 
 export default function Home() {
   const [session, setSession] = useState<Session>("오전");
-  const [date] = useState(() => toInputDateValue(getTodayInSeoul()));
+  // 평일에 열어도 항상 가장 최근 일요일(예배일) 기준으로 출석 조회/토글
+  const [date] = useState(() => toInputDateValue(mostRecentSunday()));
   const [filter, setFilter] = useState<FilterState>({ level: "all" });
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
@@ -110,6 +111,7 @@ export default function Home() {
       >
         <Header
           session={session}
+          date={date}
           onSessionChange={(s) => {
             setSession(s);
             setFilter({ level: "all" });
