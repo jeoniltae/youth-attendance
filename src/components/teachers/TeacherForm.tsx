@@ -1,6 +1,6 @@
 // 교사 추가/수정 폼 모달 — 교적 관리(/members) 화면 전용
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
@@ -11,7 +11,7 @@ import {
 import { Loader2, TriangleAlert } from "lucide-react";
 import { Skeleton } from "@/components/common/Skeleton";
 import { LoadingOverlay } from "@/components/common/LoadingOverlay";
-import { getTodayInSeoul, toInputDateValue } from "@/lib/date";
+import { formatDateLabel, parseInputDate, sundaysThisYear } from "@/lib/date";
 import { TEAM_ORDER } from "@/lib/group-members";
 import { toggleAttendance } from "@/api/attendance";
 import { getMemberStats } from "@/api/stats";
@@ -91,7 +91,9 @@ export function TeacherForm({
   );
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [attendDate, setAttendDate] = useState(() => toInputDateValue(getTodayInSeoul()));
+  // 올해 일요일(예배일) 목록 — 최신이 맨 앞, 미래·작년 미포함
+  const sundayOptions = useMemo(() => sundaysThisYear(), []);
+  const [attendDate, setAttendDate] = useState(() => sundayOptions[0] ?? "");
   const [attendStatus, setAttendStatus] = useState<
     "idle" | "adding" | "added" | "cancelling" | "cancelled"
   >("idle");
@@ -110,10 +112,11 @@ export function TeacherForm({
       setDraft(teacher ? { ...teacher } : emptyDraft(session));
       setConfirmDelete(false);
       setIsSaving(false);
+      setAttendDate(sundayOptions[0] ?? "");
       setAttendStatus("idle");
       setAttendMessage(null);
     }
-  }, [open, teacher, session]);
+  }, [open, teacher, session, sundayOptions]);
 
   function update<K extends keyof TeacherDraft>(key: K, value: TeacherDraft[K]) {
     setDraft((prev) => ({ ...prev, [key]: value }));
@@ -293,16 +296,21 @@ export function TeacherForm({
                     <span className="text-sm font-semibold text-teal">출석 수정</span>
                   </div>
                   <div className="mb-3">
-                    <Field label="날짜">
-                      <input
-                        type="date"
+                    <Field label="예배일 (일요일)">
+                      <select
                         className={inputClass}
                         value={attendDate}
                         onChange={(e) => {
                           setAttendDate(e.target.value);
                           setAttendMessage(null);
                         }}
-                      />
+                      >
+                        {sundayOptions.map((d) => (
+                          <option key={d} value={d}>
+                            {formatDateLabel(parseInputDate(d))}
+                          </option>
+                        ))}
+                      </select>
                     </Field>
                     <p className="mt-1.5 text-xs text-ink/45">
                       {teacher.session} 예배 기준으로 기록됩니다
