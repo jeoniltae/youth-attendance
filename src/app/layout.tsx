@@ -13,9 +13,13 @@ const body = IBM_Plex_Sans_KR({
   weight: ["400", "500", "600"],
 });
 
-const siteUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : "http://localhost:3000";
+// VERCEL_URL은 배포마다 바뀌는 고유 URL이라 Deployment Protection(SSO)에 걸려
+// 카카오톡 등 외부 크롤러가 접근할 수 없다 — 항상 공개된 production 별칭 도메인을 사용
+const siteUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
+  ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  : process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
