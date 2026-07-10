@@ -107,6 +107,17 @@
   }
 }
 
+/* iOS Safari는 포커스된 input/select/textarea의 font-size가 16px 미만이면 화면을 강제로
+   확대한다 (안드로이드 Chrome은 이 동작이 없음). 위 미디어쿼리로 인해 640px 미만에서는
+   text-sm이 14px라 폼 요소에서 줌이 발생하므로, 모바일에서만 폼 요소 글자 크기를 16px로 고정 */
+@media (max-width: 639.98px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);

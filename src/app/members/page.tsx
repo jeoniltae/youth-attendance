@@ -236,10 +236,10 @@ export default function MembersPage() {
         />
       )}
 
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 animate-[rise-in_0.5s_ease-out_both]">
+      <div className="relative flex items-center justify-center animate-[rise-in_0.5s_ease-out_both]">
         <Link
           href="/"
-          className="flex items-center gap-1.5 justify-self-start rounded-full bg-ink px-3.5 py-2 text-sm font-semibold whitespace-nowrap text-paper hover:bg-ink/85"
+          className="absolute inset-y-0 left-0 hidden items-center gap-1.5 rounded-full bg-ink px-3.5 py-2 text-sm font-semibold whitespace-nowrap text-paper hover:bg-ink/85 sm:flex"
         >
           <ArrowLeft className="size-3.5" />
           출석체크
@@ -253,7 +253,7 @@ export default function MembersPage() {
         <button
           type="button"
           onClick={() => setShowStats(true)}
-          className="flex items-center gap-1.5 justify-self-end rounded-full border border-ink/20 px-3.5 py-2 text-sm font-medium text-ink/70 hover:border-ink/40 hover:text-ink"
+          className="absolute inset-y-0 right-0 flex items-center gap-1.5 rounded-full border border-ink/20 px-3.5 py-2 text-sm font-medium text-ink/70 hover:border-ink/40 hover:text-ink"
         >
           <PieChart className="size-3.5" />
           <span className="hidden sm:inline">1년 통계</span>
@@ -269,32 +269,32 @@ export default function MembersPage() {
             setFilter({ level: "all" });
           }}
           actions={
-            <div className="flex items-center gap-2">
+            <div className="flex w-full items-center justify-center gap-2 sm:w-auto sm:justify-start">
               <button
                 type="button"
                 onClick={() => setStudentModal({ open: true, student: null })}
-                className="flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-sm font-semibold text-paper hover:bg-ink/85"
+                className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-ink px-3 py-1.5 text-sm font-semibold text-paper hover:bg-ink/85"
               >
                 <Plus className="size-3.5" />
-                학생 등록
+                학생<span className="hidden sm:inline"> 등록</span>
               </button>
               <button
                 type="button"
                 onClick={() => setTeacherModal({ open: true, teacher: null })}
-                className="flex items-center gap-1.5 rounded-full bg-teal px-3 py-1.5 text-sm font-semibold text-paper hover:opacity-90"
+                className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-teal px-3 py-1.5 text-sm font-semibold text-paper hover:opacity-90"
               >
                 <Plus className="size-3.5" />
-                교사 등록
+                교사<span className="hidden sm:inline"> 등록</span>
               </button>
               <button
                 type="button"
                 onClick={() =>
                   setStudentModal({ open: true, student: null, defaultGrade: "새친구" })
                 }
-                className="flex items-center gap-1.5 rounded-full bg-gold px-3 py-1.5 text-sm font-semibold text-paper hover:opacity-90"
+                className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-gold px-3 py-1.5 text-sm font-semibold text-paper hover:opacity-90"
               >
                 <UserPlus className="size-3.5" />
-                새친구 등록
+                새친구<span className="hidden sm:inline"> 등록</span>
               </button>
             </div>
           }

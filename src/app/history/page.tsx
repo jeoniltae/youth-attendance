@@ -75,10 +75,10 @@ export default function HistoryPage() {
       login={sessionAuth.login}
     >
     <main className="mx-auto flex w-full max-w-[1368px] flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8">
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 animate-[rise-in_0.5s_ease-out_both]">
+      <div className="relative flex items-center justify-center animate-[rise-in_0.5s_ease-out_both]">
         <Link
           href="/"
-          className="flex items-center gap-1.5 justify-self-start rounded-full bg-ink px-3.5 py-2 text-sm font-semibold whitespace-nowrap text-paper hover:bg-ink/85"
+          className="absolute inset-y-0 left-0 hidden items-center gap-1.5 rounded-full bg-ink px-3.5 py-2 text-sm font-semibold whitespace-nowrap text-paper hover:bg-ink/85 sm:flex"
         >
           <ArrowLeft className="size-3.5" />
           출석체크
@@ -89,7 +89,6 @@ export default function HistoryPage() {
           </p>
           <h1 className="font-display text-3xl font-bold text-ink">출석 현황 조회</h1>
         </div>
-        <div />
       </div>
 
       <div
