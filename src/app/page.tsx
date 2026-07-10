@@ -140,7 +140,7 @@ export default function Home() {
           }}
           lastUpdated={lastUpdated}
           actions={
-            <>
+            <div className="flex w-full flex-wrap items-center justify-center gap-2 sm:contents">
               <div className="flex items-center gap-2">
                 <Link
                   href="/history"
@@ -165,7 +165,7 @@ export default function Home() {
                 <Lock className="size-3.5" />
                 학생 관리
               </Link>
-            </>
+            </div>
           }
         />
       </div>

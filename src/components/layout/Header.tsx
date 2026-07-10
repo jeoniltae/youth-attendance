@@ -21,7 +21,7 @@ export function Header({ session, onSessionChange, date, lastUpdated, actions }:
   return (
     <div className="flex flex-col overflow-hidden rounded-2xl border-[1.5px] border-ink/15 bg-paper-deep shadow-[0_2px_0_rgba(30,34,51,0.08)] lg:flex-row lg:items-stretch lg:justify-between">
       <div className="flex flex-wrap items-stretch">
-        <div className="flex items-center gap-3 px-5 py-3">
+        <div className="flex items-center gap-3 px-3 py-3 sm:px-5">
           {/* 출석체크 대상 날짜(최근 일요일) — 스탬프색 박스로 강조해 "체크되는 날짜"임을 표시 */}
           <div className="flex flex-col items-center gap-0.5 rounded-xl border-[1.5px] border-stamp/35 bg-stamp/8 px-3 py-1.5">
             <span className="font-display text-[0.6rem] tracking-[0.15em] text-stamp/70">출석일</span>
@@ -41,7 +41,7 @@ export function Header({ session, onSessionChange, date, lastUpdated, actions }:
           </div>
         </div>
         <div className="w-px shrink-0 self-stretch bg-[repeating-linear-gradient(to_bottom,var(--ink)_0,var(--ink)_4px,transparent_4px,transparent_9px)] opacity-20" />
-        <div className="flex items-center gap-2 px-5 py-3 sm:max-lg:ml-auto">
+        <div className="flex items-center gap-2 px-3 py-3 sm:px-5 sm:max-lg:ml-auto">
           <span className="font-display text-[0.65rem] tracking-[0.2em] text-ink/50">예배</span>
           <div className="flex gap-1.5">
             {SESSIONS.map((s) => (
