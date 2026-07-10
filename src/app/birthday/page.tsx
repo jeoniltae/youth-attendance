@@ -24,6 +24,7 @@ import { RollingNumber } from "@/components/common/RollingNumber";
 import { Skeleton } from "@/components/common/Skeleton";
 import { PublicGate } from "@/components/common/PublicGate";
 import { useBirthdays } from "@/hooks/useBirthdays";
+import { useAuthGate } from "@/hooks/useAuthGate";
 import { groupBirthdaysByMonth, type BirthdayGroup } from "@/lib/birthdays";
 import { getTodayInSeoul } from "@/lib/date";
 import type { Session } from "@/types";
@@ -228,7 +229,10 @@ export default function BirthdayPage() {
     [rainSeed, showRain],
   );
 
-  const { data, isLoading, isError } = useBirthdays(session);
+  // 단일 인스턴스만 유지 — PublicGate에도 이 값을 그대로 props로 넘겨서
+  // 로그인 직후 데이터 훅의 enabled가 함께 갱신되도록 한다 (별도 호출 금지)
+  const sessionAuth = useAuthGate("session");
+  const { data, isLoading, isError } = useBirthdays(session, sessionAuth.isAuthenticated);
 
   const groups = useMemo(
     () => groupBirthdaysByMonth(data?.students ?? [], data?.teachers ?? [], month),
@@ -253,7 +257,11 @@ export default function BirthdayPage() {
   }
 
   return (
-    <PublicGate>
+    <PublicGate
+      isAuthenticated={sessionAuth.isAuthenticated}
+      checked={sessionAuth.checked}
+      login={sessionAuth.login}
+    >
     <div
       onMouseMove={handleMouseMove}
       className="relative min-h-screen overflow-hidden"

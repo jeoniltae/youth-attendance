@@ -168,8 +168,9 @@ export default function MembersPage() {
 
   const router = useRouter();
   const { isAuthenticated, checked, login } = useAuthGate("admin");
-  const studentsHook = useStudents(session);
-  const teachersHook = useTeachers(session);
+  // 비인증 상태에서는 API 자체를 호출하지 않음 (모달과 별개의 데이터 게이트)
+  const studentsHook = useStudents(session, isAuthenticated);
+  const teachersHook = useTeachers(session, isAuthenticated);
 
   const groups = useMemo(
     () => groupStudentsAndTeachers(studentsHook.students, teachersHook.teachers),
@@ -344,7 +345,13 @@ export default function MembersPage() {
         onDelete={handleDeleteTeacher}
       />
 
-      {showStats && <YearlyStats session={session} onClose={() => setShowStats(false)} />}
+      {showStats && (
+        <YearlyStats
+          session={session}
+          onClose={() => setShowStats(false)}
+          enabled={isAuthenticated}
+        />
+      )}
     </main>
   );
 }

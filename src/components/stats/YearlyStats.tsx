@@ -145,13 +145,23 @@ function SkeletonCard() {
   );
 }
 
-export function YearlyStats({ session, onClose }: { session: Session; onClose: () => void }) {
+export function YearlyStats({
+  session,
+  onClose,
+  enabled = true,
+}: {
+  session: Session;
+  onClose: () => void;
+  /** false면 API 자체를 호출하지 않음 — 비인증 상태에서 실데이터가 미리 로드되는 것 방지 */
+  enabled?: boolean;
+}) {
   const year = new Date().getFullYear();
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["stats", session],
     queryFn: () => getStats(session),
     staleTime: 300_000,
+    enabled,
   });
 
   return (

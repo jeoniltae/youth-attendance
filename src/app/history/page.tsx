@@ -11,6 +11,7 @@ import { GroupAttendanceChart } from "@/components/history/GroupAttendanceChart"
 import { GroupAttendanceChartSkeleton } from "@/components/history/GroupAttendanceChartSkeleton";
 import { useRoster } from "@/hooks/useRoster";
 import { useAttendance } from "@/hooks/useAttendance";
+import { useAuthGate } from "@/hooks/useAuthGate";
 import { groupStudentsAndTeachers } from "@/lib/group-members";
 import { formatDateLabel, parseInputDate, sundaysThisYear } from "@/lib/date";
 import type { Session } from "@/types";
@@ -39,12 +40,20 @@ export default function HistoryPage() {
     setDate(sundayOptions[dateIndex - 1]);
   }
 
-  const { data: roster, isLoading: rosterLoading, isError: rosterError } = useRoster(session);
+  // 단일 인스턴스만 유지 — PublicGate에도 이 값을 그대로 props로 넘겨서
+  // 로그인 직후 데이터 훅의 enabled가 함께 갱신되도록 한다 (별도 호출 금지)
+  const sessionAuth = useAuthGate("session");
+  const isSessionAuthenticated = sessionAuth.isAuthenticated;
+
+  const { data: roster, isLoading: rosterLoading, isError: rosterError } = useRoster(
+    session,
+    isSessionAuthenticated,
+  );
   const {
     attendedIds,
     isLoading: attendanceLoading,
     isError: attendanceError,
-  } = useAttendance(date, session);
+  } = useAttendance(date, session, isSessionAuthenticated);
 
   const groups = useMemo(
     () => groupStudentsAndTeachers(roster?.students ?? [], roster?.teachers ?? []),
@@ -60,7 +69,11 @@ export default function HistoryPage() {
   const isError = rosterError || attendanceError;
 
   return (
-    <PublicGate>
+    <PublicGate
+      isAuthenticated={sessionAuth.isAuthenticated}
+      checked={sessionAuth.checked}
+      login={sessionAuth.login}
+    >
     <main className="mx-auto flex w-full max-w-[1368px] flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8">
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 animate-[rise-in_0.5s_ease-out_both]">
         <Link

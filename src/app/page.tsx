@@ -16,6 +16,7 @@ import { GradeSection } from "@/components/attendance/GradeSection";
 import { GradeSectionSkeleton } from "@/components/attendance/GradeSectionSkeleton";
 import { useRoster } from "@/hooks/useRoster";
 import { useAttendance } from "@/hooks/useAttendance";
+import { useAuthGate } from "@/hooks/useAuthGate";
 import { formatDateLabel, getTodayInSeoul, mostRecentSunday, parseInputDate, toInputDateValue } from "@/lib/date";
 import {
   groupStudentsAndTeachers,
@@ -51,13 +52,21 @@ export default function Home() {
     );
   }, []);
 
-  const { data: roster, isLoading: rosterLoading, isError: rosterError } = useRoster(session);
+  // 단일 인스턴스만 유지 — PublicGate에도 이 값을 그대로 props로 넘겨서
+  // 로그인 직후 데이터 훅의 enabled가 함께 갱신되도록 한다 (별도 호출 금지)
+  const sessionAuth = useAuthGate("session");
+  const isSessionAuthenticated = sessionAuth.isAuthenticated;
+
+  const { data: roster, isLoading: rosterLoading, isError: rosterError } = useRoster(
+    session,
+    isSessionAuthenticated,
+  );
   const {
     attendedIds,
     isLoading: attendanceLoading,
     isError: attendanceError,
     toggle,
-  } = useAttendance(date, session);
+  } = useAttendance(date, session, isSessionAuthenticated);
 
   const isLoading = rosterLoading || attendanceLoading;
   const isError = rosterError || attendanceError;
@@ -103,7 +112,11 @@ export default function Home() {
   }
 
   return (
-    <PublicGate>
+    <PublicGate
+      isAuthenticated={sessionAuth.isAuthenticated}
+      checked={sessionAuth.checked}
+      login={sessionAuth.login}
+    >
     <main className="mx-auto flex w-full max-w-[1368px] flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8">
       <div className="animate-[rise-in_0.5s_ease-out_both] text-center">
         <p className="font-display text-[0.7rem] tracking-[0.3em] text-stamp">

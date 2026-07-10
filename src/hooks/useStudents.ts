@@ -8,13 +8,16 @@ import {
 } from "@/api/students";
 import type { Session, Student } from "@/types";
 
-export function useStudents(session: Session) {
+// enabled=false면 API 자체를 호출하지 않음 — 비인증 상태에서 화면 뒤에 실데이터가
+// 미리 로드되는 것을 막기 위한 게이트
+export function useStudents(session: Session, enabled: boolean = true) {
   const queryClient = useQueryClient();
   const queryKey = ["students", session] as const;
 
   const query = useQuery({
     queryKey,
     queryFn: () => getStudents(session),
+    enabled,
   });
 
   // 명단 + 개인 출석 통계 캐시를 함께 무효화 — 삭제/재등록 시 ID가 재사용되면

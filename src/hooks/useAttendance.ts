@@ -30,7 +30,9 @@ function enqueueToggle<T>(fn: () => Promise<T>): Promise<T> {
   return run;
 }
 
-export function useAttendance(date: string, session: Session) {
+// enabled=false면 API 자체를 호출하지 않음 — 비인증 상태에서 화면 뒤에 실데이터가
+// 미리 로드되는 것을 막기 위한 게이트
+export function useAttendance(date: string, session: Session, enabled: boolean = true) {
   const queryClient = useQueryClient();
   const queryKey = attendanceQueryKey(date, session);
 
@@ -39,6 +41,7 @@ export function useAttendance(date: string, session: Session) {
     queryFn: () => getAttendance(date, session),
     refetchInterval: () =>
       queryClient.isMutating({ mutationKey: TOGGLE_MUTATION_KEY }) > 0 ? false : 30_000,
+    enabled,
   });
 
   const toggleMutation = useMutation({
