@@ -39,7 +39,7 @@ export function SummaryBar({
           key={stat.label}
           className={`flex flex-1 flex-col items-center gap-0.5 ${compact ? 'px-3 py-1.5' : 'px-4 py-4'}`}
         >
-          <span className="font-display text-[0.65rem] tracking-[0.25em] text-paper/55">{stat.label}</span>
+          <span className="font-display text-[14px] tracking-[0.25em] text-paper/55">{stat.label}</span>
           {loading ? (
             <Skeleton className={`my-1 bg-paper/20 ${compact ? 'h-5 w-8' : 'h-6 w-10'}`} />
           ) : (
