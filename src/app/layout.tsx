@@ -13,9 +13,23 @@ const body = IBM_Plex_Sans_KR({
   weight: ["400", "500", "600"],
 });
 
+const siteUrl = process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
+  : "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "서울광염교회 고등부 출석체크",
   description: "서울광염교회 고등부 출석 및 교적 관리",
+  openGraph: {
+    title: "서울광염교회 고등부 출석체크",
+    description: "서울광염교회 고등부 출석 및 교적 관리",
+    url: siteUrl,
+    siteName: "서울광염교회 고등부 출석체크",
+    images: [{ url: "/og-img.png", width: 992, height: 517 }],
+    locale: "ko_KR",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
