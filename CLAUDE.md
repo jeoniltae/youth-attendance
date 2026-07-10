@@ -217,7 +217,9 @@ interface AttendanceRecord {
 ## API 엔드포인트 설계
 
 ```
-GET  /api/attendance?date=YYYY-MM-DD&session=오전   → 출석 목록 조회
+GET  /api/roster?session=오전                        → 세션별 학생·교사 명단 조회 (출석체크·출석현황 전용)
+
+GET  /api/attendance?date=YYYY-MM-DD&session=오전   → 출석 학생 ID 목록(studentIds) 조회
 POST /api/attendance                                 → 출석 상태 변경 (토글)
 
 GET  /api/students?session=오전                      → 학생 목록 조회
@@ -230,10 +232,12 @@ POST /api/teachers                                   → 신규 교사 등록
 PUT  /api/teachers/[id]                              → 교사 정보 수정
 DELETE /api/teachers/[id]                            → 교사 삭제
 
-GET  /api/birthdays?month=1                          → 월별 생일자 조회
+GET  /api/birthdays?session=오전                     → 세션별 학생·교사 전체 반환 (월별 필터링·그룹핑은 클라이언트의 groupBirthdaysByMonth가 담당, month 쿼리파라미터 없음)
 
-GET  /api/summary?date=YYYY-MM-DD&session=오전       → 요약 통계
-POST /api/auth                                       → 관리자 비밀번호 검증
+GET  /api/stats?session=오전                         → 최근 1년 학년별·교사별 출석률 통계
+
+GET  /api/summary?date=YYYY-MM-DD&session=오전       → 요약 통계 (현재 미사용 — roster+attendance로 클라이언트에서 직접 계산, 엔드포인트는 보류 상태로 유지)
+POST /api/auth { password, role }                    → role별(session/admin) 비밀번호 검증
 ```
 
 ## 프로젝트 폴더 구조
@@ -405,4 +409,18 @@ SESSION_PASSWORD=
     - 사용자 확인: GAS는 6/3 내보내기 이후 수정된 적 없음 → `docs/legacy-gas.json`이 현행 코드 그대로이며 **위 호환성 결론 확정**. (참고: 내보내기에 새가족 기능이 없는데 레거시 화면 오전 인원 265가 새가족 포함으로 계산되는 점은 미해명 — 새 앱 동작과는 무관하므로 추적하지 않음)
   - [x] Step 7. 마무리 — 발견 문제 전부 수정 완료(stats 교사 판별, 차트 라벨, 반 정렬, 통계 팝업 UI), `npm run build` 통과, 결과·결정을 `docs/context-notes.md`에 기록, 보안 체크리스트 확인 완료(변경 파일 전체에서 시트 ID·서비스 계정·개인정보 검출 0건, `.env.local`/`legacy-gas.json` gitignore 정상)
 - [ ] Phase 8: Vercel 배포 및 검증
-  - 전환 시 할 일: 실시트에 서비스 계정 편집자 공유, 실시트 Attendance에 `Type` 컬럼 추가(Step 6 결론 반영), Vercel 환경변수에 실시트 ID 설정
+  - 전략: **1차 배포는 Phase 7에서 검증에 쓴 테스트 사본 시트를 그대로 연결**해 외부 사용자 테스트를 먼저 진행하고, 테스트 통과 확인 후에만 실시트로 전환한다. 레거시 GAS 웹앱은 그동안 정상 운영 유지(병행), 실시트는 전환 시점까지 손대지 않음
+  - **8-A. 테스트 사본 시트로 배포 + 외부 테스트**
+    - [x] Step 1. Vercel 프로젝트 `youth-attendance`(scope: `jeoniltaes-projects`) 생성, GitHub `jeoniltae/youth-attendance` 저장소 연동 완료 — 이후 push마다 자동 배포
+    - [x] Step 2. Vercel 환경변수 5종(`GOOGLE_SERVICE_ACCOUNT_EMAIL`/`GOOGLE_PRIVATE_KEY`/`GOOGLE_SPREADSHEET_ID`/`ADMIN_PASSWORD`/`SESSION_PASSWORD`) Production·Preview에 설정 완료 — `GOOGLE_SPREADSHEET_ID`는 테스트 사본 ID 그대로 사용. 값 이전은 Next.js가 실제 쓰는 `@next/env` 파서로 `.env.local`을 그대로 읽어 전달(수동 텍스트 파싱 시 `GOOGLE_PRIVATE_KEY`의 개행·특수문자가 깨질 위험 방지)
+    - [x] Step 3. `vercel --prod`로 최초 배포 완료 — Production URL: `https://youth-attendance-opal.vercel.app`
+    - [x] Step 4. 배포 URL 스모크 테스트 완료 — 4개 화면(`/`, `/history`, `/birthday`, `/members`) 전부 200, 인증 게이트 `POST /api/auth` session·admin 두 role 모두 정상 비밀번호 200 / 오답 401 확인, API 7종(roster/attendance/students/teachers/birthdays/summary/stats) 전부 200 및 응답 구조 정상. 이 과정에서 CLAUDE.md API 표가 실제 구현과 어긋난 부분 발견·수정(`/api/birthdays`는 `month`가 아닌 `session`만 받음, `/api/roster`·`/api/stats` 누락, `/api/attendance` GET 응답이 `studentIds` 배열, `/api/summary` 미사용 표시, `/api/auth`가 `role` 파라미터로 session/admin 겸용)
+    - [ ] Step 5. **진행 중** — 외부 테스터 안내 메시지 초안 작성 완료(비밀번호·테스트 범위·주의사항 포함), 사용자가 비밀번호 채워 직접 전달 예정. ⚠️ 확인된 주의사항: 테스트 사본 시트는 Phase 7 검증용으로 **실제 학생 개인정보(이름·연락처·주소·생년월일)가 그대로 담긴 사본**이므로("다른 사람들과 다를 수 있다"가 아니라 실데이터 그 자체), 테스트 참여자는 기존 GAS 출석부로 이미 이 정보에 접근 권한이 있던 동일 교사진으로 한정 필요
+    - [ ] Step 6. 테스트 기간 중 피드백·버그 수집, 발견된 이슈 수정 후 재배포
+  - **8-B. 테스트 통과 후 실시트 전환** (착수 전 사용자 승인 필요)
+    - [ ] Step 7. 실시트에 Service Account 편집자 권한 공유
+    - [ ] Step 8. 실시트 Attendance 시트에 `Type` 컬럼 추가 (Step 6 호환성 분석 결론 반영 — GAS는 이 컬럼을 무시하므로 안전)
+    - [ ] Step 9. `scripts/migrate-newfamilies.mjs`를 실시트 대상으로 재실행 (NewFamilies → Students `Grade='새친구'` 이전, 멱등)
+    - [ ] Step 10. Phase 7에서 발견한 실시트 수동 수정 필요 항목 처리 (Students Birthdate 형식 오류·ID/Class 빈 값 등 — 실제 행 번호는 사본 기준이었으므로 실시트에서 재확인 필요)
+    - [ ] Step 11. Vercel 환경변수 `GOOGLE_SPREADSHEET_ID`를 실시트 ID로 교체, 재배포
+    - [ ] Step 12. 실시트 연결 후 최종 확인 — 4개 화면 재검증, 레거시 GAS와 병행 운영 시 인원수·출석 데이터 일치 여부 확인
