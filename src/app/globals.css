@@ -98,6 +98,15 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* 태블릿/PC(640px+)에서만 가장 많이 쓰이는 text-xs·text-sm을 살짝 키움 — 모바일은 그대로.
+   line-height는 Tailwind 기본값이 font-size 대비 비율(unitless)이라 font-size만 바꿔도 자동으로 맞춰짐 */
+@media (min-width: 640px) {
+  :root {
+    --text-xs: 0.875rem; /* 12px → 14px */
+    --text-sm: 1rem; /* 14px → 16px */
+  }
+}
+
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);

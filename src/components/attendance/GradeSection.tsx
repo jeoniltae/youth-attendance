@@ -15,12 +15,14 @@ const HEADER_COLOR: Record<TopGroup["variant"], string> = {
   grade: "text-ink",
   teacher: "text-teal",
   newFamily: "text-gold",
+  incomplete: "text-celebrate",
 };
 
 const BAR_COLOR: Record<TopGroup["variant"], string> = {
   grade: "bg-ink",
   teacher: "bg-teal",
   newFamily: "bg-gold",
+  incomplete: "bg-celebrate",
 };
 
 const CARD_VARIANT: Record<
@@ -30,6 +32,7 @@ const CARD_VARIANT: Record<
   grade: "default",
   teacher: "teacher",
   newFamily: "newFamily",
+  incomplete: "default",
 };
 
 export function GradeSection({

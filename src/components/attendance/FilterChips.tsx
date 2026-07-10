@@ -36,6 +36,8 @@ const TONE_CLASS: Record<"default" | TopGroup["variant"], string> = {
     "border-teal/30 bg-paper text-teal/80 hover:border-teal/50 hover:text-teal",
   newFamily:
     "border-gold/30 bg-paper text-gold/80 hover:border-gold/50 hover:text-gold",
+  incomplete:
+    "border-celebrate/30 bg-paper text-celebrate/80 hover:border-celebrate/50 hover:text-celebrate",
 };
 
 // 카테고리 군집을 감싸는 컨테이너 색상
@@ -43,6 +45,7 @@ const CLUSTER_CLASS: Record<TopGroup["variant"], string> = {
   grade: "border-ink/15 bg-paper-deep",
   teacher: "border-teal/25 bg-teal/[0.08]",
   newFamily: "border-gold/25 bg-gold/[0.08]",
+  incomplete: "border-celebrate/25 bg-celebrate/[0.08]",
 };
 
 function Chip({

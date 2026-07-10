@@ -39,12 +39,14 @@ const HEADER_COLOR: Record<TopGroup["variant"], string> = {
   grade: "text-ink",
   teacher: "text-teal",
   newFamily: "text-gold",
+  incomplete: "text-celebrate",
 };
 
 const CARD_VARIANT: Record<TopGroup["variant"], "default" | "teacher" | "newFamily"> = {
   grade: "default",
   teacher: "teacher",
   newFamily: "newFamily",
+  incomplete: "default",
 };
 
 const CARD_STYLE: Record<"default" | "teacher" | "newFamily", string> = {
