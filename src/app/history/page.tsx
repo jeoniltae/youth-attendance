@@ -4,6 +4,7 @@
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { PublicGate } from "@/components/common/PublicGate";
 import { SummaryBar } from "@/components/attendance/SummaryBar";
 import { FloatingSummaryBar } from "@/components/attendance/FloatingSummaryBar";
 import { GroupAttendanceChart } from "@/components/history/GroupAttendanceChart";
@@ -59,6 +60,7 @@ export default function HistoryPage() {
   const isError = rosterError || attendanceError;
 
   return (
+    <PublicGate>
     <main className="mx-auto flex w-full max-w-[1368px] flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8">
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 animate-[rise-in_0.5s_ease-out_both]">
         <Link
@@ -173,5 +175,6 @@ export default function HistoryPage() {
         )}
       </div>
     </main>
+    </PublicGate>
   );
 }

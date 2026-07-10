@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { RollingNumber } from "@/components/common/RollingNumber";
 import { Skeleton } from "@/components/common/Skeleton";
+import { PublicGate } from "@/components/common/PublicGate";
 import { useBirthdays } from "@/hooks/useBirthdays";
 import { groupBirthdaysByMonth, type BirthdayGroup } from "@/lib/birthdays";
 import { getTodayInSeoul } from "@/lib/date";
@@ -252,6 +253,7 @@ export default function BirthdayPage() {
   }
 
   return (
+    <PublicGate>
     <div
       onMouseMove={handleMouseMove}
       className="relative min-h-screen overflow-hidden"
@@ -559,5 +561,6 @@ export default function BirthdayPage() {
         </div>
       </main>
     </div>
+    </PublicGate>
   );
 }

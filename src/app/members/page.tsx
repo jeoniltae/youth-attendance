@@ -3,13 +3,14 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, PieChart, Plus, UserPlus } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { FilterChips, type FilterState } from "@/components/attendance/FilterChips";
 import { GradeSectionSkeleton } from "@/components/attendance/GradeSectionSkeleton";
 import { StudentForm, type StudentDraft } from "@/components/students/StudentForm";
 import { TeacherForm, type TeacherDraft } from "@/components/teachers/TeacherForm";
-import { AdminModal } from "@/components/common/AdminModal";
+import { AuthGateModal } from "@/components/common/AuthGateModal";
 import {
   groupStudentsAndTeachers,
   countMembers,
@@ -19,7 +20,7 @@ import { YearlyStats } from "@/components/stats/YearlyStats";
 import { mostRecentSunday, toInputDateValue } from "@/lib/date";
 import { useStudents } from "@/hooks/useStudents";
 import { useTeachers } from "@/hooks/useTeachers";
-import { useAdminAuth } from "@/hooks/useAdminAuth";
+import { useAuthGate } from "@/hooks/useAuthGate";
 import type { Session, Student, Teacher } from "@/types";
 
 function applyFilter(groups: TopGroup[], filter: FilterState): TopGroup[] {
@@ -165,7 +166,8 @@ export default function MembersPage() {
   });
   const [showStats, setShowStats] = useState(false);
 
-  const { isAuthenticated, checked, login } = useAdminAuth();
+  const router = useRouter();
+  const { isAuthenticated, checked, login } = useAuthGate("admin");
   const studentsHook = useStudents(session);
   const teachersHook = useTeachers(session);
 
@@ -224,7 +226,14 @@ export default function MembersPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-[1368px] flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8">
-      {!isAuthenticated && <AdminModal onLogin={login} />}
+      {!isAuthenticated && (
+        <AuthGateModal
+          title="관리자 인증"
+          description={"학생·교사 관리 기능은\n관리자만 이용할 수 있습니다"}
+          onLogin={login}
+          onCancel={() => router.back()}
+        />
+      )}
 
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 animate-[rise-in_0.5s_ease-out_both]">
         <Link

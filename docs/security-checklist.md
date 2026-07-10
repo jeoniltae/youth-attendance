@@ -30,4 +30,5 @@
 - `GOOGLE_SERVICE_ACCOUNT_EMAIL`
 - `GOOGLE_PRIVATE_KEY`
 - `GOOGLE_SPREADSHEET_ID`
-- `ADMIN_PASSWORD`
+- `ADMIN_PASSWORD` (/members 관리자 게이트)
+- `SESSION_PASSWORD` (/, /history, /birthday 공개 화면 교사용 게이트)

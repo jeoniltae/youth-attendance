@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Cake, ClipboardList, Lock, TriangleAlert } from "lucide-react";
 import { Header } from "@/components/layout/Header";
+import { PublicGate } from "@/components/common/PublicGate";
 import { SummaryBar } from "@/components/attendance/SummaryBar";
 import { FloatingSummaryBar } from "@/components/attendance/FloatingSummaryBar";
 import {
@@ -102,6 +103,7 @@ export default function Home() {
   }
 
   return (
+    <PublicGate>
     <main className="mx-auto flex w-full max-w-[1368px] flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8">
       <div className="animate-[rise-in_0.5s_ease-out_both] text-center">
         <p className="font-display text-[0.7rem] tracking-[0.3em] text-stamp">
@@ -209,5 +211,6 @@ export default function Home() {
         )}
       </div>
     </main>
+    </PublicGate>
   );
 }

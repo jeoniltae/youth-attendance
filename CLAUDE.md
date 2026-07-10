@@ -51,8 +51,21 @@ Google Sheets는 WebSocket을 지원하지 않으므로 Polling 방식을 사용
 - 출석 버튼 클릭 → UI 즉시 반영(0ms) → 서버 저장(~300ms) → 실패 시 롤백
 
 ### 인증 구조
-별도 로그인 없이 공개 접근이 가능하되, 관리자 모드 진입 시 비밀번호 모달을 통해 검증합니다.
-비밀번호는 Vercel 환경변수에 저장하고 Route Handler에서 검증합니다. (프론트엔드에 노출 없음)
+비밀번호 게이트를 두 단계로 분리합니다. 레거시 GAS는 구글 계정 관리자 승인이 있어야
+출석부 화면 자체를 볼 수 있었는데, 새 앱도 동일한 수준으로 공개 화면을 보호합니다.
+
+- **교사용 게이트**(`session` role): `/`(출석체크)·`/history`(출석 현황)·`/birthday`(생일자)
+  공개 3화면 진입 시 `PublicGate` 컴포넌트가 비밀번호를 요구합니다. 여러 교사가 공유해서
+  아는 비밀번호(`SESSION_PASSWORD`)이며, 통과하면 `sessionStorage`에 `session_token`을 저장.
+- **관리자용 게이트**(`admin` role): `/members`(학생·교사 데이터 수정) 진입 시 별도
+  비밀번호(`ADMIN_PASSWORD`)를 요구합니다. `admin_token`으로 별도 저장되어 교사용 인증과
+  섞이지 않습니다.
+- 두 게이트 모두 `POST /api/auth { password, role }`로 검증하고, `useAuthGate(role)` 훅 +
+  `AuthGateModal` 컴포넌트를 공유합니다 (`src/hooks/useAuthGate.ts`,
+  `src/components/common/AuthGateModal.tsx`, `src/components/common/PublicGate.tsx`).
+- **보호 수준은 화면(UI) 레벨입니다.** 데이터 API(`/api/students` 등)에는 서버사이드
+  인증 체크가 없어 URL을 알면 직접 호출은 가능합니다 — "외부인이 화면 URL로 못 들어오게"가
+  목표이며, API 자체를 잠그는 건 별도 작업 범위입니다.
 
 ## 스프레드시트 DB 구조
 
@@ -265,14 +278,15 @@ src/
 │   ├── teachers/
 │   │   └── TeacherForm.tsx             ✅ 교사 추가/수정/삭제 모달 폼 (출석 수정 포함)
 │   └── common/
-│       └── AdminModal.tsx              ✅ 비밀번호 입력 모달 (인증 게이트)
+│       ├── AuthGateModal.tsx           ✅ 비밀번호 입력 모달 (admin/session 공용)
+│       └── PublicGate.tsx              ✅ 공개 3화면(/, /history, /birthday) 교사용 게이트 래퍼
 ├── hooks/
 │   ├── useAttendance.ts                ✅ 출석 데이터 + 30초 polling + Optimistic Update
 │   ├── useRoster.ts                    ✅ 학생/교사 명단 + 30초 polling
 │   ├── useBirthdays.ts                 ✅ 생일자 데이터 (polling 없음)
 │   ├── useStudents.ts                  ✅ 학생 CRUD (useQuery + useMutation)
 │   ├── useTeachers.ts                  ✅ 교사 CRUD (useQuery + useMutation)
-│   └── useAdminAuth.ts                 ✅ 관리자 인증 상태 (sessionStorage)
+│   └── useAuthGate.ts                  ✅ 인증 상태 (admin/session role별 sessionStorage 분리)
 ├── api/                                # fetch 함수 모음 (클라이언트 → Route Handler)
 │   ├── attendance.ts                   ✅
 │   ├── roster.ts                       ✅
@@ -307,8 +321,11 @@ GOOGLE_SERVICE_ACCOUNT_EMAIL=
 GOOGLE_PRIVATE_KEY=
 GOOGLE_SPREADSHEET_ID=
 
-# 관리자 비밀번호
+# 관리자 비밀번호 (/members 전용)
 ADMIN_PASSWORD=
+
+# 교사용 비밀번호 (공개 3화면: /, /history, /birthday 게이트)
+SESSION_PASSWORD=
 ```
 
 실제 값은 `.env.local`에만 작성하고, `docs/context-notes.md`나 코드 주석에도 평문으로 남기지 않습니다.
