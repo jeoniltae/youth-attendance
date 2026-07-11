@@ -14,6 +14,7 @@ function toTeacher(row: Record<string, string>): Teacher {
     address: row.Address,
     birthdate: row.Birthdate,
     notes: row.Notes,
+    lunarBirthdate: row.Lunar === 'TRUE',
   };
 }
 
@@ -27,6 +28,7 @@ export function teacherToRow(teacher: Teacher): string[] {
     teacher.address,
     teacher.birthdate,
     teacher.notes,
+    teacher.lunarBirthdate ? 'TRUE' : 'FALSE',
   ];
 }
 
@@ -69,6 +71,7 @@ interface CreateTeacherBody {
   address: string;
   birthdate: string;
   notes: string;
+  lunarBirthdate: boolean;
 }
 
 export async function POST(request: NextRequest) {
@@ -99,6 +102,7 @@ export async function POST(request: NextRequest) {
       address: body.address ?? '',
       birthdate: body.birthdate ?? '',
       notes: body.notes ?? '',
+      lunarBirthdate: body.lunarBirthdate ?? false,
     };
     await appendRow(SHEET.TEACHERS, teacherToRow(teacher));
     return NextResponse.json({ teacher }, { status: 201 });

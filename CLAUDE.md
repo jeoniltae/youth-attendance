@@ -101,6 +101,7 @@ Google Sheets는 WebSocket을 지원하지 않으므로 Polling 방식을 사용
 | Address | string | 주소 |
 | Birthdate | string | 생년월일 (YYYY-MM-DD) |
 | Notes | string | 비고 |
+| Lunar | string | `TRUE` \| `FALSE` — Birthdate가 음력 날짜인지 여부. 실시트에는 없어 Phase 8-B 전환 시 추가 필요 (Attendance의 `Type` 컬럼과 동일 패턴, `scripts/add-teacher-lunar-header.mjs`로 추가) |
 
 ### Attendance 시트
 | 컬럼 | 타입 | 설명 |
@@ -155,6 +156,7 @@ interface Teacher {
   address: string;
   birthdate: string;
   notes: string;
+  lunarBirthdate: boolean; // true면 birthdate가 음력 — 생일자 조회 시 해당 연도 양력으로 환산
 }
 
 interface AttendanceRecord {

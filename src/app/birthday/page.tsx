@@ -235,8 +235,14 @@ export default function BirthdayPage() {
   const { data, isLoading, isError } = useBirthdays(session, sessionAuth.isAuthenticated);
 
   const groups = useMemo(
-    () => groupBirthdaysByMonth(data?.students ?? [], data?.teachers ?? [], month),
-    [data, month],
+    () =>
+      groupBirthdaysByMonth(
+        data?.students ?? [],
+        data?.teachers ?? [],
+        month,
+        today.getFullYear(),
+      ),
+    [data, month, today],
   );
 
   const teacherCount =
@@ -551,6 +557,7 @@ export default function BirthdayPage() {
                           {p.name}
                           <span className="text-xs text-ink/30">
                             {p.birthMonth}/{p.birthDay}
+                            {p.isLunar && " (음력)"}
                           </span>
                           {isToday && (
                             <span className="rounded-full bg-celebrate px-1.5 text-[0.65rem] font-semibold text-paper">

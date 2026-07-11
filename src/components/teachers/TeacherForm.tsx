@@ -52,6 +52,7 @@ function emptyDraft(session: Session): TeacherDraft {
     address: "",
     birthdate: "",
     notes: "",
+    lunarBirthdate: false,
   };
 }
 
@@ -247,14 +248,26 @@ export function TeacherForm({
             </Field>
           </div>
 
-          <Field label="생년월일">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-ink/50">생년월일</span>
+              <label className="inline-flex items-center gap-1 text-xs font-normal text-ink/50">
+                <input
+                  type="checkbox"
+                  checked={draft.lunarBirthdate}
+                  onChange={(e) => update("lunarBirthdate", e.target.checked)}
+                  className="size-3.5 accent-teal"
+                />
+                음력
+              </label>
+            </div>
             <input
               type="date"
               className={inputClass}
               value={draft.birthdate}
               onChange={(e) => update("birthdate", e.target.value)}
             />
-          </Field>
+          </div>
 
           <Field label="주소">
             <input
