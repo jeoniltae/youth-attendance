@@ -173,8 +173,8 @@ export function YearlyStats({
 
       {/* 래퍼는 클릭을 통과시켜 배경 클릭 닫기를 유지하고, 모바일은 세로 중앙·sm+는 상단 고정 배치 */}
       <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4 sm:items-start sm:pt-20">
-        <div className="pointer-events-auto max-h-[90dvh] w-full max-w-4xl overflow-y-auto animate-[rise-in_0.2s_ease-out] rounded-2xl border-[1.5px] border-ink/15 bg-paper shadow-[0_8px_24px_rgba(30,34,51,0.12)]">
-        <div className="flex items-center justify-between border-b border-ink/8 px-5 py-4">
+        <div className="pointer-events-auto flex max-h-[90dvh] w-full max-w-4xl flex-col overflow-hidden animate-[rise-in_0.2s_ease-out] rounded-2xl border-[1.5px] border-ink/15 bg-paper shadow-[0_8px_24px_rgba(30,34,51,0.12)]">
+        <div className="flex shrink-0 items-center justify-between border-b border-ink/8 px-5 py-4">
           <div>
             <p className="font-display text-[0.7rem] tracking-[0.3em] text-stamp">
               YEARLY STATS
@@ -193,55 +193,57 @@ export function YearlyStats({
           </button>
         </div>
 
-        <div className="p-5">
-          {isError ? (
-            <p className="py-8 text-center text-sm text-ink/40">통계를 불러오지 못했습니다</p>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {isLoading ? (
-                <>
-                  <Skeleton className="h-44 rounded-xl sm:h-36" />
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    {Array.from({ length: 4 }).map((_, i) => (
-                      <SkeletonCard key={i} />
-                    ))}
-                  </div>
-                </>
-              ) : data ? (
-                <>
-                  <OverallBand overall={data.overall} weeks={data.weeks} />
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <StatCard
-                      label="1학년"
-                      sub={`${data.grade1.count}명`}
-                      stats={data.grade1}
-                    />
-                    <StatCard
-                      label="2학년"
-                      sub={`${data.grade2.count}명`}
-                      stats={data.grade2}
-                    />
-                    <StatCard
-                      label="3학년"
-                      sub={`${data.grade3.count}명`}
-                      stats={data.grade3}
-                    />
-                    <StatCard
-                      label="선생님"
-                      sub={`${data.teachers.count}명`}
-                      variant="teacher"
-                      stats={data.teachers}
-                    />
-                  </div>
-                </>
-              ) : null}
-            </div>
-          )}
-        </div>
+        <div className="overflow-y-auto">
+          <div className="p-5">
+            {isError ? (
+              <p className="py-8 text-center text-sm text-ink/40">통계를 불러오지 못했습니다</p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {isLoading ? (
+                  <>
+                    <Skeleton className="h-44 rounded-xl sm:h-36" />
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <SkeletonCard key={i} />
+                      ))}
+                    </div>
+                  </>
+                ) : data ? (
+                  <>
+                    <OverallBand overall={data.overall} weeks={data.weeks} />
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      <StatCard
+                        label="1학년"
+                        sub={`${data.grade1.count}명`}
+                        stats={data.grade1}
+                      />
+                      <StatCard
+                        label="2학년"
+                        sub={`${data.grade2.count}명`}
+                        stats={data.grade2}
+                      />
+                      <StatCard
+                        label="3학년"
+                        sub={`${data.grade3.count}명`}
+                        stats={data.grade3}
+                      />
+                      <StatCard
+                        label="선생님"
+                        sub={`${data.teachers.count}명`}
+                        variant="teacher"
+                        stats={data.teachers}
+                      />
+                    </div>
+                  </>
+                ) : null}
+              </div>
+            )}
+          </div>
 
           <p className="border-t border-ink/8 px-5 py-3 text-center text-xs text-ink/35">
             최근 1년 기준 · 총 {data?.weeks ?? "—"}주 집계
           </p>
+        </div>
         </div>
       </div>
     </>
