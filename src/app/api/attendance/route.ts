@@ -1,4 +1,7 @@
-// 출석 조회/토글 — 레코드 존재 여부로 출석 판정, POST는 서버가 현재 상태를 보고 토글
+// 출석 조회/토글 — 레코드 존재 여부로 출석 판정.
+// POST는 body에 status(목표 상태)가 있으면 그 상태로 맞추는 멱등 동작(이미 그 상태면 no-op),
+// 없으면 서버가 현재 상태를 보고 반전(토글) — 관리 폼(TeacherForm/StudentForm)이 토글 응답으로
+// "이미 출석" 등을 감지하는 기존 동작과의 하위호환용
 
 import { NextRequest, NextResponse } from 'next/server';
 import { readSheet, appendRow, findRowNumber, deleteRow, SHEET } from '@/lib/sheets';
@@ -39,6 +42,8 @@ interface ToggleBody {
   studentId: string;
   name: string;
   type: MemberType;
+  /** 목표 상태 — 있으면 멱등(이미 그 상태면 no-op), 없으면 토글 */
+  status?: '출석' | '결석';
 }
 
 export async function POST(request: NextRequest) {
@@ -49,7 +54,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '요청 본문을 읽을 수 없습니다' }, { status: 400 });
   }
 
-  const { date, session, grade, class: klass, studentId, name, type } = body;
+  const { date, session, grade, class: klass, studentId, name, type, status } = body;
 
   if (!date || !session || !studentId || !name || !type) {
     return NextResponse.json({ error: '필수 항목이 누락되었습니다' }, { status: 400 });
@@ -60,6 +65,9 @@ export async function POST(request: NextRequest) {
   if (!MEMBER_TYPES.includes(type)) {
     return NextResponse.json({ error: 'type 값이 올바르지 않습니다' }, { status: 400 });
   }
+  if (status !== undefined && status !== '출석' && status !== '결석') {
+    return NextResponse.json({ error: 'status 값이 올바르지 않습니다' }, { status: 400 });
+  }
 
   try {
     // 출석은 하루 1회 원칙 — 세션(오전/오후)을 판정에서 제외하고 날짜+StudentID로만 매칭.
@@ -69,6 +77,14 @@ export async function POST(request: NextRequest) {
       SHEET.ATTENDANCE,
       (r) => r.Date === date && r.StudentID === studentId,
     );
+
+    // 목표 상태가 명시됐고 이미 그 상태면 아무것도 하지 않음(멱등)
+    if (status === '출석' && rowNumber !== null) {
+      return NextResponse.json({ status: '출석' });
+    }
+    if (status === '결석' && rowNumber === null) {
+      return NextResponse.json({ status: '결석' });
+    }
 
     if (rowNumber === null) {
       await appendRow(SHEET.ATTENDANCE, [

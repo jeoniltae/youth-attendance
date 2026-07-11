@@ -25,6 +25,8 @@ export interface ToggleAttendancePayload {
   studentId: string;
   name: string;
   type: MemberType;
+  /** 목표 상태 — 지정하면 서버가 멱등 처리(이미 그 상태면 no-op), 생략하면 토글 */
+  status?: "출석" | "결석";
 }
 
 export interface ToggleAttendanceResponse {
