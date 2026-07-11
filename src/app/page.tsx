@@ -3,8 +3,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Cake, ClipboardList, Lock, TriangleAlert } from "lucide-react";
+import { BookUser, Cake, ClipboardList, Lock, TriangleAlert } from "lucide-react";
 import { Header } from "@/components/layout/Header";
+import { MobileNavMenu } from "@/components/layout/MobileNavMenu";
 import { PublicGate } from "@/components/common/PublicGate";
 import { SummaryBar } from "@/components/attendance/SummaryBar";
 import { FloatingSummaryBar } from "@/components/attendance/FloatingSummaryBar";
@@ -43,15 +44,8 @@ export default function Home() {
   // 평일에 열어도 항상 가장 최근 일요일(예배일) 기준으로 출석 조회/토글
   const [date] = useState(() => toInputDateValue(mostRecentSunday()));
   const [filter, setFilter] = useState<FilterState>({ level: "all" });
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setLastUpdated(
-      new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }),
-    );
-  }, []);
 
   // 학년/교사/새친구/확인 필요 등 특정 그룹으로 필터링하면 해당 결과가 화면 아래에 나타나는데,
   // 스크롤 위치는 그대로라 필터 전 스크롤이 깊었으면 빈 영역만 보이는 문제가 있었다.
@@ -120,6 +114,11 @@ export default function Home() {
     toggle({ date, session, studentId: id, ...member });
   }
 
+  // 교적부 화면(/registry)은 아직 미구현 — 화면이 준비되면 링크로 교체
+  function handleRegistryClick() {
+    alert("교적부 화면은 준비 중입니다.");
+  }
+
   return (
     <PublicGate
       isAuthenticated={sessionAuth.isAuthenticated}
@@ -147,7 +146,6 @@ export default function Home() {
             setSession(s);
             setFilter({ level: "all" });
           }}
-          lastUpdated={lastUpdated}
           actions={
             <div className="flex w-full flex-wrap items-center justify-center gap-2 sm:contents">
               <div className="flex items-center gap-2">
@@ -165,6 +163,14 @@ export default function Home() {
                   <Cake className="size-4" />
                   생일축하
                 </Link>
+                <button
+                  type="button"
+                  onClick={handleRegistryClick}
+                  className="flex items-center gap-1.5 rounded-full bg-teal px-3 py-1.5 text-sm font-semibold text-paper hover:opacity-90"
+                >
+                  <BookUser className="size-4" />
+                  교적부
+                </button>
               </div>
               <div className="hidden h-7 w-[1.5px] self-center rounded-full bg-ink/40 lg:block" />
               <Link
@@ -175,6 +181,44 @@ export default function Home() {
                 학생 관리
               </Link>
             </div>
+          }
+          mobileMenu={
+            <MobileNavMenu
+              items={[
+                {
+                  key: "history",
+                  label: "출석현황",
+                  icon: ClipboardList,
+                  barClass: "bg-ink",
+                  iconClass: "text-ink",
+                  href: "/history",
+                },
+                {
+                  key: "birthday",
+                  label: "생일축하",
+                  icon: Cake,
+                  barClass: "bg-celebrate",
+                  iconClass: "text-celebrate",
+                  href: "/birthday",
+                },
+                {
+                  key: "registry",
+                  label: "교적부",
+                  icon: BookUser,
+                  barClass: "bg-teal",
+                  iconClass: "text-teal",
+                  onClick: handleRegistryClick,
+                },
+                {
+                  key: "members",
+                  label: "학생 관리",
+                  icon: Lock,
+                  barClass: "bg-stamp",
+                  iconClass: "text-stamp",
+                  href: "/members",
+                },
+              ]}
+            />
           }
         />
       </div>
