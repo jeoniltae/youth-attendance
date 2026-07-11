@@ -247,7 +247,7 @@ export default function MembersPage() {
       <div className="relative flex items-center justify-center animate-[rise-in_0.5s_ease-out_both]">
         <Link
           href="/"
-          className="absolute inset-y-0 left-0 hidden items-center gap-1.5 rounded-full bg-ink px-3.5 py-2 text-sm font-semibold whitespace-nowrap text-paper hover:bg-ink/85 sm:flex"
+          className="absolute left-0 top-1/2 hidden -translate-y-1/2 items-center gap-1.5 rounded-full bg-ink px-3.5 py-2 text-sm font-semibold whitespace-nowrap text-paper hover:bg-ink/85 sm:flex"
         >
           <ArrowLeft className="size-3.5" />
           출석체크
@@ -261,7 +261,7 @@ export default function MembersPage() {
         <button
           type="button"
           onClick={() => setShowStats(true)}
-          className="absolute inset-y-0 right-0 flex items-center gap-1.5 rounded-full border border-ink/20 px-3.5 py-2 text-sm font-medium text-ink/70 hover:border-ink/40 hover:text-ink"
+          className="absolute right-0 top-1/2 flex -translate-y-1/2 items-center gap-1.5 rounded-full border border-ink/20 px-3.5 py-2 text-sm font-medium text-ink/70 hover:border-ink/40 hover:text-ink"
         >
           <PieChart className="size-3.5" />
           <span className="hidden sm:inline">1년 통계</span>
