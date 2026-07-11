@@ -161,6 +161,10 @@
   }
   html {
     @apply font-sans;
+    /* 모달이 열려 body 스크롤이 잠기면(overflow:hidden) 스크롤바가 사라지면서
+       콘텐츠 폭이 변해 recharts ResponsiveContainer가 리사이즈로 오인해 재렌더링(깜빡임)한다.
+       스크롤바 유무와 무관하게 항상 자리를 확보해 폭 변화 자체를 없앤다 */
+    scrollbar-gutter: stable;
   }
   button {
     @apply cursor-pointer;
