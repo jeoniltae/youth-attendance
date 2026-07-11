@@ -1,7 +1,7 @@
 "use client";
 // 교적 관리 메인 페이지 — 관리자 전용, 학생/교사 정보 추가·수정·삭제
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, PieChart, Plus, UserPlus } from "lucide-react";
@@ -156,6 +156,14 @@ export default function MembersPage() {
   // Header의 DATE 표시용 — 이 페이지의 출석 수정은 학생/교사 폼 내 날짜 드롭다운이 별도로 담당
   const [headerDate] = useState(() => toInputDateValue(mostRecentSunday()));
   const [filter, setFilter] = useState<FilterState>({ level: "all" });
+  const resultsRef = useRef<HTMLDivElement>(null);
+
+  // 필터가 특정 그룹으로 좁혀지면(전체 제외) 결과로 자동 스크롤 — 메인 출석체크 화면과 동일한 처리
+  useEffect(() => {
+    if (filter.level === "all") return;
+    resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [filter]);
+
   const [studentModal, setStudentModal] = useState<StudentModalState>({
     open: false,
     student: null,
@@ -305,7 +313,7 @@ export default function MembersPage() {
         <FilterChips groups={groups} active={filter} onSelect={setFilter} />
       </div>
 
-      <div className="flex flex-col gap-4">
+      <div ref={resultsRef} className="flex flex-col gap-4">
         {studentsHook.isLoading || teachersHook.isLoading ? (
           Array.from({ length: 2 }).map((_, i) => <GradeSectionSkeleton key={i} />)
         ) : studentsHook.isError || teachersHook.isError ? (
