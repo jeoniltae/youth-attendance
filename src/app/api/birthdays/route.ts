@@ -36,6 +36,7 @@ function toTeacher(row: Record<string, string>): Teacher {
     address: row.Address,
     birthdate: row.Birthdate,
     notes: row.Notes,
+    lunarBirthdate: row.Lunar === 'TRUE',
   };
 }
 

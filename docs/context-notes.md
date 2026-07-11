@@ -243,3 +243,25 @@ ID·팀·이름)가 비는 경우가 실제로 발생함을 확인 (사본에서
 `/`, `/history`, `/members` 세 화면이 전부 같은 `groupStudentsAndTeachers`를 쓰므로
 한 번의 수정으로 전체 반영됨. ID가 없는 인원은 화면 표시용 임시 키만 부여하고, 실제
 출석 토글 대상 식별은 시트에 ID가 채워지기 전까지 여전히 불가능함(별도 미해결 사항).
+
+---
+
+## 교사 음력 생일 지원
+
+### 배경 및 결정
+
+`TeacherForm`(교사 정보 수정 팝업)에만 "음력" 체크박스를 추가해, 체크된 교사의 저장된
+Birthdate를 음력 날짜로 간주하도록 함. 학생(`StudentForm`)에는 적용하지 않음(요청 범위 밖).
+
+- **저장 방식**: Teachers 시트에 `Lunar`(`TRUE`/`FALSE`) 컬럼을 맨 끝에 추가.
+  Attendance의 `Type` 컬럼 추가와 동일한 패턴(GAS는 헤더 이름 기반이라 끝에 컬럼을 더해도 무해).
+  `scripts/add-teacher-lunar-header.mjs`로 추가(멱등) — **Phase 8-B 실시트 전환 시 재실행 필요**.
+- **음력→양력 변환**: `korean-lunar-calendar`(KASI 기준, zero-dep) 신규 의존성 추가.
+  `src/lib/lunar.ts`의 `lunarToSolar(year, month, day)`가 해당 연도의 양력 월/일을 반환.
+  윤달(간지 윤월) 입력은 지원하지 않고 항상 평달로 간주 — 체크박스 하나만 두기로 했고,
+  실제로 극히 드문 케이스라 UI를 늘리지 않기로 결정. 변환 실패(지원범위 1000~2050 밖 등)
+  시 원본 월/일로 폴백하고 "(음력)" 표시도 생략(조용히 양력처럼 취급).
+- **표시**: `/birthday`에서 음력 생일자 카드에 `MM/DD (음력)`로 표시(`isLunar` 플래그).
+  변환은 "저장된 음력 월/일을 조회 시점의 연도로 환산"이므로 해마다 자동으로 날짜가 바뀜.
+- **`groupBirthdaysByMonth` 시그니처 변경**: `year` 파라미터 추가 필수 — 호출부(`birthday/page.tsx`)에서
+  `getTodayInSeoul().getFullYear()`를 넘겨줌.

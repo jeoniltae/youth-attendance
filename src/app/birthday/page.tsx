@@ -235,8 +235,14 @@ export default function BirthdayPage() {
   const { data, isLoading, isError } = useBirthdays(session, sessionAuth.isAuthenticated);
 
   const groups = useMemo(
-    () => groupBirthdaysByMonth(data?.students ?? [], data?.teachers ?? [], month),
-    [data, month],
+    () =>
+      groupBirthdaysByMonth(
+        data?.students ?? [],
+        data?.teachers ?? [],
+        month,
+        today.getFullYear(),
+      ),
+    [data, month, today],
   );
 
   const teacherCount =
@@ -376,7 +382,7 @@ export default function BirthdayPage() {
         <div className="relative flex items-center justify-center animate-[rise-in_0.5s_ease-out_both]">
           <Link
             href="/"
-            className="absolute inset-y-0 left-0 hidden items-center gap-1.5 rounded-full bg-ink px-3.5 py-2 text-sm font-semibold whitespace-nowrap text-paper hover:bg-ink/85 sm:flex"
+            className="absolute left-0 top-1/2 hidden -translate-y-1/2 items-center gap-1.5 rounded-full bg-ink px-3.5 py-2 text-sm font-semibold whitespace-nowrap text-paper hover:bg-ink/85 sm:flex"
           >
             <ArrowLeft className="size-3.5" />
             출석체크
@@ -551,6 +557,7 @@ export default function BirthdayPage() {
                           {p.name}
                           <span className="text-xs text-ink/30">
                             {p.birthMonth}/{p.birthDay}
+                            {p.isLunar && " (음력)"}
                           </span>
                           {isToday && (
                             <span className="rounded-full bg-celebrate px-1.5 text-[0.65rem] font-semibold text-paper">

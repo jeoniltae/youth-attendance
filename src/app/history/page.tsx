@@ -78,7 +78,7 @@ export default function HistoryPage() {
       <div className="relative flex items-center justify-center animate-[rise-in_0.5s_ease-out_both]">
         <Link
           href="/"
-          className="absolute inset-y-0 left-0 hidden items-center gap-1.5 rounded-full bg-ink px-3.5 py-2 text-sm font-semibold whitespace-nowrap text-paper hover:bg-ink/85 sm:flex"
+          className="absolute left-0 top-1/2 hidden -translate-y-1/2 items-center gap-1.5 rounded-full bg-ink px-3.5 py-2 text-sm font-semibold whitespace-nowrap text-paper hover:bg-ink/85 sm:flex"
         >
           <ArrowLeft className="size-3.5" />
           출석체크

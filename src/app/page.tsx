@@ -45,12 +45,21 @@ export default function Home() {
   const [filter, setFilter] = useState<FilterState>({ level: "all" });
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setLastUpdated(
       new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }),
     );
   }, []);
+
+  // 학년/교사/새친구/확인 필요 등 특정 그룹으로 필터링하면 해당 결과가 화면 아래에 나타나는데,
+  // 스크롤 위치는 그대로라 필터 전 스크롤이 깊었으면 빈 영역만 보이는 문제가 있었다.
+  // "전체"는 목록이 줄어드는 게 아니라 늘어나는 방향이라 같은 문제가 없으므로 스크롤하지 않는다.
+  useEffect(() => {
+    if (filter.level === "all") return;
+    resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [filter]);
 
   // 단일 인스턴스만 유지 — PublicGate에도 이 값을 그대로 props로 넘겨서
   // 로그인 직후 데이터 훅의 enabled가 함께 갱신되도록 한다 (별도 호출 금지)
@@ -201,7 +210,7 @@ export default function Home() {
         <FilterChips groups={groups} active={filter} onSelect={setFilter} />
       </div>
 
-      <div className="flex flex-col gap-4">
+      <div ref={resultsRef} className="flex scroll-mt-20 flex-col gap-4">
         {isLoading ? (
           Array.from({ length: 2 }).map((_, i) => <GradeSectionSkeleton key={i} />)
         ) : isError ? (

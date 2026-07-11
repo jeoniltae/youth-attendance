@@ -30,6 +30,8 @@ export interface Teacher {
   address: string;
   birthdate: string;
   notes: string;
+  /** true면 birthdate가 음력 날짜 — 생일자 조회에서 해당 연도 양력으로 환산해 표시 */
+  lunarBirthdate: boolean;
 }
 
 export interface AttendanceRecord {

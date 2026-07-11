@@ -41,6 +41,7 @@ export async function PUT(
       address: body.address ?? '',
       birthdate: body.birthdate ?? '',
       notes: body.notes ?? '',
+      lunarBirthdate: body.lunarBirthdate ?? false,
     };
     await updateRow(SHEET.TEACHERS, rowNumber, teacherToRow(teacher));
     return NextResponse.json({ teacher });
