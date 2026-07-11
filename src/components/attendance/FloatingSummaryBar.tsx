@@ -51,7 +51,11 @@ export function FloatingSummaryBar({ anchorRef, ...barProps }: FloatingSummaryBa
       }`}
     >
       <div className="mx-auto w-full max-w-[1368px] px-4 pt-2 sm:px-6 lg:px-8">
-        <div className="rounded-2xl shadow-[0_8px_20px_rgba(30,34,51,0.28)]">
+        <div
+          className={`rounded-2xl transition-shadow duration-300 ease-out ${
+            visible ? 'shadow-[0_8px_20px_rgba(30,34,51,0.28)]' : 'shadow-none'
+          }`}
+        >
           <SummaryBar {...barProps} compact />
         </div>
       </div>
