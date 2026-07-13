@@ -1,5 +1,5 @@
 "use client";
-// 비밀번호 입력 모달 — /members(관리자) + 공개 3화면(교사) 공용 인증 게이트
+// 비밀번호 입력 모달 — /members(관리자) + 공개 4화면(교사) 공용 인증 게이트
 
 import { useState } from "react";
 import { Lock } from "lucide-react";

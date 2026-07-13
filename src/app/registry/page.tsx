@@ -1,12 +1,13 @@
 "use client";
 // 교적부 페이지 — 교사용(session) 열람 전용 학생 명단 그리드
-// 편집 기능이 있는 /members(관리자)와 달리 읽기 전용이며, 공개 3화면과 동일한
-// 교사용 비밀번호(session) 게이트로 보호한다.
+// 편집 기능이 있는 /members(관리자)와 달리 읽기 전용이며, 나머지 공개 화면(/, /history,
+// /birthday)과 동일한 교사용 비밀번호(session) 게이트로 보호한다.
 
 import Link from "next/link";
 import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { PublicGate } from "@/components/common/PublicGate";
+import { RegistryTable } from "@/components/registry/RegistryTable";
 import { useAuthGate } from "@/hooks/useAuthGate";
 import { useRoster } from "@/hooks/useRoster";
 import type { Session } from "@/types";
@@ -49,35 +50,25 @@ export default function RegistryPage() {
           </div>
         </div>
 
-        {/* TODO(Step 2): RegistryTable(통합 탭바 + sticky 그리드)로 교체.
-            아래 임시 세션 토글도 RegistryTable 컨트롤바로 흡수 예정 — 지금은 뼈대 검증용 */}
         <div
-          className="flex animate-[rise-in_0.5s_ease-out_both] flex-col items-center gap-4 rounded-2xl border-[1.5px] border-ink/12 bg-paper-deep p-6 text-center text-sm text-ink/50"
+          className="animate-[rise-in_0.5s_ease-out_both]"
           style={{ animationDelay: "70ms" }}
         >
-          <div className="flex gap-1.5">
-            {(["오전", "오후"] as Session[]).map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setSession(s)}
-                className={
-                  s === session
-                    ? "rounded-full bg-ink px-4 py-1.5 text-sm font-semibold text-paper"
-                    : "rounded-full border border-ink/25 px-4 py-1.5 text-sm font-medium text-ink/60 hover:border-ink/50 hover:text-ink"
-                }
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-          <p>
-            {isLoading
-              ? "명단을 불러오는 중…"
-              : isError
-                ? "데이터를 불러오지 못했습니다. 새로고침 후 다시 시도해주세요."
-                : `학생 ${students.length}명 (${session}) — 그리드는 Step 2에서 구현`}
-          </p>
+          {isLoading ? (
+            <div className="rounded-2xl border-[1.5px] border-ink/12 bg-paper-deep p-12 text-center text-sm text-ink/50">
+              명단을 불러오는 중…
+            </div>
+          ) : isError ? (
+            <div className="rounded-2xl border-[1.5px] border-ink/12 bg-paper-deep p-12 text-center text-sm text-celebrate">
+              데이터를 불러오지 못했습니다. 새로고침 후 다시 시도해주세요.
+            </div>
+          ) : (
+            <RegistryTable
+              students={students}
+              session={session}
+              onSessionChange={setSession}
+            />
+          )}
         </div>
       </main>
     </PublicGate>

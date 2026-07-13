@@ -114,11 +114,6 @@ export default function Home() {
     toggle({ date, session, studentId: id, ...member });
   }
 
-  // 교적부 화면(/registry)은 아직 미구현 — 화면이 준비되면 링크로 교체
-  function handleRegistryClick() {
-    alert("교적부 화면은 준비 중입니다.");
-  }
-
   return (
     <PublicGate
       isAuthenticated={sessionAuth.isAuthenticated}
@@ -163,14 +158,13 @@ export default function Home() {
                   <Cake className="size-4" />
                   생일축하
                 </Link>
-                <button
-                  type="button"
-                  onClick={handleRegistryClick}
+                <Link
+                  href="/registry"
                   className="flex items-center gap-1.5 rounded-full bg-teal px-3 py-1.5 text-sm font-semibold text-paper hover:opacity-90"
                 >
                   <BookUser className="size-4" />
                   교적부
-                </button>
+                </Link>
               </div>
               <div className="hidden h-7 w-[1.5px] self-center rounded-full bg-ink/40 lg:block" />
               <Link
@@ -207,7 +201,7 @@ export default function Home() {
                   icon: BookUser,
                   barClass: "bg-teal",
                   iconClass: "text-teal",
-                  onClick: handleRegistryClick,
+                  href: "/registry",
                 },
                 {
                   key: "members",

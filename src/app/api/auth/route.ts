@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 type AuthRole = 'admin' | 'session';
 
 // role별 비교 대상 환경변수 — admin: /members(학생·교사 데이터 수정), session: 공개
-// 3화면(/, /history, /birthday) 접근용. 두 비밀번호를 분리해 교사 다수가 아는
+// 4화면(/, /history, /birthday, /registry) 접근용. 두 비밀번호를 분리해 교사 다수가 아는
 // 비밀번호와 실제 데이터 수정 권한의 비밀번호가 섞이지 않도록 한다.
 const ENV_VAR_BY_ROLE: Record<AuthRole, string> = {
   admin: 'ADMIN_PASSWORD',
