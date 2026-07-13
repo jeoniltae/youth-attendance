@@ -21,7 +21,9 @@ import { ChevronDown, ChevronUp, ChevronsUpDown, Search } from "lucide-react";
 import type { Session, Student } from "@/types";
 
 // 셀/헤더의 sticky·정렬 부가정보 (TanStack ColumnMeta로 전달)
-type ColMeta = { sticky?: "num" | "name"; align?: "center" };
+// clamp: 긴 텍스트를 폭 고정 + 최대 2줄로 자름 — 나머지는 nowrap 유지
+// widthClass: clamp 컬럼의 폭을 컬럼별로 개별 지정(미지정 시 기본값 사용)
+type ColMeta = { sticky?: "num" | "name"; align?: "center"; clamp?: boolean; widthClass?: string };
 
 // 학년 1→2→3→새친구 순서 고정 (기본 문자열 정렬은 "새친구"가 애매하게 끼는 것 방지)
 const gradeRank = (g: string) => (g === "새친구" ? 99 : parseInt(g, 10) || 98);
@@ -69,10 +71,10 @@ export function RegistryTable({ students, session, onSessionChange, rates }: Reg
       { accessorKey: "grade", header: "학년", sortingFn: gradeSort, filterFn: "equalsString", cell: (c) => textCell(c.getValue()), meta: { align: "center" } satisfies ColMeta },
       { accessorKey: "class", header: "반", sortingFn: classSort, cell: (c) => { const v = c.getValue<string>(); return v ? `${v}반` : "—"; }, meta: { align: "center" } satisfies ColMeta },
       { accessorKey: "gender", header: "성별", cell: (c) => textCell(c.getValue()), meta: { align: "center" } satisfies ColMeta },
-      { accessorKey: "school", header: "학교", cell: (c) => textCell(c.getValue()) },
+      { accessorKey: "school", header: "학교", cell: (c) => textCell(c.getValue()), meta: { clamp: true, widthClass: "max-w-36 min-w-[100px]" } satisfies ColMeta },
       { accessorKey: "birthdate", header: "생년월일", cell: (c) => textCell(c.getValue()) },
       { accessorKey: "phone", header: "연락처", cell: (c) => textCell(c.getValue()) },
-      { accessorKey: "parentPhone", header: "부모 연락처", cell: (c) => textCell(c.getValue()) },
+      { accessorKey: "parentPhone", header: "부모님 연락처", cell: (c) => textCell(c.getValue()) },
       { accessorKey: "address", header: "주소", cell: (c) => textCell(c.getValue()) },
       { accessorKey: "baptism", header: "세례", cell: (c) => textCell(c.getValue()), meta: { align: "center" } satisfies ColMeta },
       {
@@ -201,7 +203,7 @@ export function RegistryTable({ students, session, onSessionChange, rates }: Reg
       {/* ── 반별 담당교사 범례 칩 (특정 학년 선택 시에만) ── */}
       {classTeachers.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold text-ink/45">담당</span>
+          <span className="text-xs font-semibold text-ink/45">담임 및 부담임</span>
           {classTeachers.map((ct) => (
             <span
               key={ct.cls}
@@ -270,16 +272,26 @@ export function RegistryTable({ students, session, onSessionChange, rates }: Reg
                 <tr key={row.id} className="group">
                   {row.getVisibleCells().map((cell) => {
                     const meta = cell.column.columnDef.meta as ColMeta | undefined;
+                    const content =
+                      cell.column.id === "번호"
+                        ? String(i + 1).padStart(2, "0")
+                        : flexRender(cell.column.columnDef.cell, cell.getContext());
                     return (
                       <td
                         key={cell.id}
-                        className={`border-b border-ink/8 px-3 py-2 whitespace-nowrap text-ink/80 group-hover:bg-paper-deep ${
-                          meta?.align === "center" ? "text-center" : "text-left"
-                        } ${stickyBody(meta)}`}
+                        // clamp 열(학교)만 폭 고정 + 줄바꿈 허용, 나머지는 nowrap 유지
+                        className={`border-b border-ink/8 px-3 py-2 text-ink/80 group-hover:bg-paper-deep ${
+                          meta?.clamp
+                            ? `${meta.widthClass ?? "max-w-36"} whitespace-normal align-middle`
+                            : "whitespace-nowrap"
+                        } ${meta?.align === "center" ? "text-center" : "text-left"} ${stickyBody(meta)}`}
+                        title={meta?.clamp ? String(cell.getValue() ?? "") : undefined}
                       >
-                        {cell.column.id === "번호"
-                          ? String(i + 1).padStart(2, "0")
-                          : flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        {meta?.clamp ? (
+                          <span className="line-clamp-2 wrap-break-word">{content}</span>
+                        ) : (
+                          content
+                        )}
                       </td>
                     );
                   })}
