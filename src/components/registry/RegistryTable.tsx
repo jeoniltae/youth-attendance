@@ -32,10 +32,6 @@ const gradeSort: SortingFn<Student> = (a, b, id) =>
 const classSort: SortingFn<Student> = (a, b, id) =>
   String(a.getValue(id)).localeCompare(String(b.getValue(id)), "ko", { numeric: true });
 
-// "85%" 같은 문자열 출석률을 숫자로 파싱해 정렬
-const rateNum = (v: unknown) => parseFloat(String(v ?? "").replace("%", "")) || 0;
-const rateSort: SortingFn<Student> = (a, b, id) => rateNum(a.getValue(id)) - rateNum(b.getValue(id));
-
 const GRADE_TABS = ["전체", "1", "2", "3"] as const;
 type GradeTab = (typeof GRADE_TABS)[number] | "새친구";
 
@@ -48,9 +44,11 @@ interface RegistryTableProps {
   students: Student[];
   session: Session;
   onSessionChange: (session: Session) => void;
+  /** id → 1년 출석률(정수 %). 시트의 출석률 컬럼이 비어 있어 Attendance에서 계산한 값 */
+  rates?: Record<string, number>;
 }
 
-export function RegistryTable({ students, session, onSessionChange }: RegistryTableProps) {
+export function RegistryTable({ students, session, onSessionChange, rates }: RegistryTableProps) {
   const [gradeFilter, setGradeFilter] = useState<GradeTab>("전체");
   const [nameQuery, setNameQuery] = useState("");
   const [sorting, setSorting] = useState<SortingState>([
@@ -77,10 +75,18 @@ export function RegistryTable({ students, session, onSessionChange }: RegistryTa
       { accessorKey: "parentPhone", header: "부모 연락처", cell: (c) => textCell(c.getValue()) },
       { accessorKey: "address", header: "주소", cell: (c) => textCell(c.getValue()) },
       { accessorKey: "baptism", header: "세례", cell: (c) => textCell(c.getValue()), meta: { align: "center" } satisfies ColMeta },
+      {
+        id: "attendanceRate",
+        header: "출석률(1년기준)",
+        // 시트 컬럼이 비어 있어 계산된 rates(id→%)에서 값을 가져온다. 기록 없으면 0%
+        accessorFn: (s) => rates?.[s.id] ?? 0,
+        sortingFn: "basic",
+        cell: (c) => (rates ? `${c.getValue<number>()}%` : "—"),
+        meta: { align: "center" } satisfies ColMeta,
+      },
       { accessorKey: "notes", header: "비고", cell: (c) => textCell(c.getValue()) },
-      { accessorKey: "attendanceRate", header: "출석률", sortingFn: rateSort, cell: (c) => textCell(c.getValue()), meta: { align: "center" } satisfies ColMeta },
     ],
-    [],
+    [rates],
   );
 
   const columnFilters = useMemo<ColumnFiltersState>(() => {
@@ -199,7 +205,7 @@ export function RegistryTable({ students, session, onSessionChange }: RegistryTa
           {classTeachers.map((ct) => (
             <span
               key={ct.cls}
-              className="inline-flex items-center gap-1.5 rounded-full border border-teal/30 bg-teal/[0.08] px-3 py-1 text-xs"
+              className="inline-flex items-center gap-1.5 rounded-full border border-teal/30 bg-teal/8 px-3 py-1 text-xs"
             >
               <b className="font-semibold text-teal">{ct.cls}반</b>
               <span className="text-ink/60">{ct.teachers || "미배정"}</span>

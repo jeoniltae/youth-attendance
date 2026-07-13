@@ -5,11 +5,13 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { PublicGate } from "@/components/common/PublicGate";
 import { RegistryTable } from "@/components/registry/RegistryTable";
 import { useAuthGate } from "@/hooks/useAuthGate";
 import { useRoster } from "@/hooks/useRoster";
+import { getAttendanceRates } from "@/api/stats";
 import type { Session } from "@/types";
 
 export default function RegistryPage() {
@@ -24,6 +26,15 @@ export default function RegistryPage() {
     isLoading,
     isError,
   } = useRoster(session, sessionAuth.isAuthenticated);
+
+  // 1년 출석률(계산값) — 시트의 출석률 컬럼은 비어 있어 Attendance 기록에서 산출.
+  // 세션 무관·변동이 잦지 않아 5분 캐시로 재조회 최소화
+  const { data: ratesData } = useQuery({
+    queryKey: ["registry-rates"],
+    queryFn: getAttendanceRates,
+    enabled: sessionAuth.isAuthenticated,
+    staleTime: 5 * 60_000,
+  });
 
   const students = roster?.students ?? [];
 
@@ -67,6 +78,7 @@ export default function RegistryPage() {
               students={students}
               session={session}
               onSessionChange={setSession}
+              rates={ratesData?.rates}
             />
           )}
         </div>
