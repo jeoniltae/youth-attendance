@@ -1,5 +1,5 @@
 // 비밀번호 게이트 인증 훅 — role별로 sessionStorage 키와 검증 대상 비밀번호를 분리한다.
-// admin: /members(학생·교사 데이터 수정) / session: 공개 3화면(/, /history, /birthday)
+// admin: /members(학생·교사 데이터 수정) / session: 공개 4화면(/, /history, /birthday, /registry)
 
 import { useState, useEffect, useCallback } from "react";
 

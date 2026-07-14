@@ -54,9 +54,10 @@ Google Sheets는 WebSocket을 지원하지 않으므로 Polling 방식을 사용
 비밀번호 게이트를 두 단계로 분리합니다. 레거시 GAS는 구글 계정 관리자 승인이 있어야
 출석부 화면 자체를 볼 수 있었는데, 새 앱도 동일한 수준으로 공개 화면을 보호합니다.
 
-- **교사용 게이트**(`session` role): `/`(출석체크)·`/history`(출석 현황)·`/birthday`(생일자)
-  공개 3화면 진입 시 `PublicGate` 컴포넌트가 비밀번호를 요구합니다. 여러 교사가 공유해서
-  아는 비밀번호(`SESSION_PASSWORD`)이며, 통과하면 `sessionStorage`에 `session_token`을 저장.
+- **교사용 게이트**(`session` role): `/`(출석체크)·`/history`(출석 현황)·`/birthday`(생일자)·
+  `/registry`(교적부) 공개 4화면 진입 시 `PublicGate` 컴포넌트가 비밀번호를 요구합니다. 여러
+  교사가 공유해서 아는 비밀번호(`SESSION_PASSWORD`)이며, 통과하면 `sessionStorage`에
+  `session_token`을 저장(한 번 통과하면 4화면 공통).
 - **관리자용 게이트**(`admin` role): `/members`(학생·교사 데이터 수정) 진입 시 별도
   비밀번호(`ADMIN_PASSWORD`)를 요구합니다. `admin_token`으로 별도 저장되어 교사용 인증과
   섞이지 않습니다.
@@ -173,7 +174,7 @@ interface AttendanceRecord {
 }
 ```
 
-## 화면 구성 (4개 페이지)
+## 화면 구성 (5개 페이지)
 
 | 경로 | 파일 | 설명 |
 |------|------|------|
@@ -181,6 +182,7 @@ interface AttendanceRecord {
 | `/history` | `app/history/page.tsx` | 출석 현황 (학년/반/팀별 그룹핑) |
 | `/members` | `app/members/page.tsx` | 교적 관리 — 관리자 전용 (학생/교사 정보 추가·수정·삭제 + 특정 날짜 출석 상태 수정) |
 | `/birthday` | `app/birthday/page.tsx` | 생일자 조회 |
+| `/registry` | `app/registry/page.tsx` | 교적부 — 교사용(session) 열람 전용 학생 명단 데이터 그리드 (TanStack Table: 세션/학년 탭 필터·이름 검색·컬럼 정렬, sticky 헤더/좌측 열, 반별 담당교사 칩) |
 
 ### 관리자 모드 진입 플로우
 1. 메인 화면에 "학생 관리" 버튼 존재
@@ -251,6 +253,7 @@ src/
 │   ├── history/page.tsx                ✅ 출석 현황
 │   ├── members/page.tsx                ✅ 교적 관리 (관리자) — Google Sheets 실연동, 비밀번호 게이트
 │   ├── birthday/page.tsx               ✅ 생일자 조회
+│   ├── registry/page.tsx               ✅ 교적부 (교사용 열람 전용 학생 명단 그리드) — session 게이트
 │   ├── providers.tsx                   ✅ React Query QueryClientProvider
 │   ├── layout.tsx                      ✅ 루트 레이아웃
 │   └── api/
@@ -283,9 +286,11 @@ src/
 │   │   └── StudentForm.tsx             ✅ 학생 추가/수정/삭제 모달 폼 (출석 수정 포함)
 │   ├── teachers/
 │   │   └── TeacherForm.tsx             ✅ 교사 추가/수정/삭제 모달 폼 (출석 수정 포함)
+│   ├── registry/
+│   │   └── RegistryTable.tsx           ✅ 교적부 통합 테이블 (TanStack Table: 세션/학년 탭·이름 검색·정렬·sticky·담당교사 칩)
 │   └── common/
 │       ├── AuthGateModal.tsx           ✅ 비밀번호 입력 모달 (admin/session 공용)
-│       └── PublicGate.tsx              ✅ 공개 3화면(/, /history, /birthday) 교사용 게이트 래퍼
+│       └── PublicGate.tsx              ✅ 공개 4화면(/, /history, /birthday, /registry) 교사용 게이트 래퍼
 ├── hooks/
 │   ├── useAttendance.ts                ✅ 출석 데이터 + 30초 polling + Optimistic Update
 │   ├── useRoster.ts                    ✅ 학생/교사 명단 + 30초 polling
@@ -330,7 +335,7 @@ GOOGLE_SPREADSHEET_ID=
 # 관리자 비밀번호 (/members 전용)
 ADMIN_PASSWORD=
 
-# 교사용 비밀번호 (공개 3화면: /, /history, /birthday 게이트)
+# 교사용 비밀번호 (공개 4화면: /, /history, /birthday, /registry 게이트)
 SESSION_PASSWORD=
 ```
 
