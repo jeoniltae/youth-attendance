@@ -170,59 +170,61 @@ export function RegistryTable({ students, session, onSessionChange, rates }: Reg
 
   return (
     <TooltipProvider>
-    <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1">
-      {/* ── 통합 컨트롤바 ── */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        {/* 세션 토글 */}
-        <div className="flex gap-1.5">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      {/* ── 통합 컨트롤바 ──
+          모바일(<sm): 풀폭 세로 스택(세션 세그먼트 / 학년탭 가로스크롤 / 풀폭 검색 / 카운트).
+          sm+: 기존 한 줄 인라인(세션 · 구분선 · 학년탭 · 우측 검색+카운트) */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-2">
+        {/* 세션 토글 — 모바일은 반반 세그먼트 */}
+        <div className="flex w-full gap-1.5 sm:w-auto">
           {(["오전", "오후"] as Session[]).map((s) => (
             <button
               key={s}
               type="button"
               onClick={() => onSessionChange(s)}
-              className={
+              className={`flex-1 rounded-full px-4 py-1.5 text-sm sm:flex-none ${
                 s === session
-                  ? "rounded-full bg-ink px-4 py-1.5 text-sm font-semibold text-paper"
-                  : "rounded-full border border-ink/25 px-4 py-1.5 text-sm font-medium text-ink/60 hover:border-ink/50 hover:text-ink"
-              }
+                  ? "bg-ink font-semibold text-paper"
+                  : "border border-ink/25 font-medium text-ink/60 hover:border-ink/50 hover:text-ink"
+              }`}
             >
               {s}반
             </button>
           ))}
         </div>
 
-        <div className="h-5 w-px bg-ink/15" />
+        <div className="hidden h-5 w-px bg-ink/15 sm:block" />
 
-        {/* 학년 탭 */}
-        <div className="flex flex-wrap gap-1.5">
+        {/* 학년 탭 — 모바일은 가로 스크롤 한 줄 */}
+        <div className="flex w-full gap-1.5 overflow-x-auto [&::-webkit-scrollbar]:hidden sm:w-auto sm:flex-wrap sm:overflow-visible">
           {gradeTabs.map((tab) => (
             <button
               key={tab}
               type="button"
               onClick={() => setGradeFilter(tab)}
-              className={
+              className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm ${
                 tab === gradeFilter
-                  ? "rounded-full bg-ink px-3.5 py-1.5 text-sm font-semibold text-paper"
-                  : "rounded-full border border-ink/20 px-3.5 py-1.5 text-sm font-medium text-ink/60 hover:border-ink/45 hover:text-ink"
-              }
+                  ? "bg-ink font-semibold text-paper"
+                  : "border border-ink/20 font-medium text-ink/60 hover:border-ink/45 hover:text-ink"
+              }`}
             >
               {gradeTabLabel(tab)}
             </button>
           ))}
         </div>
 
-        {/* 검색 + 카운트 (우측 정렬) */}
-        <div className="ml-auto flex items-center gap-3">
-          <div className="relative">
+        {/* 검색 + 카운트 — 모바일 풀폭 세로, sm+ 우측 인라인 */}
+        <div className="flex w-full flex-col gap-1 sm:ml-auto sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+          <div className="relative w-full sm:w-auto">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink/40" />
             <input
               value={nameQuery}
               onChange={(e) => setNameQuery(e.target.value)}
               placeholder="이름 검색"
-              className="w-40 rounded-full border border-ink/20 bg-paper py-1.5 pl-9 pr-4 text-sm text-ink placeholder:text-ink/40 focus:border-ink/45 focus:outline-none sm:w-48"
+              className="w-full rounded-full border border-ink/20 bg-paper py-1.5 pl-9 pr-4 text-sm text-ink placeholder:text-ink/40 focus:border-ink/45 focus:outline-none sm:w-48"
             />
           </div>
-          <span className="hidden whitespace-nowrap font-display text-sm text-ink/55 sm:inline">
+          <span className="whitespace-nowrap pl-1 font-display text-xs text-ink/55 sm:pl-0 sm:text-sm">
             {session}반 · {gradeTabLabel(gradeFilter)}{" "}
             <b className="tabular-nums text-ink">{rows.length}</b>명
           </span>
@@ -246,7 +248,7 @@ export function RegistryTable({ students, session, onSessionChange, rates }: Reg
       )}
 
       {/* ── sticky 스크롤 그리드 ── */}
-      <div className="max-h-[70vh] overflow-auto rounded-xl border-[1.5px] border-ink/15 bg-paper lg:max-h-none lg:min-h-0 lg:flex-1">
+      <div className="min-h-0 flex-1 overflow-auto rounded-xl border-[1.5px] border-ink/15 bg-paper">
         <table className="w-full min-w-[1040px] border-separate border-spacing-0 text-sm">
           <thead>
             {table.getHeaderGroups().map((hg) => (

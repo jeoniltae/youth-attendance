@@ -10,7 +10,7 @@ const GRID_COLS =
 
 export function RegistryTableSkeleton() {
   return (
-    <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       {/* ── 컨트롤바 ── */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         {/* 세션 토글 */}
@@ -33,7 +33,7 @@ export function RegistryTableSkeleton() {
       </div>
 
       {/* ── 그리드 (폭 100% 채움) ── */}
-      <div className="overflow-hidden rounded-xl border-[1.5px] border-ink/15 bg-paper lg:min-h-0 lg:flex-1">
+      <div className="min-h-0 flex-1 overflow-hidden rounded-xl border-[1.5px] border-ink/15 bg-paper">
         {/* 헤더 밴드 (잉크색) */}
         <div className={`grid ${GRID_COLS} items-center gap-3 bg-ink px-3 py-3`}>
           {Array.from({ length: 13 }).map((_, i) => (
