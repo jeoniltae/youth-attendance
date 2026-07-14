@@ -18,6 +18,12 @@ import {
   type SortingState,
 } from "@tanstack/react-table";
 import { ChevronDown, ChevronUp, ChevronsUpDown, Search } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { Session, Student } from "@/types";
 
 // 셀/헤더의 sticky·정렬 부가정보 (TanStack ColumnMeta로 전달)
@@ -71,7 +77,7 @@ export function RegistryTable({ students, session, onSessionChange, rates }: Reg
       { accessorKey: "grade", header: "학년", sortingFn: gradeSort, filterFn: "equalsString", cell: (c) => textCell(c.getValue()), meta: { align: "center" } satisfies ColMeta },
       { accessorKey: "class", header: "반", sortingFn: classSort, cell: (c) => { const v = c.getValue<string>(); return v ? `${v}반` : "—"; }, meta: { align: "center" } satisfies ColMeta },
       { accessorKey: "gender", header: "성별", cell: (c) => textCell(c.getValue()), meta: { align: "center" } satisfies ColMeta },
-      { accessorKey: "school", header: "학교", cell: (c) => textCell(c.getValue()), meta: { clamp: true, widthClass: "max-w-36 min-w-[100px]" } satisfies ColMeta },
+      { accessorKey: "school", header: "학교", cell: (c) => textCell(c.getValue()), meta: { clamp: true, widthClass: "lg:max-w-36 lg:min-w-[100px]" } satisfies ColMeta },
       { accessorKey: "birthdate", header: "생년월일", cell: (c) => textCell(c.getValue()) },
       { accessorKey: "phone", header: "연락처", cell: (c) => textCell(c.getValue()) },
       { accessorKey: "parentPhone", header: "부모님 연락처", cell: (c) => textCell(c.getValue()) },
@@ -141,6 +147,7 @@ export function RegistryTable({ students, session, onSessionChange, rates }: Reg
         : "z-20";
 
   return (
+    <TooltipProvider>
     <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1">
       {/* ── 통합 컨트롤바 ── */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -276,19 +283,27 @@ export function RegistryTable({ students, session, onSessionChange, rates }: Reg
                       cell.column.id === "번호"
                         ? String(i + 1).padStart(2, "0")
                         : flexRender(cell.column.columnDef.cell, cell.getContext());
+                    // clamp 열(학교)의 원본 값 — lg에서 잘린 경우 hover 툴팁으로 전체 표시
+                    const rawValue = meta?.clamp ? String(cell.getValue() ?? "") : "";
                     return (
                       <td
                         key={cell.id}
-                        // clamp 열(학교)만 폭 고정 + 줄바꿈 허용, 나머지는 nowrap 유지
+                        // clamp 열(학교): lg 이상에서만 폭 고정 + 2줄 말줄임. 좁은 화면은 전체 표시(nowrap)
                         className={`border-b border-ink/8 px-3 py-2 text-ink/80 group-hover:bg-paper-deep ${
                           meta?.clamp
-                            ? `${meta.widthClass ?? "max-w-36"} whitespace-normal align-middle`
+                            ? `whitespace-nowrap lg:whitespace-normal lg:align-middle ${meta.widthClass ?? "lg:max-w-36"}`
                             : "whitespace-nowrap"
                         } ${meta?.align === "center" ? "text-center" : "text-left"} ${stickyBody(meta)}`}
-                        title={meta?.clamp ? String(cell.getValue() ?? "") : undefined}
                       >
-                        {meta?.clamp ? (
-                          <span className="line-clamp-2 wrap-break-word">{content}</span>
+                        {meta?.clamp && rawValue ? (
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={<span className="wrap-break-word lg:line-clamp-2" />}
+                            >
+                              {content}
+                            </TooltipTrigger>
+                            <TooltipContent>{rawValue}</TooltipContent>
+                          </Tooltip>
                         ) : (
                           content
                         )}
@@ -302,5 +317,6 @@ export function RegistryTable({ students, session, onSessionChange, rates }: Reg
         </table>
       </div>
     </div>
+    </TooltipProvider>
   );
 }
