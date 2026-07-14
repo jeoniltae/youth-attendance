@@ -54,9 +54,17 @@ interface RegistryTableProps {
   onSessionChange: (session: Session) => void;
   /** id → 1년 출석률(정수 %). 시트의 출석률 컬럼이 비어 있어 Attendance에서 계산한 값 */
   rates?: Record<string, number>;
+  /** 세션 전환 등으로 새 데이터를 불러오는 중 — 그리드를 살짝 흐리게 처리 */
+  loading?: boolean;
 }
 
-export function RegistryTable({ students, session, onSessionChange, rates }: RegistryTableProps) {
+export function RegistryTable({
+  students,
+  session,
+  onSessionChange,
+  rates,
+  loading = false,
+}: RegistryTableProps) {
   const [gradeFilter, setGradeFilter] = useState<GradeTab>("전체");
   const [nameQuery, setNameQuery] = useState("");
   const [sorting, setSorting] = useState<SortingState>([
@@ -182,17 +190,24 @@ export function RegistryTable({ students, session, onSessionChange, rates }: Reg
           모바일(<sm): 풀폭 세로 스택(세션 세그먼트 / 학년탭 가로스크롤 / 풀폭 검색 / 카운트).
           sm+: 기존 한 줄 인라인(세션 · 구분선 · 학년탭 · 우측 검색+카운트) */}
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-2">
-        {/* 세션 토글 — 모바일은 반반 세그먼트 */}
-        <div className="flex w-full gap-1.5 sm:w-auto">
+        {/* 세션 토글 — 세그먼트 컨트롤. 절대위치 썸이 좌우로 슬라이딩(학년 필터 칩과 구분) */}
+        <div className="relative flex w-full rounded-full border border-ink/15 bg-ink/5 p-1 sm:w-auto">
+          {/* 슬라이딩 썸 — 활성 세션에 따라 좌↔우로 이동 */}
+          <span
+            aria-hidden
+            className={`pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-ink shadow-sm transition-transform duration-300 ease-out ${
+              session === "오후" ? "translate-x-full" : "translate-x-0"
+            }`}
+          />
           {(["오전", "오후"] as Session[]).map((s) => (
             <button
               key={s}
               type="button"
               onClick={() => onSessionChange(s)}
-              className={`flex-1 rounded-full px-4 py-1.5 text-sm sm:flex-none ${
+              className={`relative z-10 flex-1 rounded-full px-4 py-1 text-sm transition-colors sm:flex-none sm:min-w-[64px] ${
                 s === session
-                  ? "bg-ink font-semibold text-paper"
-                  : "border border-ink/25 font-medium text-ink/60 hover:border-ink/50 hover:text-ink"
+                  ? "font-semibold text-paper"
+                  : "font-medium text-ink/55 hover:text-ink"
               }`}
             >
               {s}반
@@ -267,7 +282,9 @@ export function RegistryTable({ students, session, onSessionChange, rates }: Reg
       {/* ── sticky 스크롤 그리드 ── */}
       <div
         ref={scrollRef}
-        className="min-h-0 flex-1 overflow-auto rounded-xl border-[1.5px] border-ink/15 bg-paper"
+        className={`min-h-0 flex-1 overflow-auto rounded-xl border-[1.5px] border-ink/15 bg-paper transition-opacity duration-300 motion-reduce:transition-none ${
+          loading ? "pointer-events-none opacity-50" : "opacity-100"
+        }`}
       >
         <table className="w-full min-w-[1040px] border-separate border-spacing-0 text-sm">
           <thead>

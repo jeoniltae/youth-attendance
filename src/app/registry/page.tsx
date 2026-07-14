@@ -26,7 +26,9 @@ export default function RegistryPage() {
     data: roster,
     isLoading,
     isError,
-  } = useRoster(session, sessionAuth.isAuthenticated);
+    // 세션 전환 중 이전 데이터를 보여주는 동안 true — 그리드를 살짝 흐리게 해 "새 세션 로딩 중"을 표시
+    isPlaceholderData,
+  } = useRoster(session, sessionAuth.isAuthenticated, true);
 
   // 1년 출석률(계산값) — 시트의 출석률 컬럼은 비어 있어 Attendance 기록에서 산출.
   // 세션 무관·변동이 잦지 않아 5분 캐시로 재조회 최소화
@@ -78,6 +80,7 @@ export default function RegistryPage() {
               session={session}
               onSessionChange={setSession}
               rates={ratesData?.rates}
+              loading={isPlaceholderData}
             />
           )}
         </div>
