@@ -247,7 +247,7 @@ export function RegistryTable({ students, session, onSessionChange, rates }: Reg
 
       {/* ── sticky 스크롤 그리드 ── */}
       <div className="max-h-[70vh] overflow-auto rounded-xl border-[1.5px] border-ink/15 bg-paper lg:max-h-none lg:min-h-0 lg:flex-1">
-        <table className="min-w-[1040px] border-separate border-spacing-0 text-sm">
+        <table className="w-full min-w-[1040px] border-separate border-spacing-0 text-sm">
           <thead>
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id}>
