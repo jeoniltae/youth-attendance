@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, PieChart, Plus, UserPlus } from "lucide-react";
+import { ArrowLeft, PieChart, Plus, UserPlus, Users } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { FilterChips, type FilterState } from "@/components/attendance/FilterChips";
 import { GradeSectionSkeleton } from "@/components/attendance/GradeSectionSkeleton";
@@ -304,6 +304,13 @@ export default function MembersPage() {
                 <UserPlus className="size-3.5" />
                 새친구<span className="hidden sm:inline"> 등록</span>
               </button>
+              <Link
+                href="/teachers"
+                className="flex items-center gap-1.5 whitespace-nowrap rounded-full border border-ink/25 px-3 py-1.5 text-sm font-semibold text-ink/70 hover:border-ink/45 hover:text-ink"
+              >
+                <Users className="size-3.5" />
+                교사 현황
+              </Link>
             </div>
           }
         />

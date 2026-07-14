@@ -58,9 +58,9 @@ Google Sheets는 WebSocket을 지원하지 않으므로 Polling 방식을 사용
   `/registry`(교적부) 공개 4화면 진입 시 `PublicGate` 컴포넌트가 비밀번호를 요구합니다. 여러
   교사가 공유해서 아는 비밀번호(`SESSION_PASSWORD`)이며, 통과하면 `sessionStorage`에
   `session_token`을 저장(한 번 통과하면 4화면 공통).
-- **관리자용 게이트**(`admin` role): `/members`(학생·교사 데이터 수정) 진입 시 별도
-  비밀번호(`ADMIN_PASSWORD`)를 요구합니다. `admin_token`으로 별도 저장되어 교사용 인증과
-  섞이지 않습니다.
+- **관리자용 게이트**(`admin` role): `/members`(학생·교사 데이터 수정)·`/teachers`(교사 명단
+  열람) 진입 시 별도 비밀번호(`ADMIN_PASSWORD`)를 요구합니다. `admin_token`으로 별도 저장되어
+  교사용 인증과 섞이지 않습니다.
 - 두 게이트 모두 `POST /api/auth { password, role }`로 검증하고, `useAuthGate(role)` 훅 +
   `AuthGateModal` 컴포넌트를 공유합니다 (`src/hooks/useAuthGate.ts`,
   `src/components/common/AuthGateModal.tsx`, `src/components/common/PublicGate.tsx`).
@@ -174,7 +174,7 @@ interface AttendanceRecord {
 }
 ```
 
-## 화면 구성 (5개 페이지)
+## 화면 구성 (6개 페이지)
 
 | 경로 | 파일 | 설명 |
 |------|------|------|
@@ -183,6 +183,7 @@ interface AttendanceRecord {
 | `/members` | `app/members/page.tsx` | 교적 관리 — 관리자 전용 (학생/교사 정보 추가·수정·삭제 + 특정 날짜 출석 상태 수정) |
 | `/birthday` | `app/birthday/page.tsx` | 생일자 조회 |
 | `/registry` | `app/registry/page.tsx` | 교적부 — 교사용(session) 열람 전용 학생 명단 데이터 그리드 (TanStack Table: 세션/학년 탭 필터·이름 검색·컬럼 정렬, sticky 헤더/좌측 열, 반별 담당교사 칩) |
+| `/teachers` | `app/teachers/page.tsx` | 교사 현황 — 관리자(admin) 전용 교사 명단 데이터 그리드 (교적부의 교사판: 세션/팀 탭 필터·이름 검색·정렬·sticky, 컬럼 번호·이름·팀·연락처·생년월일·주소·출석률(1년기준)·비고). `/members`에서 "교사 현황" 버튼으로 진입 |
 
 ### 관리자 모드 진입 플로우
 1. 메인 화면에 "학생 관리" 버튼 존재
@@ -254,6 +255,7 @@ src/
 │   ├── members/page.tsx                ✅ 교적 관리 (관리자) — Google Sheets 실연동, 비밀번호 게이트
 │   ├── birthday/page.tsx               ✅ 생일자 조회
 │   ├── registry/page.tsx               ✅ 교적부 (교사용 열람 전용 학생 명단 그리드) — session 게이트
+│   ├── teachers/page.tsx               ✅ 교사 현황 (관리자 열람 전용 교사 명단 그리드) — admin 게이트
 │   ├── providers.tsx                   ✅ React Query QueryClientProvider
 │   ├── layout.tsx                      ✅ 루트 레이아웃
 │   └── api/
@@ -287,7 +289,10 @@ src/
 │   ├── teachers/
 │   │   └── TeacherForm.tsx             ✅ 교사 추가/수정/삭제 모달 폼 (출석 수정 포함)
 │   ├── registry/
-│   │   └── RegistryTable.tsx           ✅ 교적부 통합 테이블 (TanStack Table: 세션/학년 탭·이름 검색·정렬·sticky·담당교사 칩)
+│   │   ├── RegistryTable.tsx           ✅ 교적부 통합 테이블 (TanStack Table: 세션/학년 탭·이름 검색·정렬·sticky·담당교사 칩)
+│   │   ├── RegistryTableSkeleton.tsx   ✅ 교적부 로딩 스켈레톤
+│   │   ├── TeacherRegistryTable.tsx    ✅ 교사 현황 통합 테이블 (교적부 교사판: 세션/팀 탭·이름 검색·정렬·sticky)
+│   │   └── TeacherRegistryTableSkeleton.tsx ✅ 교사 현황 로딩 스켈레톤
 │   └── common/
 │       ├── AuthGateModal.tsx           ✅ 비밀번호 입력 모달 (admin/session 공용)
 │       └── PublicGate.tsx              ✅ 공개 4화면(/, /history, /birthday, /registry) 교사용 게이트 래퍼
