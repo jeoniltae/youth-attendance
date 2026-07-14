@@ -5,7 +5,7 @@
 // sticky 처리: 단일 overflow-auto 컨테이너 안에서 헤더 행(top 고정)과 좌측 번호·이름 2열(left 고정).
 // 좌상단 교차 셀은 z-index를 최상위로 둬 가로/세로 스크롤 모두에서 가려지지 않게 한다.
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -70,6 +70,28 @@ export function RegistryTable({ students, session, onSessionChange, rates }: Reg
   // 빈 값은 "—"로 표시하는 공통 셀
   const textCell = (v: unknown) => (v ? String(v) : "—");
 
+  // 연락처 셀 — tel: 링크로 감싸 스마트폰에서 탭하면 바로 전화 연결.
+  // 쉼표로 여러 번호가 있으면 각각 별도 링크로 처리(tel: 값은 숫자·+만 남김)
+  const telCell = (v: unknown) => {
+    const raw = v ? String(v).trim() : "";
+    if (!raw) return "—";
+    return raw
+      .split(",")
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .map((part, idx) => (
+        <Fragment key={idx}>
+          {idx > 0 && ", "}
+          <a
+            href={`tel:${part.replace(/[^\d+]/g, "")}`}
+            className="whitespace-nowrap font-medium text-teal no-underline hover:underline"
+          >
+            {part}
+          </a>
+        </Fragment>
+      ));
+  };
+
   const columns = useMemo<ColumnDef<Student>[]>(
     () => [
       { id: "번호", header: "번호", enableSorting: false, cell: () => null, meta: { sticky: "num", align: "center" } satisfies ColMeta },
@@ -79,8 +101,8 @@ export function RegistryTable({ students, session, onSessionChange, rates }: Reg
       { accessorKey: "gender", header: "성별", cell: (c) => textCell(c.getValue()), meta: { align: "center" } satisfies ColMeta },
       { accessorKey: "school", header: "학교", cell: (c) => textCell(c.getValue()), meta: { clamp: true, widthClass: "lg:max-w-36 lg:min-w-[100px]" } satisfies ColMeta },
       { accessorKey: "birthdate", header: "생년월일", cell: (c) => textCell(c.getValue()) },
-      { accessorKey: "phone", header: "연락처", cell: (c) => textCell(c.getValue()) },
-      { accessorKey: "parentPhone", header: "부모님 연락처", cell: (c) => textCell(c.getValue()) },
+      { accessorKey: "phone", header: "연락처", cell: (c) => telCell(c.getValue()) },
+      { accessorKey: "parentPhone", header: "부모님 연락처", cell: (c) => telCell(c.getValue()) },
       { accessorKey: "address", header: "주소", cell: (c) => textCell(c.getValue()) },
       { accessorKey: "baptism", header: "세례", cell: (c) => textCell(c.getValue()), meta: { align: "center" } satisfies ColMeta },
       {
