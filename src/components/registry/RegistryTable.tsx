@@ -24,6 +24,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { RollingNumber } from "@/components/common/RollingNumber";
 import type { Session, Student } from "@/types";
 
 // 셀/헤더의 sticky·정렬 부가정보 (TanStack ColumnMeta로 전달)
@@ -273,7 +274,7 @@ export function RegistryTable({
           </div>
           <span className="whitespace-nowrap pl-1 font-display text-xs text-ink/55 sm:pl-0 sm:text-sm">
             {session}반 · {gradeTabLabel(gradeFilter)}{" "}
-            <b className="tabular-nums text-ink">{rows.length}</b>명
+            <RollingNumber value={rows.length} className="font-bold text-ink" />명
           </span>
         </div>
       </div>

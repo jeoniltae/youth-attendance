@@ -17,6 +17,7 @@ import {
 } from "@tanstack/react-table";
 import { ChevronDown, ChevronUp, ChevronsUpDown, Search, X } from "lucide-react";
 import { TEAM_ORDER } from "@/lib/group-members";
+import { RollingNumber } from "@/components/common/RollingNumber";
 import type { Session, Teacher } from "@/types";
 
 type ColMeta = { sticky?: "num" | "name"; align?: "center" };
@@ -228,7 +229,7 @@ export function TeacherRegistryTable({
           </div>
           <span className="whitespace-nowrap pl-1 font-display text-xs text-ink/55 sm:pl-0 sm:text-sm">
             {session}반 · {teamFilter}{" "}
-            <b className="tabular-nums text-ink">{rows.length}</b>명
+            <RollingNumber value={rows.length} className="font-bold text-ink" />명
           </span>
         </div>
       </div>
