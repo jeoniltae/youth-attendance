@@ -5,7 +5,7 @@
 // sticky 처리: 단일 overflow-auto 컨테이너 안에서 헤더 행(top 고정)과 좌측 번호·이름 2열(left 고정).
 // 좌상단 교차 셀은 z-index를 최상위로 둬 가로/세로 스크롤 모두에서 가려지지 않게 한다.
 
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -138,6 +138,13 @@ export function RegistryTable({ students, session, onSessionChange, rates }: Reg
 
   const rows = table.getRowModel().rows;
 
+  // 필터/탭/검색/정렬이 바뀌면 그리드를 맨 위로 — 아래로 내려간 상태에서 결과가 바뀌어
+  // 중간부터 보이는 어색함 방지 (스크롤 위치를 새 결과의 처음으로 리셋)
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0 });
+  }, [gradeFilter, nameQuery, sorting]);
+
   // 선택된 학년(1/2/3)의 반별 담당교사 — 컬럼 대신 상단 칩으로 표시
   const classTeachers = useMemo(() => {
     if (gradeFilter === "전체" || gradeFilter === "새친구") return [];
@@ -248,7 +255,10 @@ export function RegistryTable({ students, session, onSessionChange, rates }: Reg
       )}
 
       {/* ── sticky 스크롤 그리드 ── */}
-      <div className="min-h-0 flex-1 overflow-auto rounded-xl border-[1.5px] border-ink/15 bg-paper">
+      <div
+        ref={scrollRef}
+        className="min-h-0 flex-1 overflow-auto rounded-xl border-[1.5px] border-ink/15 bg-paper"
+      >
         <table className="w-full min-w-[1040px] border-separate border-spacing-0 text-sm">
           <thead>
             {table.getHeaderGroups().map((hg) => (
