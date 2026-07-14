@@ -44,7 +44,7 @@ export default function RegistryPage() {
       checked={sessionAuth.checked}
       login={sessionAuth.login}
     >
-      <main className="mx-auto flex w-full max-w-[1368px] flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8">
+      <main className="mx-auto flex w-full max-w-[1368px] flex-col gap-4 px-4 py-6 sm:px-6 lg:h-screen lg:max-w-none lg:overflow-hidden lg:px-[15px]">
         <div className="relative flex items-center justify-center animate-[rise-in_0.5s_ease-out_both]">
           <Link
             href="/"
@@ -62,7 +62,7 @@ export default function RegistryPage() {
         </div>
 
         <div
-          className="animate-[rise-in_0.5s_ease-out_both]"
+          className="animate-[rise-in_0.5s_ease-out_both] lg:flex lg:min-h-0 lg:flex-1 lg:flex-col"
           style={{ animationDelay: "70ms" }}
         >
           {isLoading ? (

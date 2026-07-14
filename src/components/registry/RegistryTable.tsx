@@ -141,7 +141,7 @@ export function RegistryTable({ students, session, onSessionChange, rates }: Reg
         : "z-20";
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1">
       {/* ── 통합 컨트롤바 ── */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         {/* 세션 토글 */}
@@ -217,7 +217,7 @@ export function RegistryTable({ students, session, onSessionChange, rates }: Reg
       )}
 
       {/* ── sticky 스크롤 그리드 ── */}
-      <div className="max-h-[70vh] overflow-auto rounded-xl border-[1.5px] border-ink/15 bg-paper">
+      <div className="max-h-[70vh] overflow-auto rounded-xl border-[1.5px] border-ink/15 bg-paper lg:max-h-none lg:min-h-0 lg:flex-1">
         <table className="min-w-[1040px] border-separate border-spacing-0 text-sm">
           <thead>
             {table.getHeaderGroups().map((hg) => (
