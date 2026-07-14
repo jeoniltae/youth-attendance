@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { PublicGate } from "@/components/common/PublicGate";
 import { RegistryTable } from "@/components/registry/RegistryTable";
+import { RegistryTableSkeleton } from "@/components/registry/RegistryTableSkeleton";
 import { useAuthGate } from "@/hooks/useAuthGate";
 import { useRoster } from "@/hooks/useRoster";
 import { getAttendanceRates } from "@/api/stats";
@@ -66,9 +67,7 @@ export default function RegistryPage() {
           style={{ animationDelay: "70ms" }}
         >
           {isLoading ? (
-            <div className="rounded-2xl border-[1.5px] border-ink/12 bg-paper-deep p-12 text-center text-sm text-ink/50">
-              명단을 불러오는 중…
-            </div>
+            <RegistryTableSkeleton />
           ) : isError ? (
             <div className="rounded-2xl border-[1.5px] border-ink/12 bg-paper-deep p-12 text-center text-sm text-celebrate">
               데이터를 불러오지 못했습니다. 새로고침 후 다시 시도해주세요.
