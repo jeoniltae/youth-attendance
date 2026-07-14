@@ -17,7 +17,7 @@ import {
   type SortingFn,
   type SortingState,
 } from "@tanstack/react-table";
-import { ChevronDown, ChevronUp, ChevronsUpDown, Search } from "lucide-react";
+import { ChevronDown, ChevronUp, ChevronsUpDown, Search, X } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -228,8 +228,18 @@ export function RegistryTable({ students, session, onSessionChange, rates }: Reg
               value={nameQuery}
               onChange={(e) => setNameQuery(e.target.value)}
               placeholder="이름 검색"
-              className="w-full rounded-full border border-ink/20 bg-paper py-1.5 pl-9 pr-4 text-sm text-ink placeholder:text-ink/40 focus:border-ink/45 focus:outline-none sm:w-48"
+              className="w-full rounded-full border border-ink/20 bg-paper py-1.5 pl-9 pr-9 text-sm text-ink placeholder:text-ink/40 focus:border-ink/45 focus:outline-none sm:w-48"
             />
+            {nameQuery && (
+              <button
+                type="button"
+                onClick={() => setNameQuery("")}
+                aria-label="검색어 지우기"
+                className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full text-ink/40 hover:bg-ink/8 hover:text-ink/70"
+              >
+                <X className="size-4" />
+              </button>
+            )}
           </div>
           <span className="whitespace-nowrap pl-1 font-display text-xs text-ink/55 sm:pl-0 sm:text-sm">
             {session}반 · {gradeTabLabel(gradeFilter)}{" "}
