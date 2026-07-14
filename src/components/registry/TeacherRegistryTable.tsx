@@ -206,7 +206,13 @@ export function TeacherRegistryTable({
           ))}
         </div>
 
-        {/* 검색 + 카운트 */}
+        {/* 인원수 카운트 — PC(sm+)는 탭 우측에 강조 배지로 표시 */}
+        <span className="hidden items-center whitespace-nowrap rounded-full bg-stamp/10 px-3 py-1 font-display text-sm font-semibold text-stamp sm:inline-flex">
+          {session}반: {teamFilter}&nbsp;
+          <RollingNumber value={rows.length} className="font-bold" />명
+        </span>
+
+        {/* 검색 + 카운트(모바일) */}
         <div className="flex w-full flex-col gap-1 sm:ml-auto sm:w-auto sm:flex-row sm:items-center sm:gap-3">
           <div className="relative w-full sm:w-auto">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink/40" />
@@ -227,9 +233,9 @@ export function TeacherRegistryTable({
               </button>
             )}
           </div>
-          <span className="whitespace-nowrap pl-1 font-display text-xs text-ink/55 sm:pl-0 sm:text-sm">
-            {session}반 · {teamFilter}{" "}
-            <RollingNumber value={rows.length} className="font-bold text-ink" />명
+          <span className="inline-flex items-center self-start whitespace-nowrap rounded-full bg-stamp/10 px-3 py-1 font-display text-xs font-semibold text-stamp sm:hidden">
+            {session}반: {teamFilter}&nbsp;
+            <RollingNumber value={rows.length} className="font-bold" />명
           </span>
         </div>
       </div>
