@@ -198,14 +198,19 @@ export function TeacherForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange} disablePointerDismissal>
-      <DialogContent className="max-h-[85vh] overflow-y-auto rounded-2xl border-[1.5px] border-teal/25 bg-paper p-5 ring-0 sm:max-w-lg">
-        <DialogHeader>
+      {/* 모바일: 모달 자체는 스크롤하지 않고(overflow-hidden) 폼만 스크롤 → 헤더가 스크롤 영역
+          밖에 있어 내용과 겹칠 수 없다. sm+: 기존처럼 모달 전체가 함께 스크롤 */}
+      <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden rounded-2xl border-[1.5px] border-teal/25 bg-paper p-0 ring-0 sm:max-w-lg sm:overflow-y-auto sm:p-5">
+        <DialogHeader className="shrink-0 border-b border-teal/15 px-5 pb-3 pt-5 sm:border-0 sm:p-0">
           <DialogTitle className="font-display text-lg font-bold text-teal">
             {teacher ? "교사 정보 수정" : "교사 등록"}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form
+          onSubmit={handleSubmit}
+          className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pb-5 sm:flex-none sm:overflow-visible sm:p-0"
+        >
           <div className="grid grid-cols-2 gap-3">
             <Field label="소속" required>
               <select
