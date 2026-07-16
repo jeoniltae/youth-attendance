@@ -18,6 +18,7 @@ import {
 import { ChevronDown, ChevronUp, ChevronsUpDown, Search, X } from "lucide-react";
 import { TEAM_ORDER } from "@/lib/group-members";
 import { RollingNumber } from "@/components/common/RollingNumber";
+import { RateBar } from "@/components/registry/RateBar";
 import type { Session, Teacher } from "@/types";
 
 type ColMeta = { sticky?: "num" | "name"; align?: "center" };
@@ -103,7 +104,7 @@ export function TeacherRegistryTable({
         // 시트에 교사 출석률 컬럼이 없어 Attendance 기록에서 계산한 rates(id→%) 사용. 기록 없으면 0%
         accessorFn: (t) => rates?.[t.id] ?? 0,
         sortingFn: "basic",
-        cell: (c) => (rates ? `${c.getValue<number>()}%` : "—"),
+        cell: (c) => (rates ? <RateBar value={c.getValue<number>()} /> : "—"),
         meta: { align: "center" } satisfies ColMeta,
       },
       { accessorKey: "notes", header: "비고", cell: (c) => textCell(c.getValue()) },
@@ -142,17 +143,19 @@ export function TeacherRegistryTable({
     [teachers],
   );
 
+  // 배경색은 줄무늬(rowBg)와 맞춰야 하므로 셀에서 부여한다.
+  // 마지막 고정열(이름)의 오른쪽 그림자 — 가로 스크롤 경계 표시
   const stickyBody = (meta?: ColMeta) =>
     meta?.sticky === "num"
-      ? "sticky left-0 z-10 w-[52px] min-w-[52px] bg-paper group-hover:bg-paper-deep"
+      ? "sticky left-0 z-10 w-[52px] min-w-[52px]"
       : meta?.sticky === "name"
-        ? "sticky left-[52px] z-10 min-w-[92px] bg-paper group-hover:bg-paper-deep"
+        ? "sticky left-[52px] z-10 min-w-[92px] shadow-[6px_0_8px_-6px_rgba(30,34,51,0.14)]"
         : "";
   const stickyHead = (meta?: ColMeta) =>
     meta?.sticky === "num"
       ? "left-0 z-30 w-[52px] min-w-[52px]"
       : meta?.sticky === "name"
-        ? "left-[52px] z-30 min-w-[92px]"
+        ? "left-[52px] z-30 min-w-[92px] shadow-[6px_0_8px_-6px_rgba(30,34,51,0.14)]"
         : "z-20";
 
   return (
@@ -258,7 +261,7 @@ export function TeacherRegistryTable({
                   return (
                     <th
                       key={header.id}
-                      className={`sticky top-0 border-b border-ink/25 bg-ink px-3 py-2.5 font-semibold whitespace-nowrap text-paper ${
+                      className={`sticky top-0 border-b-2 border-ink bg-paper-deep px-3 py-2.5 font-display font-semibold whitespace-nowrap text-ink ${
                         meta?.align === "center" ? "text-center" : "text-left"
                       } ${stickyHead(meta)}`}
                     >
@@ -274,7 +277,7 @@ export function TeacherRegistryTable({
                           ) : sorted === "desc" ? (
                             <ChevronDown className="size-3.5" />
                           ) : (
-                            <ChevronsUpDown className="size-3.5 text-paper/45" />
+                            <ChevronsUpDown className="size-3.5 text-ink/30" />
                           )}
                         </button>
                       ) : (
@@ -294,16 +297,26 @@ export function TeacherRegistryTable({
                 </td>
               </tr>
             ) : (
-              rows.map((row, i) => (
-                <tr key={row.id} className="group">
+              rows.map((row, i) => {
+                // 얼룩말 줄무늬 — 고정열은 같은 색을 직접 입혀야 가로 스크롤 시 뒤 내용이 비치지 않는다
+                const rowBg = i % 2 === 1 ? "bg-paper-deep" : "bg-paper";
+                return (
+                <tr
+                  key={row.id}
+                  className={`group transition-colors hover:bg-[color-mix(in_oklch,var(--ink)_7%,var(--paper))] ${rowBg}`}
+                >
                   {row.getVisibleCells().map((cell) => {
                     const meta = cell.column.columnDef.meta as ColMeta | undefined;
                     return (
                       <td
                         key={cell.id}
-                        className={`border-b border-ink/8 px-3 py-2 whitespace-nowrap text-ink/80 group-hover:bg-paper-deep ${
+                        className={`border-b border-ink/8 px-3 py-2 whitespace-nowrap text-ink/80 ${
                           meta?.align === "center" ? "text-center" : "text-left"
-                        } ${stickyBody(meta)}`}
+                        } ${stickyBody(meta)} ${
+                          meta?.sticky
+                            ? `${rowBg} group-hover:bg-[color-mix(in_oklch,var(--ink)_7%,var(--paper))]`
+                            : ""
+                        }`}
                       >
                         {cell.column.id === "번호"
                           ? String(i + 1).padStart(2, "0")
@@ -312,7 +325,8 @@ export function TeacherRegistryTable({
                     );
                   })}
                 </tr>
-              ))
+                );
+              })
             )}
           </tbody>
         </table>

@@ -25,6 +25,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { RollingNumber } from "@/components/common/RollingNumber";
+import { RateBar } from "@/components/registry/RateBar";
 import type { Session, Student } from "@/types";
 
 // 셀/헤더의 sticky·정렬 부가정보 (TanStack ColumnMeta로 전달)
@@ -132,7 +133,7 @@ export function RegistryTable({
         // 시트 컬럼이 비어 있어 계산된 rates(id→%)에서 값을 가져온다. 기록 없으면 0%
         accessorFn: (s) => rates?.[s.id] ?? 0,
         sortingFn: "basic",
-        cell: (c) => (rates ? `${c.getValue<number>()}%` : "—"),
+        cell: (c) => (rates ? <RateBar value={c.getValue<number>()} /> : "—"),
         meta: { align: "center" } satisfies ColMeta,
       },
       { accessorKey: "notes", header: "비고", cell: (c) => textCell(c.getValue()) },
@@ -183,17 +184,19 @@ export function RegistryTable({
   const gradeTabs: GradeTab[] = hasNewFamily ? [...GRADE_TABS, "새친구"] : [...GRADE_TABS];
 
   // sticky 좌측 열 오프셋 (번호 폭과 이름의 left 값이 일치해야 함)
+  // 배경색은 줄무늬(rowBg)와 맞춰야 하므로 여기서 지정하지 않고 셀에서 부여한다.
+  // 마지막 고정열(이름)의 오른쪽 그림자 — 가로 스크롤 시 "여기부터 흐른다"는 경계 표시
   const stickyBody = (meta?: ColMeta) =>
     meta?.sticky === "num"
-      ? "sticky left-0 z-10 w-[52px] min-w-[52px] bg-paper group-hover:bg-paper-deep"
+      ? "sticky left-0 z-10 w-[52px] min-w-[52px]"
       : meta?.sticky === "name"
-        ? "sticky left-[52px] z-10 min-w-[92px] bg-paper group-hover:bg-paper-deep"
+        ? "sticky left-[52px] z-10 min-w-[92px] shadow-[6px_0_8px_-6px_rgba(30,34,51,0.14)]"
         : "";
   const stickyHead = (meta?: ColMeta) =>
     meta?.sticky === "num"
       ? "left-0 z-30 w-[52px] min-w-[52px]"
       : meta?.sticky === "name"
-        ? "left-[52px] z-30 min-w-[92px]"
+        ? "left-[52px] z-30 min-w-[92px] shadow-[6px_0_8px_-6px_rgba(30,34,51,0.14)]"
         : "z-20";
 
   return (
@@ -319,7 +322,7 @@ export function RegistryTable({
                   return (
                     <th
                       key={header.id}
-                      className={`sticky top-0 border-b border-ink/25 bg-ink px-3 py-2.5 font-semibold whitespace-nowrap text-paper ${
+                      className={`sticky top-0 border-b-2 border-ink bg-paper-deep px-3 py-2.5 font-display font-semibold whitespace-nowrap text-ink ${
                         meta?.align === "center" ? "text-center" : "text-left"
                       } ${stickyHead(meta)}`}
                     >
@@ -335,7 +338,7 @@ export function RegistryTable({
                           ) : sorted === "desc" ? (
                             <ChevronDown className="size-3.5" />
                           ) : (
-                            <ChevronsUpDown className="size-3.5 text-paper/45" />
+                            <ChevronsUpDown className="size-3.5 text-ink/30" />
                           )}
                         </button>
                       ) : (
@@ -358,8 +361,15 @@ export function RegistryTable({
                 </td>
               </tr>
             ) : (
-              rows.map((row, i) => (
-                <tr key={row.id} className="group">
+              rows.map((row, i) => {
+                // 얼룩말 줄무늬 — 고정열은 같은 색을 직접 입혀야 가로 스크롤 시 뒤 내용이 비치지 않는다
+                // (반투명 색을 쓰면 고정열 뒤로 내용이 비쳐 보임 → 불투명 토큰만 사용)
+                const rowBg = i % 2 === 1 ? "bg-paper-deep" : "bg-paper";
+                return (
+                <tr
+                  key={row.id}
+                  className={`group transition-colors hover:bg-[color-mix(in_oklch,var(--ink)_7%,var(--paper))] ${rowBg}`}
+                >
                   {row.getVisibleCells().map((cell) => {
                     const meta = cell.column.columnDef.meta as ColMeta | undefined;
                     const content =
@@ -372,11 +382,15 @@ export function RegistryTable({
                       <td
                         key={cell.id}
                         // clamp 열(학교): lg 이상에서만 폭 고정 + 2줄 말줄임. 좁은 화면은 전체 표시(nowrap)
-                        className={`border-b border-ink/8 px-3 py-2 text-ink/80 group-hover:bg-paper-deep ${
+                        className={`border-b border-ink/8 px-3 py-2 text-ink/80 ${
                           meta?.clamp
                             ? `whitespace-nowrap lg:whitespace-normal lg:align-middle ${meta.widthClass ?? "lg:max-w-36"}`
                             : "whitespace-nowrap"
-                        } ${meta?.align === "center" ? "text-center" : "text-left"} ${stickyBody(meta)}`}
+                        } ${meta?.align === "center" ? "text-center" : "text-left"} ${stickyBody(meta)} ${
+                          meta?.sticky
+                            ? `${rowBg} group-hover:bg-[color-mix(in_oklch,var(--ink)_7%,var(--paper))]`
+                            : ""
+                        }`}
                       >
                         {meta?.clamp && rawValue ? (
                           <Tooltip>
@@ -394,7 +408,8 @@ export function RegistryTable({
                     );
                   })}
                 </tr>
-              ))
+                );
+              })
             )}
           </tbody>
         </table>
