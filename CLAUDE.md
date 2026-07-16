@@ -240,6 +240,10 @@ DELETE /api/teachers/[id]                            → 교사 삭제
 GET  /api/birthdays?session=오전                     → 세션별 학생·교사 전체 반환 (월별 필터링·그룹핑은 클라이언트의 groupBirthdaysByMonth가 담당, month 쿼리파라미터 없음)
 
 GET  /api/stats?session=오전                         → 최근 1년 학년별·교사별 출석률 통계
+GET  /api/stats/member?id=&session=오전              → 개인(학생/교사) 최근 3개월·1년 출석일수/예배일수
+GET  /api/stats/rates                                → 전 인원 1년 출석률 일괄 계산 → { total1y, rates: { [id]: % } }
+                                                       (교적부·교사 현황의 "출석률(1년기준)" 컬럼용. 세션 무관,
+                                                        Attendance 1회 읽기로 계산 — 시트의 출석률 컬럼은 비어 있음)
 
 GET  /api/summary?date=YYYY-MM-DD&session=오전       → 요약 통계 (현재 미사용 — roster+attendance로 클라이언트에서 직접 계산, 엔드포인트는 보류 상태로 유지)
 POST /api/auth { password, role }                    → role별(session/admin) 비밀번호 검증
@@ -256,14 +260,19 @@ src/
 │   ├── birthday/page.tsx               ✅ 생일자 조회
 │   ├── registry/page.tsx               ✅ 교적부 (교사용 열람 전용 학생 명단 그리드) — session 게이트
 │   ├── teachers/page.tsx               ✅ 교사 현황 (관리자 열람 전용 교사 명단 그리드) — admin 게이트
-│   ├── providers.tsx                   ✅ React Query QueryClientProvider
+│   ├── providers.tsx                   ✅ React Query QueryClientProvider + 전역 ScrollToTopButton
 │   ├── layout.tsx                      ✅ 루트 레이아웃
+│   ├── globals.css                     ✅ 전역 스타일 — 색 토큰(paper/ink/stamp/teal/gold/celebrate) + @keyframes(rise-in, shake, pop-from-anchor 등)
+│   ├── icon.tsx / apple-icon.tsx       ✅ Next.js 파일 기반 아이콘(파비콘/애플 터치 아이콘)
 │   └── api/
 │       ├── attendance/route.ts         ✅ 출석 조회(GET) / 토글(POST)
 │       ├── roster/route.ts             ✅ 세션별 학생·교사 명단 조회(GET)
 │       ├── birthdays/route.ts          ✅ 월별 생일자 조회(GET)
 │       ├── summary/route.ts            ✅ 요약 통계(GET) — 미사용 보류
-│       ├── stats/route.ts              ✅ 1년 출석 통계(GET)
+│       ├── stats/
+│       │   ├── route.ts                ✅ 1년 출석 통계(GET) — 학년별·교사별 집계
+│       │   ├── member/route.ts         ✅ 개인 출석 통계(GET) — 최근 3개월/1년 (학생·교사 폼)
+│       │   └── rates/route.ts          ✅ 전 인원 1년 출석률 일괄 계산(GET) — id→% 맵 (교적부·교사 현황 컬럼)
 │       ├── students/
 │       │   ├── route.ts                ✅ 학생 목록 조회(GET) / 신규 등록(POST)
 │       │   └── [id]/route.ts           ✅ 학생 수정(PUT) / 삭제(DELETE)
@@ -273,15 +282,19 @@ src/
 │       └── auth/route.ts               ✅ 관리자 비밀번호 검증(POST)
 ├── components/
 │   ├── layout/
-│   │   └── Header.tsx                  ✅ 세션(오전/오후) 선택 + 날짜 표시
+│   │   ├── Header.tsx                  ✅ 세션(오전/오후) 선택 + 날짜 표시 (mobileMenu prop 전달 시 모바일 2줄 배치)
+│   │   └── MobileNavMenu.tsx           ✅ 모바일 햄버거 내비 — 햄버거↔X 모핑 버튼 + 버튼에서 펼쳐지는 팝오버(portal)
 │   ├── attendance/
 │   │   ├── MemberCard.tsx              ✅ 출석 카드 (학생/교사 공통)
 │   │   ├── FilterChips.tsx             ✅ 학년·반·팀·새친구 필터
 │   │   ├── GradeSection.tsx            ✅ 학년별 그룹
-│   │   └── SummaryBar.tsx              ✅ 전체/출석/결석/출석률
+│   │   ├── GradeSectionSkeleton.tsx    ✅ GradeSection/RosterSection 로딩 스켈레톤 (/ · /members 공용)
+│   │   ├── SummaryBar.tsx              ✅ 전체/출석/결석/출석률 (잉크색 점수판, 숫자는 RollingNumber)
+│   │   └── FloatingSummaryBar.tsx      ✅ 본문 SummaryBar가 화면 밖으로 나가면 상단에 미끄러져 나타나는 플로팅 요약 바
 │   ├── history/
 │   │   ├── AttendanceListModal.tsx     ✅ 출석 현황 상세 모달
-│   │   └── GroupAttendanceChart.tsx    ✅ 그룹별 출석 차트
+│   │   ├── GroupAttendanceChart.tsx    ✅ 그룹별 출석 차트
+│   │   └── GroupAttendanceChartSkeleton.tsx ✅ 출석 차트 로딩 스켈레톤
 │   ├── stats/
 │   │   └── YearlyStats.tsx             ✅ 1년 통계 플로팅 오버레이 (도넛 차트)
 │   ├── students/
@@ -292,10 +305,19 @@ src/
 │   │   ├── RegistryTable.tsx           ✅ 교적부 통합 테이블 (TanStack Table: 세션/학년 탭·이름 검색·정렬·sticky·담당교사 칩)
 │   │   ├── RegistryTableSkeleton.tsx   ✅ 교적부 로딩 스켈레톤
 │   │   ├── TeacherRegistryTable.tsx    ✅ 교사 현황 통합 테이블 (교적부 교사판: 세션/팀 탭·이름 검색·정렬·sticky)
-│   │   └── TeacherRegistryTableSkeleton.tsx ✅ 교사 현황 로딩 스켈레톤
+│   │   ├── TeacherRegistryTableSkeleton.tsx ✅ 교사 현황 로딩 스켈레톤
+│   │   └── RateBar.tsx                 ✅ 출석률 셀 시각화 (미니 막대 + 색상 코딩: 80%↑ teal / 50%↑ gold / 이하 stamp)
+│   ├── ui/                             # shadcn 스타일 프리미티브 (Radix 아님 — Base UI `@base-ui/react` 기반)
+│   │   ├── button.tsx / card.tsx / chart.tsx / dialog.tsx  ✅
+│   │   └── tooltip.tsx                 ✅ hover 툴팁 (교적부 학교명 전체 표시용, Portal 렌더라 스크롤 영역에 안 잘림)
 │   └── common/
-│       ├── AuthGateModal.tsx           ✅ 비밀번호 입력 모달 (admin/session 공용)
-│       └── PublicGate.tsx              ✅ 공개 4화면(/, /history, /birthday, /registry) 교사용 게이트 래퍼
+│       ├── AuthGateModal.tsx           ✅ 비밀번호 입력 모달 (admin/session 공용, 오류 시 shake)
+│       ├── PublicGate.tsx              ✅ 공개 4화면(/, /history, /birthday, /registry) 교사용 게이트 래퍼
+│       ├── Skeleton.tsx                ✅ 로딩 스켈레톤 프리미티브 (pulse 박스 — 각 화면 스켈레톤이 공용)
+│       ├── RollingNumber.tsx           ✅ 자릿수 굴러가는 숫자 (@number-flow/react 래퍼, 마운트 시 0→값 카운팅)
+│       ├── LiveClock.tsx               ✅ 현재 시각 롤링 시계 (Header에서 사용)
+│       ├── LoadingOverlay.tsx          ✅ 저장/삭제 처리 중 팝업 전체를 덮는 스피너 오버레이 (학생/교사 폼)
+│       └── ScrollToTopButton.tsx       ✅ 전역 우측 하단 TOP 버튼 — 일정 이상 스크롤 시 노출 (providers.tsx에 마운트)
 ├── hooks/
 │   ├── useAttendance.ts                ✅ 출석 데이터 + 30초 polling + Optimistic Update
 │   ├── useRoster.ts                    ✅ 학생/교사 명단 + 30초 polling
@@ -315,7 +337,8 @@ src/
 │   ├── group-members.ts                ✅ 학생·교사 그룹핑 유틸 (학년→반→이름 정렬)
 │   ├── date.ts                         ✅ 한국 시간 기준 날짜 유틸
 │   ├── birthdays.ts                    ✅ 생일 계산 유틸
-│   └── utils.ts                        ✅ Tailwind clsx 유틸
+│   ├── lunar.ts                        ✅ 음력→해당 연도 양력 변환 (korean-lunar-calendar) — 교사 Lunar 생일자 처리
+│   └── utils.ts                        ✅ Tailwind clsx + tailwind-merge 유틸 (cn — 뒤 클래스가 앞 클래스를 덮어씀)
 └── types/
     └── index.ts                        ✅ 전역 타입 정의 (Session / MemberType / Student / Teacher / AttendanceRecord)
 ```

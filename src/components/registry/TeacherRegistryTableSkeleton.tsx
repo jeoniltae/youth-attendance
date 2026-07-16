@@ -29,9 +29,12 @@ export function TeacherRegistryTableSkeleton() {
 
       {/* ── 그리드 (폭 100% 채움) ── */}
       <div className="min-h-0 flex-1 overflow-hidden rounded-xl border-[1.5px] border-ink/15 bg-paper">
-        <div className={`grid ${GRID_COLS} items-center gap-3 bg-ink px-3 py-3`}>
+        {/* 헤더 밴드 — 실제 테이블과 동일한 담백한 톤(paper-deep + 하단 잉크 라인) */}
+        <div
+          className={`grid ${GRID_COLS} items-center gap-3 border-b-2 border-ink bg-paper-deep px-3 py-3`}
+        >
           {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="h-4 w-4/5 bg-paper/25" />
+            <Skeleton key={i} className="h-4 w-4/5 bg-ink/15" />
           ))}
         </div>
         {Array.from({ length: 12 }).map((_, r) => (
