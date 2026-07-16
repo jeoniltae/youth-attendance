@@ -17,6 +17,9 @@ export function AuthGateModal({ title, description, onLogin, onCancel }: AuthGat
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isPending, setIsPending] = useState(false);
+  // 비밀번호 오류 시 모달을 흔든다. 애니메이션이 끝나면 false로 되돌려야
+  // 연속으로 틀렸을 때도 매번 다시 재생된다.
+  const [shake, setShake] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -27,6 +30,7 @@ export function AuthGateModal({ title, description, onLogin, onCancel }: AuthGat
       await onLogin(password);
     } catch (err) {
       setError(err instanceof Error ? err.message : "오류가 발생했습니다");
+      setShake(true);
     } finally {
       setIsPending(false);
     }
@@ -34,7 +38,15 @@ export function AuthGateModal({ title, description, onLogin, onCancel }: AuthGat
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/20 backdrop-blur-sm">
-      <div className="mx-4 w-full max-w-sm rounded-2xl border-[1.5px] border-ink/15 bg-paper p-6 shadow-xl">
+      <div
+        // animationend는 버블링되므로 카드 자신의 애니메이션일 때만 초기화
+        onAnimationEnd={(e) => {
+          if (e.target === e.currentTarget) setShake(false);
+        }}
+        className={`mx-4 w-full max-w-sm rounded-2xl border-[1.5px] border-ink/15 bg-paper p-6 shadow-xl ${
+          shake ? "animate-[shake_0.4s_ease-in-out] motion-reduce:animate-none" : ""
+        }`}
+      >
         <div className="mb-5 flex flex-col items-center gap-2">
           <div className="flex size-12 items-center justify-center rounded-full bg-ink/5">
             <Lock className="size-5 text-ink/50" />
