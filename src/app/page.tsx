@@ -223,7 +223,7 @@ export default function Home() {
           style={{ animationDelay: "100ms" }}
         >
           <TriangleAlert className="size-4 shrink-0 text-ink/40" />
-          지난 예배({formatDateLabel(parseInputDate(date))}) 조회 중 — 출석 수정은 학생 관리에서 가능합니다
+          지난 예배 출석({formatDateLabel(parseInputDate(date))}) 조회 중 — 출석 수정은 학생 관리에서 가능합니다
         </div>
       )}
 
