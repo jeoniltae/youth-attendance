@@ -6,7 +6,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { Menu } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export interface MobileNavItem {
@@ -68,16 +67,41 @@ export function MobileNavMenu({ items }: { items: MobileNavItem[] }) {
         aria-label="메뉴"
         aria-expanded={open}
         onClick={toggleOpen}
-        className="flex size-9 shrink-0 items-center justify-center rounded-full border border-ink/25 text-ink/70 hover:border-ink/50 hover:text-ink"
+        // 열리면 잉크색으로 채워 열림 상태를 명확히 — 선은 bg-current라 함께 종이색(X)이 된다
+        className={`flex size-9 shrink-0 items-center justify-center rounded-full border transition-all duration-200 active:scale-90 motion-reduce:transition-none ${
+          open
+            ? "border-ink bg-ink text-paper"
+            : "border-ink/25 text-ink/70 hover:border-ink/50 hover:text-ink"
+        }`}
       >
-        <Menu className="size-5" />
+        {/* 햄버거 ↔ X 모핑 — 3개 선을 직접 그려 transform만 애니메이션(가볍고 부드럽다).
+            열리면 위/아래 선이 가운데로 모이며 45도로 교차해 X가 되고, 가운데 선은 사라진다.
+            선 색은 bg-current라 버튼의 hover 색 변화를 그대로 따라간다. */}
+        <span aria-hidden className="relative block size-5">
+          <span
+            className={`absolute left-1/2 top-1/2 -ml-2 -mt-px h-[2px] w-4 rounded-full bg-current transition-transform duration-300 ease-out motion-reduce:transition-none ${
+              open ? "rotate-45" : "translate-y-[-5px]"
+            }`}
+          />
+          <span
+            className={`absolute left-1/2 top-1/2 -ml-2 -mt-px h-[2px] w-4 rounded-full bg-current transition-opacity duration-200 ease-out motion-reduce:transition-none ${
+              open ? "opacity-0" : "opacity-100"
+            }`}
+          />
+          <span
+            className={`absolute left-1/2 top-1/2 -ml-2 -mt-px h-[2px] w-4 rounded-full bg-current transition-transform duration-300 ease-out motion-reduce:transition-none ${
+              open ? "-rotate-45" : "translate-y-[5px]"
+            }`}
+          />
+        </span>
       </button>
 
       {open &&
         createPortal(
           <div
             ref={panelRef}
-            className="fixed z-50 min-w-44 rounded-2xl border border-ink/10 bg-paper p-2 shadow-[0_12px_32px_rgba(30,34,51,0.18)] animate-[rise-in_0.15s_ease-out]"
+            // origin-top-right — 패널의 우상단이 곧 버튼 자리라, 그 지점에서 자라나오듯 보인다
+            className="fixed z-50 min-w-44 origin-top-right rounded-2xl border border-ink/10 bg-paper p-2 shadow-[0_12px_32px_rgba(30,34,51,0.18)] animate-[pop-from-anchor_0.18s_ease-out] motion-reduce:animate-none"
             style={{ top: pos.top, right: pos.right }}
           >
             {items.map((item) => {

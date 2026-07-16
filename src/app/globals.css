@@ -197,6 +197,23 @@
   }
 }
 
+/* 팝오버가 앵커(버튼)에서 자라나오는 모션 — transform-origin을 버튼 쪽 모서리로 두고
+   작게→원래 크기로 확대한다. 60%에서 살짝 오버슈트해 툭 튀어나오는 탄성을 준다 */
+@keyframes pop-from-anchor {
+  0% {
+    opacity: 0;
+    transform: scale(0.75);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* 비밀번호 오류 시 모달 흔들림 — 진폭이 점점 줄어드는 감쇠 형태라 자연스럽다 */
 @keyframes shake {
   0%,
