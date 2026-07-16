@@ -197,6 +197,32 @@
   }
 }
 
+/* 비밀번호 오류 시 모달 흔들림 — 진폭이 점점 줄어드는 감쇠 형태라 자연스럽다 */
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  15% {
+    transform: translateX(-8px);
+  }
+  30% {
+    transform: translateX(7px);
+  }
+  45% {
+    transform: translateX(-5px);
+  }
+  60% {
+    transform: translateX(4px);
+  }
+  75% {
+    transform: translateX(-2px);
+  }
+  90% {
+    transform: translateX(1px);
+  }
+}
+
 .ticket-notch {
   position: relative;
 }
