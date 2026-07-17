@@ -1,4 +1,4 @@
-// 스프레드시트 구조 검증 스크립트 (Phase 7 사전 검증 Step 1)
+// 스프레드시트 구조 검증 스크립트 (Phase 7 사전 검증 Step 1 / Phase 8-B 실시트 전환 시 재사용)
 // - 탭 이름 3개(Students/Teachers/Attendance) 존재 확인
 // - 각 시트 헤더를 코드 기대값과 이름·순서 모두 비교
 // - 개인정보 보호: 데이터 값은 출력하지 않고 헤더·행 수만 출력
@@ -47,12 +47,15 @@ const EXPECTED = {
     'ID', 'Session', 'Grade', 'Class', 'Name', 'Phone', 'ParentPhone',
     'Address', 'Birthdate', 'School', 'Teacher', 'Notes', '출석률', '세례', 'gender',
   ],
-  Teachers: ['ID', 'Session', 'Team', 'Name', 'Phone', 'Address', 'Birthdate', 'Notes'],
+  Teachers: ['ID', 'Session', 'Team', 'Name', 'Phone', 'Address', 'Birthdate', 'Notes', 'Lunar'],
   Attendance: ['Date', 'Session', 'Grade', 'Class', 'StudentID', 'Name', 'Status', 'Timestamp', 'ect', 'Type'],
 };
 
-// Attendance의 Type은 실시트에 없는 게 정상 (Step 2에서 사본에 추가 예정)
-const KNOWN_MISSING = { Attendance: ['Type'] };
+// 컬럼이 없을 때 안내할 조치 방법 (전환 전 사전 점검에서 무엇을 해야 하는지 바로 보이도록)
+const REMEDY = {
+  Type: 'Attendance J1에 Type 헤더 추가 (수동)',
+  Lunar: 'node scripts/add-teacher-lunar-header.mjs 실행',
+};
 
 function compareHeaders(sheetName, actual) {
   const expected = EXPECTED[sheetName];
@@ -65,16 +68,15 @@ function compareHeaders(sheetName, actual) {
     if (exp === act) continue;
 
     if (act === undefined) {
-      const known = (KNOWN_MISSING[sheetName] ?? []).includes(exp);
+      const remedy = REMEDY[exp];
       problems.push({
         col: i + 1,
-        message: `기대 '${exp}' — 실시트에 없음${known ? ' (예정: Step 2에서 추가)' : ''}`,
-        known,
+        message: `기대 '${exp}' — 시트에 없음${remedy ? ` → ${remedy}` : ''}`,
       });
     } else if (exp === undefined) {
-      problems.push({ col: i + 1, message: `코드가 모르는 컬럼 '${act}' 존재`, known: false });
+      problems.push({ col: i + 1, message: `코드가 모르는 컬럼 '${act}' 존재` });
     } else {
-      problems.push({ col: i + 1, message: `기대 '${exp}' ↔ 실제 '${act}'`, known: false });
+      problems.push({ col: i + 1, message: `기대 '${exp}' ↔ 실제 '${act}'` });
     }
   }
   return problems;
@@ -120,9 +122,8 @@ async function main() {
       console.log('✅ 헤더 이름·순서 완전 일치');
     } else {
       for (const p of problems) {
-        const mark = p.known ? '🟡' : '❌';
-        console.log(`${mark} ${p.col}열: ${p.message}`);
-        if (!p.known) hasBlockingIssue = true;
+        console.log(`❌ ${p.col}열: ${p.message}`);
+        hasBlockingIssue = true;
       }
     }
     console.log('');
@@ -131,7 +132,7 @@ async function main() {
   console.log(
     hasBlockingIssue
       ? '결론: ❌ 코드 기대 구조와 불일치 — 위 항목 확인 필요'
-      : '결론: ✅ 구조 검증 통과 (🟡 항목은 Step 2에서 처리 예정)',
+      : '결론: ✅ 구조 검증 통과',
   );
   process.exitCode = hasBlockingIssue ? 1 : 0;
 }

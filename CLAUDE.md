@@ -450,12 +450,36 @@ SESSION_PASSWORD=
     - [x] Step 2. Vercel 환경변수 5종(`GOOGLE_SERVICE_ACCOUNT_EMAIL`/`GOOGLE_PRIVATE_KEY`/`GOOGLE_SPREADSHEET_ID`/`ADMIN_PASSWORD`/`SESSION_PASSWORD`) Production·Preview에 설정 완료 — `GOOGLE_SPREADSHEET_ID`는 테스트 사본 ID 그대로 사용. 값 이전은 Next.js가 실제 쓰는 `@next/env` 파서로 `.env.local`을 그대로 읽어 전달(수동 텍스트 파싱 시 `GOOGLE_PRIVATE_KEY`의 개행·특수문자가 깨질 위험 방지)
     - [x] Step 3. `vercel --prod`로 최초 배포 완료 — Production URL: `https://youth-attendance-opal.vercel.app`
     - [x] Step 4. 배포 URL 스모크 테스트 완료 — 4개 화면(`/`, `/history`, `/birthday`, `/members`) 전부 200, 인증 게이트 `POST /api/auth` session·admin 두 role 모두 정상 비밀번호 200 / 오답 401 확인, API 7종(roster/attendance/students/teachers/birthdays/summary/stats) 전부 200 및 응답 구조 정상. 이 과정에서 CLAUDE.md API 표가 실제 구현과 어긋난 부분 발견·수정(`/api/birthdays`는 `month`가 아닌 `session`만 받음, `/api/roster`·`/api/stats` 누락, `/api/attendance` GET 응답이 `studentIds` 배열, `/api/summary` 미사용 표시, `/api/auth`가 `role` 파라미터로 session/admin 겸용)
-    - [ ] Step 5. **진행 중** — 외부 테스터 안내 메시지 초안 작성 완료(비밀번호·테스트 범위·주의사항 포함), 사용자가 비밀번호 채워 직접 전달 예정. ⚠️ 확인된 주의사항: 테스트 사본 시트는 Phase 7 검증용으로 **실제 학생 개인정보(이름·연락처·주소·생년월일)가 그대로 담긴 사본**이므로("다른 사람들과 다를 수 있다"가 아니라 실데이터 그 자체), 테스트 참여자는 기존 GAS 출석부로 이미 이 정보에 접근 권한이 있던 동일 교사진으로 한정 필요
-    - [ ] Step 6. 테스트 기간 중 피드백·버그 수집, 발견된 이슈 수정 후 재배포
+    - [x] Step 5. 외부 테스터 안내·배포 완료 — 특이사항 없음. ⚠️ 확인된 주의사항: 테스트 사본 시트는 Phase 7 검증용으로 **실제 학생 개인정보(이름·연락처·주소·생년월일)가 그대로 담긴 사본**이므로("다른 사람들과 다를 수 있다"가 아니라 실데이터 그 자체), 테스트 참여자는 기존 GAS 출석부로 이미 이 정보에 접근 권한이 있던 동일 교사진으로 한정
+    - [ ] Step 6. 테스트 기간 중 피드백·버그 수집, 발견된 이슈 수정 후 재배포 → 테스트 종료 판단 후 **8-B 착수 승인**(사용자)
+      - 확인 완료: 테스트 기간의 실제 출석은 GAS로 계속 처리했으므로, **사본에 쌓인 출석 데이터는 버려도 무방**(실시트로 이전 불필요)
   - **8-B. 테스트 통과 후 실시트 전환** (착수 전 사용자 승인 필요)
-    - [ ] Step 7. 실시트에 Service Account 편집자 권한 공유
-    - [ ] Step 8. 실시트 Attendance 시트에 `Type` 컬럼 추가 (Step 6 호환성 분석 결론 반영 — GAS는 이 컬럼을 무시하므로 안전)
-    - [ ] Step 9. `scripts/migrate-newfamilies.mjs`를 실시트 대상으로 재실행 (NewFamilies → Students `Grade='새친구'` 이전, 멱등)
-    - [ ] Step 10. Phase 7에서 발견한 실시트 수동 수정 필요 항목 처리 (Students Birthdate 형식 오류·ID/Class 빈 값 등 — 실제 행 번호는 사본 기준이었으므로 실시트에서 재확인 필요)
-    - [ ] Step 11. Vercel 환경변수 `GOOGLE_SPREADSHEET_ID`를 실시트 ID로 교체, 재배포
-    - [ ] Step 12. 실시트 연결 후 최종 확인 — 4개 화면 재검증, 레거시 GAS와 병행 운영 시 인원수·출석 데이터 일치 여부 확인
+    - 전제 — 스크립트 실행 방식: `scripts/*.mjs`는 전부 **`.env.local`의 `GOOGLE_SPREADSHEET_ID`만** 읽는다(시트 인자 없음). 실시트 대상 실행은 `.env.local` 교체가 선행 조건이며, 그 상태에서 **`verify-write-api.mjs`는 절대 실행 금지**(실시트에 더미 학생/교사를 쓰는 스크립트 — GAS 운영 중인 시트에서 돌릴 물건이 아님)
+    - Phase 7 이후 추가되어 이 목록에 반영된 것: **Teachers `Lunar` 컬럼**(음력 생일 기능이 Phase 7 검증 이후 추가됨 — `teacherToRow`가 이미 9번째 값을 쓰므로 헤더 없이 전환하면 라벨 없는 I열에 값이 떨어지고 읽을 때 `row.Lunar`가 undefined라 음력 체크가 매번 풀림), 화면 6개로 증가(`/registry`·`/teachers`)
+    - **준비 (전환 당일 전, 실시트 무접촉)**
+      - [x] Step 7. `scripts/verify-sheets.mjs` 갱신 — Teachers 기대 헤더에 `Lunar` 추가, `KNOWN_MISSING`(Type을 "없는 게 정상"으로 취급하던 Phase 7 잔재) 제거 → 누락 컬럼은 전부 차단(❌) 처리하고 조치 방법(`REMEDY`)을 함께 출력. 사본 대상 실행으로 동작 확인 완료(Students 15·Teachers 9·Attendance 10열 전부 일치)
+      - [x] Step 8. 롤백 절차 — 전환은 **Vercel 환경변수 `GOOGLE_SPREADSHEET_ID`를 사본 ID로 되돌리고 재배포**하면 즉시 복구됨(코드 변경 없음). 사본 ID는 `.env.local`에 주석으로 보관하고, 사본 시트는 안정화 전까지 삭제하지 않음
+    - **1단계: 실시트 접근 준비 (사용자 수동)**
+      - [ ] Step 9. 실시트에 Service Account(`GOOGLE_SERVICE_ACCOUNT_EMAIL`) 편집자 권한 공유
+      - [ ] Step 10. `.env.local`의 `GOOGLE_SPREADSHEET_ID`를 실시트 ID로 교체 (사본 ID는 주석으로 보관 — 롤백용). 이 시점부터 로컬 dev 서버도 실시트를 바라봄에 주의
+    - **2단계: 실시트 구조 변경 (순서 중요)**
+      - [ ] Step 11. `node scripts/verify-sheets.mjs` — 전환 전 실시트 구조 사전 점검(읽기 전용). `Type`·`Lunar` 누락이 ❌로 나오는 것이 정상이며, 출력의 조치 안내대로 다음 단계 수행
+      - [ ] Step 12. 실시트 Attendance J1에 `Type` 헤더 추가 (Phase 7 Step 6 호환성 분석 — GAS는 헤더 이름 기반이라 맨 끝 컬럼 추가는 무해)
+      - [ ] Step 13. `node scripts/add-teacher-lunar-header.mjs` — Teachers 맨 끝에 `Lunar` 헤더 추가 (멱등, `Type`과 동일 패턴)
+      - [ ] Step 14. `node scripts/migrate-newfamilies.mjs` — NewFamilies → Students `Grade='새친구'` 이전 (멱등, NewFamilies 탭은 보존)
+      - [ ] Step 15. `node scripts/verify-data.mjs` — 수정 필요 행을 **실시트 기준 행 번호로 재검출** (Phase 7의 행 번호는 사본 기준이라 그대로 쓸 수 없음)
+    - **3단계: 실시트 데이터 수정 (사용자 수동 — Step 15 출력 기준)**
+      - [ ] Step 16. Birthdate 형식 오류(`YYYY-MM--DD` 하이픈 오타) 수정
+      - [ ] Step 17. ID 빈 학생 채우기 — **ID가 없으면 출석 토글 자체가 불가능**(새 앱에서 "확인 필요" 그룹으로 노출됨)
+      - [ ] Step 18. Class 빈 학생 채우기
+      - [ ] Step 19. NewFamilies의 ID 빈 행 — ID를 채운 뒤 `migrate-newfamilies.mjs` 재실행해야 Students로 넘어옴 (ID 없는 행은 마이그레이션에서 제외되므로)
+      - 참고: Step 17·18의 행들은 레거시 화면에서 숨겨져 있던 인원으로, 레거시 265 vs 새 앱 267 인원 차이의 원인. 수정하면 양쪽 일치
+    - **4단계: 배포 전환**
+      - [ ] Step 20. `node scripts/verify-read-api.mjs` — 실시트 대상 읽기 검증(읽기 전용, 안전). ⚠️ `verify-write-api.mjs`는 실행하지 않음
+      - [ ] Step 21. Vercel 환경변수 `GOOGLE_SPREADSHEET_ID`를 실시트 ID로 교체 (**Production·Preview 양쪽**), `vercel --prod` 재배포
+      - [ ] Step 22. 배포 URL 스모크 테스트 — 6개 화면(`/`, `/history`, `/birthday`, `/registry`, `/members`, `/teachers`) + 게이트 2종(session/admin) + API
+      - [ ] Step 23. 사용자 최종 확인 — 레거시 GAS와 인원수·출석 데이터 일치 여부
+    - **5단계: 전환 후 정리**
+      - [ ] Step 24. 테스트 사본 시트 처리 — 실제 개인정보가 담긴 사본이므로, 롤백 대비 기간이 끝나면 테스트 참여자 공유 해제 또는 삭제
+      - [ ] Step 25. 병행 운영 주의 — **GAS로 등록되는 새친구는 NewFamilies에만 쌓임** → 새 앱 반영하려면 `migrate-newfamilies.mjs` 재실행 (멱등이라 반복 안전)
+      - [ ] Step 26. `docs/context-notes.md`에 전환 결과 기록, 본 진행 상태 갱신
