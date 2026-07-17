@@ -1,4 +1,4 @@
-// 읽기 API 검증 스크립트 (Phase 7 사전 검증 Step 3)
+// 읽기 API 검증 스크립트 (Phase 7 사전 검증 Step 3 / Phase 8-B 실시트 전환 시 재사용)
 // - dev 서버(localhost:3000)의 GET 엔드포인트를 호출하고, 같은 데이터를 Sheets API로 직접 읽어 대조
 // - 개인정보 보호: 실제 값은 출력하지 않고 건수·응답시간·통계 수치만 출력
 // 실행: (dev 서버 실행 상태에서) node scripts/verify-read-api.mjs
@@ -137,15 +137,15 @@ async function main() {
     const requiredKeys = ['id', 'session', 'grade', 'class', 'name', 'phone', 'parentPhone', 'address', 'birthdate', 'school', 'teacher', 'notes', 'attendanceRate', 'baptism', 'gender'];
     const missing = requiredKeys.filter((k) => !(k in sample));
     console.log(missing.length === 0
-      ? '✅ 학생 필드 매핑: 15개 키 전부 존재'
+      ? `✅ 학생 필드 매핑: ${requiredKeys.length}개 키 전부 존재`
       : `❌ 학생 필드 누락: ${missing.join(', ')}`);
     if (missing.length > 0) failures++;
 
     const tSample = roster.data.teachers[0] ?? {};
-    const tKeys = ['id', 'session', 'team', 'name', 'phone', 'address', 'birthdate', 'notes'];
+    const tKeys = ['id', 'session', 'team', 'name', 'phone', 'address', 'birthdate', 'notes', 'lunarBirthdate'];
     const tMissing = tKeys.filter((k) => !(k in tSample));
     console.log(tMissing.length === 0
-      ? '✅ 교사 필드 매핑: 8개 키 전부 존재'
+      ? `✅ 교사 필드 매핑: ${tKeys.length}개 키 전부 존재`
       : `❌ 교사 필드 누락: ${tMissing.join(', ')}`);
     if (tMissing.length > 0) failures++;
   }
