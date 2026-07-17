@@ -2,6 +2,9 @@
 // 새 앱은 새친구를 Students 시트의 Grade='새친구' 행으로 처리하므로,
 // 레거시 NewFamilies 탭의 새친구를 Students로 복사한다.
 // - 멱등: 이미 Students에 같은 ID가 있으면 건너뜀 (등반한 새친구 포함)
+// - 동일인 중복 방지: ID가 달라도 이름+생년월일이 같은 학생이 이미 있으면 건너뜀
+//   (등반하면서 새 학생 ID를 받았는데 NewFamilies 행이 남아 있는 경우 —
+//    2026-07-17 실시트 전환 시 이 경우로 같은 사람이 새친구로 중복 등록된 사고가 있었음)
 // - NewFamilies 탭 자체는 수정하지 않음 (레거시 GAS 병행 운영 보존)
 // - 개인정보 보호: 이름 등 실제 값은 출력하지 않고 건수만 출력
 // 실행: node scripts/migrate-newfamilies.mjs
@@ -50,12 +53,22 @@ async function readSheet(sheetName) {
   const rows = res.data.values ?? [];
   if (rows.length === 0) return [];
   const [header, ...dataRows] = rows;
-  return dataRows.map((row) =>
-    header.reduce((acc, key, i) => {
-      acc[String(key)] = String(row[i] ?? '');
+  return dataRows.map((row, idx) => {
+    const obj = header.reduce((acc, key, i) => {
+      acc[String(key)] = String(row[i] ?? '').trim();
       return acc;
-    }, {}),
-  );
+    }, {});
+    obj.__row = idx + 2; // 시트 행 번호 (1행은 헤더) — 건너뛴 행을 시트에서 찾기 위함
+    return obj;
+  });
+}
+
+// 동일인 판정 키: 이름+생년월일.
+// 이름만으로는 판정하지 않는다 — 실데이터에 동명이인이 실제로 여러 쌍 존재하므로
+// 이름만 비교하면 서로 다른 사람을 같은 사람으로 보고 누락시킬 위험이 있다.
+// 따라서 생년월일이 비어 있으면 판정을 포기하고(=건너뛰지 않고) 이전한다.
+function personKey(r) {
+  return r.Name && r.Birthdate ? `${r.Name}|${r.Birthdate}` : null;
 }
 
 function buildNotes(nf) {
@@ -101,18 +114,31 @@ async function main() {
     readSheet('NewFamilies'),
   ]);
   const existingIds = new Set(students.map((r) => r.ID).filter(Boolean));
+  const existingPeople = new Set(students.map(personKey).filter(Boolean));
 
   let skippedExisting = 0;
   let skippedNoId = 0;
+  const skippedSamePerson = [];
   const toMigrate = [];
   for (const nf of newFamilies) {
     if (!nf.ID) { skippedNoId++; continue; }
     if (existingIds.has(nf.ID)) { skippedExisting++; continue; }
+    // 등반하면서 새 학생 ID를 받았지만 NewFamilies 행이 남아 있는 경우 —
+    // ID가 달라 위 검사를 통과하므로 같은 사람이 '새친구'로 중복 등록된다.
+    const key = personKey(nf);
+    if (key && existingPeople.has(key)) { skippedSamePerson.push(nf.__row); continue; }
     toMigrate.push(toStudentRow(nf));
   }
 
   console.log(`NewFamilies 전체: ${newFamilies.length}건`);
-  console.log(`이미 Students에 존재(등반 등): ${skippedExisting}건 — 건너뜀`);
+  console.log(`이미 Students에 존재(ID 동일): ${skippedExisting}건 — 건너뜀`);
+  console.log(
+    `이미 Students에 존재(ID는 다르나 이름+생년월일 동일): ${skippedSamePerson.length}건 — 건너뜀` +
+      (skippedSamePerson.length ? ` → NewFamilies ${skippedSamePerson.join(', ')}행` : ''),
+  );
+  if (skippedSamePerson.length) {
+    console.log('  ※ 등반 후 NewFamilies 행이 정리되지 않았을 가능성 — 시트에서 확인 권장');
+  }
   console.log(`ID 없는 행: ${skippedNoId}건 — 건너뜀 (시트에서 수동 확인 필요)`);
   console.log(`마이그레이션 대상: ${toMigrate.length}건`);
 
