@@ -462,24 +462,34 @@ SESSION_PASSWORD=
     - **1단계: 실시트 접근 준비 (사용자 수동)**
       - [ ] Step 9. 실시트에 Service Account(`GOOGLE_SERVICE_ACCOUNT_EMAIL`) 편집자 권한 공유
       - [ ] Step 10. `.env.local`의 `GOOGLE_SPREADSHEET_ID`를 실시트 ID로 교체 (사본 ID는 주석으로 보관 — 롤백용). 이 시점부터 로컬 dev 서버도 실시트를 바라봄에 주의
-    - **2단계: 실시트 구조 변경 (순서 중요)**
-      - [ ] Step 11. `node scripts/verify-sheets.mjs` — 전환 전 실시트 구조 사전 점검(읽기 전용). `Type`·`Lunar` 누락이 ❌로 나오는 것이 정상이며, 출력의 조치 안내대로 다음 단계 수행
-      - [ ] Step 12. 실시트 Attendance J1에 `Type` 헤더 추가 (Phase 7 Step 6 호환성 분석 — GAS는 헤더 이름 기반이라 맨 끝 컬럼 추가는 무해)
-      - [ ] Step 13. `node scripts/add-teacher-lunar-header.mjs` — Teachers 맨 끝에 `Lunar` 헤더 추가 (멱등, `Type`과 동일 패턴)
-      - [ ] Step 14. `node scripts/migrate-newfamilies.mjs` — NewFamilies → Students `Grade='새친구'` 이전 (멱등, NewFamilies 탭은 보존)
-      - [ ] Step 15. `node scripts/verify-data.mjs` — 수정 필요 행을 **실시트 기준 행 번호로 재검출** (Phase 7의 행 번호는 사본 기준이라 그대로 쓸 수 없음)
-    - **3단계: 실시트 데이터 수정 (사용자 수동 — Step 15 출력 기준)**
-      - [ ] Step 16. Birthdate 형식 오류(`YYYY-MM--DD` 하이픈 오타) 수정
-      - [ ] Step 17. ID 빈 학생 채우기 — **ID가 없으면 출석 토글 자체가 불가능**(새 앱에서 "확인 필요" 그룹으로 노출됨)
-      - [ ] Step 18. Class 빈 학생 채우기
-      - [ ] Step 19. NewFamilies의 ID 빈 행 — ID를 채운 뒤 `migrate-newfamilies.mjs` 재실행해야 Students로 넘어옴 (ID 없는 행은 마이그레이션에서 제외되므로)
-      - 참고: Step 17·18의 행들은 레거시 화면에서 숨겨져 있던 인원으로, 레거시 265 vs 새 앱 267 인원 차이의 원인. 수정하면 양쪽 일치
+    - **2단계: 실시트 구조 변경 (순서 중요)** — 2026-07-17 완료
+      - [x] Step 11. `node scripts/verify-sheets.mjs` — 사전 점검 결과 `Lunar`(Teachers 9열)·`Type`(Attendance 10열)만 누락, 나머지 헤더 이름·순서 완전 일치. 전환 시작 시점 실시트: Students 359행 / Teachers 72행 / Attendance 5,082행
+      - [x] Step 12. 실시트 Attendance J1에 `Type` 헤더 추가 완료 (스크래치패드 일회성 스크립트로 처리 — 저장소 코드 미변경)
+      - [x] Step 13. `node scripts/add-teacher-lunar-header.mjs` 실행 — Teachers I1에 `Lunar` 헤더 추가 완료. 이후 `verify-sheets.mjs` 재실행으로 3개 시트 전부 ✅ 확인
+      - [x] Step 14. `node scripts/migrate-newfamilies.mjs` 실행 — NewFamilies 13건 중 12건 이전 완료(ID 없는 1건 제외). Students 359 → 371행(=359+12)으로 정합. 사본 때 11건이었던 것은 테스트 기간에 GAS로 새친구 1명이 더 등록된 차이
+      - [x] Step 15. `node scripts/verify-data.mjs` 실행 — Attendance Date 5,082건 전부 `YYYY-MM-DD`, Status 전부 `출석`, ID 중복 없음. 수정 필요 행은 **Phase 7 사본과 동일한 행 번호**로 재확인됨(아래 3단계)
+        - ⚠️ `verify-data.mjs`는 **건수만 세고 행 번호를 추적하지 않음**(시트 행을 객체로 변환하며 인덱스를 버림). 행 위치는 스크래치패드 일회성 읽기 전용 스크립트로 별도 확인함 — 이 절차가 다시 필요하면 재작성 필요
+        - ℹ️ 스크립트에 하드코딩된 기대 행 수(`359행 기대`/`4744행 기대`)는 사본 시절 기준값이라 실시트에서는 무의미 — 출력 해석 시 무시
+    - **3단계: 실시트 데이터 수정 (사용자 수동 — 아래 행 번호는 Step 15에서 확인된 실시트 기준)** — 2026-07-17 완료(1건 보류)
+      - [x] Step 16. **Students 81행** — Birthdate 하이픈 오타(`####-##--##` 형태) 수정 완료
+      - [x] Step 17. **Students 115행** — ID 빈 값 채움 완료. 수기 입력 ID의 안전성 재검증함(ID 패턴 371건 전부 일치·중복 0건 — 중복 시 출석이 엉뚱한 학생에게 붙으므로 확인 필요했음)
+      - [~] Step 18. **Students 272행** — Class 빈 값: **의도적 보류**. 현재 몇 반인지 확인할 방법이 없어 추후 정리 예정이며, 그때까지 출석체크 메인의 "확인 필요" 그룹에 노출되어 추적 가능(= 설계 의도대로 동작하는 상태라 전환을 막지 않음)
+      - [x] Step 19. **NewFamilies 11행** — 조치 불필요로 종결. 실제로는 데이터 없는 빈 줄이며, 마이그레이션이 ID 없는 행을 건너뛰므로 무해
+      - ⚠️ **Step 23(레거시 대조) 시 주의**: 보류된 272행 때문에 **인원수가 1명 차이 나는 것이 정상**. 레거시 `getStudents`는 Class가 빈 행을 숨기고 새 앱은 "확인 필요"로 노출하므로, 새 앱이 레거시보다 1명 많게 나옴 (115행은 수정되어 이제 양쪽 모두 집계됨)
+      - 선택: Students Birthdate 빈 행 19건(76, 86, 96, 125, 140, 148, 280, 326~329, 339~341, 351, 352, 360, 368, 369) — 생일자 조회에서만 누락되므로 급하지 않음
     - **4단계: 배포 전환**
-      - [ ] Step 20. `node scripts/verify-read-api.mjs` — 실시트 대상 읽기 검증(읽기 전용, 안전). ⚠️ `verify-write-api.mjs`는 실행하지 않음
-      - [ ] Step 21. Vercel 환경변수 `GOOGLE_SPREADSHEET_ID`를 실시트 ID로 교체 (**Production·Preview 양쪽**), `vercel --prod` 재배포
+      - [x] Step 20. `node scripts/verify-read-api.mjs` — 실시트 대상 읽기 검증 **통과**(dev 서버 필요 → 검증 후 종료). 오전 학생 221·교사 47, 오후 학생 150·교사 25 전부 API=시트 일치, 최근 예배일 2026-07-12 출석 오전 113·오후 60건 일치, 교사 출석 집계 정상(오전 1,040·오후 592건 — 레거시 행 판별 정상). 응답 400~750ms(콜드 스타트 첫 요청만 2.1s). ⚠️ `verify-write-api.mjs`는 실행하지 않음(실시트에 더미 데이터를 쓰므로)
+        - 검증 중 발견·수정: `verify-read-api.mjs`의 교사 기대 키가 Phase 7 시점 8개라 `lunarBirthdate`를 검사하지 않았음(통과했지만 정작 이번에 추가한 컬럼이 검증되지 않는 상태) → 기대 키에 `lunarBirthdate` 추가하고, `8개`/`15개`로 하드코딩돼 있던 출력 문구도 배열 길이 기반으로 바꿔 같은 방식으로 낡지 않게 함. 재실행 결과 교사 9개 키 정상 통과
+        - ℹ️ 이 스크립트의 필드 검사는 **키 존재만** 보므로 `Lunar` 컬럼 자체가 없어도 통과함(`row.Lunar`가 undefined면 `lunarBirthdate: false`로 내려가 키는 존재). 컬럼 존재 보증은 `verify-sheets.mjs`가 담당하는 역할 분담
+      - [ ] Step 21. Vercel 환경변수 `GOOGLE_SPREADSHEET_ID`를 실시트 ID로 교체 (**Production·Preview 양쪽 = 실시트로 통일**), 재배포. ⚠️ 값만 바꾸면 반영 안 됨 — 빌드 시점에 주입되므로 재배포 필수
+        - 결정 근거: 처음엔 "Preview는 사본 유지"를 검토했으나 **Preview를 실제로 열어보는 워크플로가 없음**(로컬에서 확인 후 바로 Production 배포). 방문하지 않는 Preview 배포는 시트를 읽지도 쓰지도 않아 방어 대상이 없고, 오히려 사본은 전환 후 GAS도 새 앱도 쓰지 않아 시간이 갈수록 낡음 → 어쩌다 열었을 때 낡은 데이터로 오판할 위험이 더 큼. **설정을 하나로 통일**하는 쪽이 이득
       - [ ] Step 22. 배포 URL 스모크 테스트 — 6개 화면(`/`, `/history`, `/birthday`, `/registry`, `/members`, `/teachers`) + 게이트 2종(session/admin) + API
       - [ ] Step 23. 사용자 최종 확인 — 레거시 GAS와 인원수·출석 데이터 일치 여부
     - **5단계: 전환 후 정리**
       - [ ] Step 24. 테스트 사본 시트 처리 — 실제 개인정보가 담긴 사본이므로, 롤백 대비 기간이 끝나면 테스트 참여자 공유 해제 또는 삭제
+      - **결정: 전환 후에도 `.env.local`은 실시트를 계속 가리킨다** (사본으로 되돌리지 않음)
+        - 근거: 1인 개발이라 본인이 무엇을 조작했는지 알고 있고, 출석 토글은 행 추가/삭제라 되돌리기 쉬움. 반대로 사본은 계속 낡아가므로 로컬에서 낡은 데이터를 보는 손해가 더 큼 (Step 21의 Preview 판단과 같은 논리)
+        - ⚠️ **단, 삭제 플로우는 예외 — `/members`의 학생/교사 삭제는 cascade delete**로 해당 인원의 Attendance 기록까지 전부 지운다(`students/[id]`·`teachers/[id]`의 DELETE). 출석 토글과 달리 **앱에서 되돌릴 수 없고 1년치 기록이 소실**되므로, 삭제 기능을 로컬에서 시험할 때는 그때만 `.env.local`을 사본으로 교체할 것
+        - 사고 시 복구 수단: 구글 시트의 **파일 > 버전 기록**
       - [ ] Step 25. 병행 운영 주의 — **GAS로 등록되는 새친구는 NewFamilies에만 쌓임** → 새 앱 반영하려면 `migrate-newfamilies.mjs` 재실행 (멱등이라 반복 안전)
       - [ ] Step 26. `docs/context-notes.md`에 전환 결과 기록, 본 진행 상태 갱신
