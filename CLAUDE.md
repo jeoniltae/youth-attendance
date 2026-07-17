@@ -418,7 +418,7 @@ SESSION_PASSWORD=
   - [x] Step 3. `src/hooks/useAdminAuth.ts` — `sessionStorage` 기반 토큰 저장·검증, `src/components/common/AdminModal.tsx` — 비밀번호 입력 모달 (`POST /api/auth` 호출)
   - [x] Step 4. `src/app/members/page.tsx` 실연동 — 목업 state → `useStudents`/`useTeachers`로 교체, 비밀번호 게이트(`useAdminAuth` + `AdminModal`) 적용
   - [x] Step 5. `src/lib/mock-data.ts` 파일 삭제, `npm run build` 통과 확인
-- [ ] Phase 7 사전 검증: 실제 스프레드시트 연동 검증
+- [x] Phase 7 사전 검증: 실제 스프레드시트 연동 검증 — Step 0~7 전부 완료
   - 전제: 실제 운영 시트를 직접 쓰지 않고 **사본을 만들어 사본으로 검증** (쓰기 API까지 안전하게 테스트). 레거시 GAS 웹앱이 아직 실시트로 운영 중이므로 실시트 구조 변경은 Phase 7 전환 시점에 수행. 테스트 시트의 서비스 계정 공유는 삭제하지 않고 유지 (실험용 롤백 환경)
   - 핵심 리스크: `readSheet`는 헤더 **이름** 기반, `appendRow`/`updateRow`는 컬럼 **순서** 기반 → 둘 다 실시트와 일치해야 함. `FORMATTED_VALUE` 읽기라 실시트 Date/Birthdate 셀이 날짜 서식이면 `YYYY-MM-DD` 문자열 매칭 실패 위험. 실제 Attendance 시트에는 `Type` 컬럼 없음
   - [x] Step 0. 외부 준비 (수동) — 실시트 사본 생성, 사본에 서비스 계정 편집자 공유, `.env.local`의 `GOOGLE_SPREADSHEET_ID`를 사본 ID로 교체 (테스트 시트 ID는 주석으로 보관)
@@ -443,15 +443,17 @@ SESSION_PASSWORD=
     - **ID 형식 결정 (Step 2에서 보류했던 것)**: 최신 GAS의 `generateStudentId`도 새 앱과 동일한 `YYYY-학년-반-순번(3자리)` 형식을 생성함이 확인됨 — 실데이터의 `YY-` 형식 348건은 구버전 시절 데이터. **새 앱 코드 형식 유지 확정**. 교사 ID는 GAS가 `T-YYYY-팀-NNN`, 새 앱이 `T-YYYY-NNN`으로 다르지만 ID를 파싱하는 코드가 양쪽 어디에도 없어 무해 — 현행 유지
     - 사용자 확인: GAS는 6/3 내보내기 이후 수정된 적 없음 → `docs/legacy-gas.json`이 현행 코드 그대로이며 **위 호환성 결론 확정**. (참고: 내보내기에 새가족 기능이 없는데 레거시 화면 오전 인원 265가 새가족 포함으로 계산되는 점은 미해명 — 새 앱 동작과는 무관하므로 추적하지 않음)
   - [x] Step 7. 마무리 — 발견 문제 전부 수정 완료(stats 교사 판별, 차트 라벨, 반 정렬, 통계 팝업 UI), `npm run build` 통과, 결과·결정을 `docs/context-notes.md`에 기록, 보안 체크리스트 확인 완료(변경 파일 전체에서 시트 ID·서비스 계정·개인정보 검출 0건, `.env.local`/`legacy-gas.json` gitignore 정상)
-- [ ] Phase 8: Vercel 배포 및 검증
+- [x] Phase 8: Vercel 배포 및 검증 — **실시트 전환 완료(2026-07-17)**. Step 1~26 전부 완료. 잔여는 담당자 확인이 필요한 데이터 2건뿐(272행 반 미확인 / 205·209행 중복 의심) — 운영을 막지 않음
   - 전략: **1차 배포는 Phase 7에서 검증에 쓴 테스트 사본 시트를 그대로 연결**해 외부 사용자 테스트를 먼저 진행하고, 테스트 통과 확인 후에만 실시트로 전환한다. 레거시 GAS 웹앱은 그동안 정상 운영 유지(병행), 실시트는 전환 시점까지 손대지 않음
+  - **실제 전환 타임라인 (2026-07 확정)**: 레거시 GAS **2026-07-12 예배를 끝으로 은퇴**(병행 운영 종료) → 2026-07-17 실시트 전환 완료(8-B) → **2026-07-19 주일부터 새 앱 단독 운영 시작**
+    - ⚠️ **되돌릴 곳이 없음**: GAS가 이미 은퇴했고 테스트 사본은 6월 말 이후 데이터가 없어 운영 대체재가 못 됨. 장애 시 대안은 구글 시트 직접 입력뿐 — 첫 주일(07-19)에는 상황을 지켜볼 것
   - **8-A. 테스트 사본 시트로 배포 + 외부 테스트**
     - [x] Step 1. Vercel 프로젝트 `youth-attendance`(scope: `jeoniltaes-projects`) 생성, GitHub `jeoniltae/youth-attendance` 저장소 연동 완료 — 이후 push마다 자동 배포
     - [x] Step 2. Vercel 환경변수 5종(`GOOGLE_SERVICE_ACCOUNT_EMAIL`/`GOOGLE_PRIVATE_KEY`/`GOOGLE_SPREADSHEET_ID`/`ADMIN_PASSWORD`/`SESSION_PASSWORD`) Production·Preview에 설정 완료 — `GOOGLE_SPREADSHEET_ID`는 테스트 사본 ID 그대로 사용. 값 이전은 Next.js가 실제 쓰는 `@next/env` 파서로 `.env.local`을 그대로 읽어 전달(수동 텍스트 파싱 시 `GOOGLE_PRIVATE_KEY`의 개행·특수문자가 깨질 위험 방지)
     - [x] Step 3. `vercel --prod`로 최초 배포 완료 — Production URL: `https://youth-attendance-opal.vercel.app`
     - [x] Step 4. 배포 URL 스모크 테스트 완료 — 4개 화면(`/`, `/history`, `/birthday`, `/members`) 전부 200, 인증 게이트 `POST /api/auth` session·admin 두 role 모두 정상 비밀번호 200 / 오답 401 확인, API 7종(roster/attendance/students/teachers/birthdays/summary/stats) 전부 200 및 응답 구조 정상. 이 과정에서 CLAUDE.md API 표가 실제 구현과 어긋난 부분 발견·수정(`/api/birthdays`는 `month`가 아닌 `session`만 받음, `/api/roster`·`/api/stats` 누락, `/api/attendance` GET 응답이 `studentIds` 배열, `/api/summary` 미사용 표시, `/api/auth`가 `role` 파라미터로 session/admin 겸용)
     - [x] Step 5. 외부 테스터 안내·배포 완료 — 특이사항 없음. ⚠️ 확인된 주의사항: 테스트 사본 시트는 Phase 7 검증용으로 **실제 학생 개인정보(이름·연락처·주소·생년월일)가 그대로 담긴 사본**이므로("다른 사람들과 다를 수 있다"가 아니라 실데이터 그 자체), 테스트 참여자는 기존 GAS 출석부로 이미 이 정보에 접근 권한이 있던 동일 교사진으로 한정
-    - [ ] Step 6. 테스트 기간 중 피드백·버그 수집, 발견된 이슈 수정 후 재배포 → 테스트 종료 판단 후 **8-B 착수 승인**(사용자)
+    - [x] Step 6. 테스트 기간 중 피드백·버그 수집 — **특이사항 없이 종료**, 사용자 8-B 착수 승인(2026-07-17)
       - 확인 완료: 테스트 기간의 실제 출석은 GAS로 계속 처리했으므로, **사본에 쌓인 출석 데이터는 버려도 무방**(실시트로 이전 불필요)
   - **8-B. 테스트 통과 후 실시트 전환** (착수 전 사용자 승인 필요)
     - 전제 — 스크립트 실행 방식: `scripts/*.mjs`는 전부 **`.env.local`의 `GOOGLE_SPREADSHEET_ID`만** 읽는다(시트 인자 없음). 실시트 대상 실행은 `.env.local` 교체가 선행 조건이며, 그 상태에서 **`verify-write-api.mjs`는 절대 실행 금지**(실시트에 더미 학생/교사를 쓰는 스크립트 — GAS 운영 중인 시트에서 돌릴 물건이 아님)
@@ -460,8 +462,8 @@ SESSION_PASSWORD=
       - [x] Step 7. `scripts/verify-sheets.mjs` 갱신 — Teachers 기대 헤더에 `Lunar` 추가, `KNOWN_MISSING`(Type을 "없는 게 정상"으로 취급하던 Phase 7 잔재) 제거 → 누락 컬럼은 전부 차단(❌) 처리하고 조치 방법(`REMEDY`)을 함께 출력. 사본 대상 실행으로 동작 확인 완료(Students 15·Teachers 9·Attendance 10열 전부 일치)
       - [x] Step 8. 롤백 절차 — 전환은 **Vercel 환경변수 `GOOGLE_SPREADSHEET_ID`를 사본 ID로 되돌리고 재배포**하면 즉시 복구됨(코드 변경 없음). 사본 ID는 `.env.local`에 주석으로 보관하고, 사본 시트는 안정화 전까지 삭제하지 않음
     - **1단계: 실시트 접근 준비 (사용자 수동)**
-      - [ ] Step 9. 실시트에 Service Account(`GOOGLE_SERVICE_ACCOUNT_EMAIL`) 편집자 권한 공유
-      - [ ] Step 10. `.env.local`의 `GOOGLE_SPREADSHEET_ID`를 실시트 ID로 교체 (사본 ID는 주석으로 보관 — 롤백용). 이 시점부터 로컬 dev 서버도 실시트를 바라봄에 주의
+      - [x] Step 9. 실시트에 Service Account(`GOOGLE_SERVICE_ACCOUNT_EMAIL`) 편집자 권한 공유 완료
+      - [x] Step 10. `.env.local`의 `GOOGLE_SPREADSHEET_ID`를 실시트 ID로 교체 완료 (사본 ID는 주석으로 보관). 이 시점부터 로컬 dev 서버도 실시트를 바라봄에 주의 — **전환 후에도 이 상태를 유지하기로 결정**(Step 24 하위 결정 참조)
     - **2단계: 실시트 구조 변경 (순서 중요)** — 2026-07-17 완료
       - [x] Step 11. `node scripts/verify-sheets.mjs` — 사전 점검 결과 `Lunar`(Teachers 9열)·`Type`(Attendance 10열)만 누락, 나머지 헤더 이름·순서 완전 일치. 전환 시작 시점 실시트: Students 359행 / Teachers 72행 / Attendance 5,082행
       - [x] Step 12. 실시트 Attendance J1에 `Type` 헤더 추가 완료 (스크래치패드 일회성 스크립트로 처리 — 저장소 코드 미변경)
@@ -481,15 +483,32 @@ SESSION_PASSWORD=
       - [x] Step 20. `node scripts/verify-read-api.mjs` — 실시트 대상 읽기 검증 **통과**(dev 서버 필요 → 검증 후 종료). 오전 학생 221·교사 47, 오후 학생 150·교사 25 전부 API=시트 일치, 최근 예배일 2026-07-12 출석 오전 113·오후 60건 일치, 교사 출석 집계 정상(오전 1,040·오후 592건 — 레거시 행 판별 정상). 응답 400~750ms(콜드 스타트 첫 요청만 2.1s). ⚠️ `verify-write-api.mjs`는 실행하지 않음(실시트에 더미 데이터를 쓰므로)
         - 검증 중 발견·수정: `verify-read-api.mjs`의 교사 기대 키가 Phase 7 시점 8개라 `lunarBirthdate`를 검사하지 않았음(통과했지만 정작 이번에 추가한 컬럼이 검증되지 않는 상태) → 기대 키에 `lunarBirthdate` 추가하고, `8개`/`15개`로 하드코딩돼 있던 출력 문구도 배열 길이 기반으로 바꿔 같은 방식으로 낡지 않게 함. 재실행 결과 교사 9개 키 정상 통과
         - ℹ️ 이 스크립트의 필드 검사는 **키 존재만** 보므로 `Lunar` 컬럼 자체가 없어도 통과함(`row.Lunar`가 undefined면 `lunarBirthdate: false`로 내려가 키는 존재). 컬럼 존재 보증은 `verify-sheets.mjs`가 담당하는 역할 분담
-      - [ ] Step 21. Vercel 환경변수 `GOOGLE_SPREADSHEET_ID`를 실시트 ID로 교체 (**Production·Preview 양쪽 = 실시트로 통일**), 재배포. ⚠️ 값만 바꾸면 반영 안 됨 — 빌드 시점에 주입되므로 재배포 필수
+      - [x] Step 21. Vercel 환경변수 `GOOGLE_SPREADSHEET_ID`를 실시트 ID로 교체 (**Production·Preview 양쪽 = 실시트로 통일**) + 재배포 완료 — 2026-07-17 **실시트 전환 시점**. ⚠️ 값만 바꾸면 반영 안 됨 — 빌드 시점에 주입되므로 재배포 필수
+        - 반영 확인 방법(값을 노출하지 않고 판별): Production `/api/attendance?date=2026-07-12`가 오전 113·오후 60건을 반환 → **2026-07-12는 테스트 기간에 GAS가 실시트에만 쌓은 날짜라 사본에는 없음**. roster도 오전 221/47·오후 150/25로 로컬 실시트 검증치와 일치
         - 결정 근거: 처음엔 "Preview는 사본 유지"를 검토했으나 **Preview를 실제로 열어보는 워크플로가 없음**(로컬에서 확인 후 바로 Production 배포). 방문하지 않는 Preview 배포는 시트를 읽지도 쓰지도 않아 방어 대상이 없고, 오히려 사본은 전환 후 GAS도 새 앱도 쓰지 않아 시간이 갈수록 낡음 → 어쩌다 열었을 때 낡은 데이터로 오판할 위험이 더 큼. **설정을 하나로 통일**하는 쪽이 이득
-      - [ ] Step 22. 배포 URL 스모크 테스트 — 6개 화면(`/`, `/history`, `/birthday`, `/registry`, `/members`, `/teachers`) + 게이트 2종(session/admin) + API
-      - [ ] Step 23. 사용자 최종 확인 — 레거시 GAS와 인원수·출석 데이터 일치 여부
+      - [x] Step 22. 배포 URL 스모크 테스트 **통과** (2026-07-17, 실시트 연결 상태)
+        - 화면 6종(`/`, `/history`, `/birthday`, `/registry`, `/members`, `/teachers`) 전부 200 (60~72ms)
+        - API 8종 전부 200 — roster 221/47, students 221, teachers 47(**키 9개 = `lunarBirthdate` Production 반영 확인**), birthdays 221/47, attendance(07-12) 113, stats 28주, stats/rates 287명, summary 전체 268·출석 113·42%
+        - 인증 게이트: session·admin 정답 200 / 오답 401 / **역할 교차(session 비번으로 admin 시도) 401** — 두 게이트가 실제로 분리되어 있음 확인
+      - [x] Step 23. 레거시 GAS 대조 **완료** — 오후 175명 이상 없음. 오전은 레거시 266 vs 새 앱 268로 2명 차이 → **원인 규명·해소 후 267로 정합**
+        - 차이 ①(정상): **Students 272행**(Class 빈값) — 레거시는 숨기고 새 앱은 "확인 필요"로 노출. 보류 중인 항목이라 새 앱이 1명 많은 게 정상
+        - 차이 ②(**사고 — Step 14 마이그레이션이 유발**): 같은 사람이 정식 학생과 새친구로 **중복 등록**됨. Students 81행(3학년 2반, 출석 28건)과 363행(새친구, 출석 1건=2026-03-01)이 이름·생년월일·성별·학교·연락처 전부 동일, ID만 다름(`26-0-3-18` vs `N-2026-새가족-004`)
+          - 경위: 3/1에 새친구로 방문 → 3학년 2반으로 **등반하며 새 학생 ID 발급** → 그런데 NewFamilies 행이 정리되지 않고 남아 있었음. `migrate-newfamilies.mjs`가 **ID로만** 중복을 판정하므로 다른 사람으로 보고 새친구로 재등록
+          - 정상 등반 처리된 6명은 `등반한 새친구` 탭으로 옮겨지며 NewFamilies에서 제거됨(탭 ID 6건 중 NewFamilies 잔존 0건) — 이 1명만 수작업 누락
+          - 조치: Students 363행 + NewFamilies 해당 행 **시트에서 직접 삭제**(앱 삭제 버튼은 cascade delete로 3/1 출석 기록까지 지우므로 사용 금지 — 출석 1건은 실제 사실이라 고아 레코드로 보존). 결과 오전 267명(=레거시 266 + 272행 1명), 새친구 오전 7명으로 레거시와 일치
+          - 재발 방지: `migrate-newfamilies.mjs`가 **이름+생년월일 동일 시에도 건너뛰도록** 수정 (아래 Step 25)
+        - 별건 **[보류]**: **Students 205행(오전 2-3) ↔ 209행(오전 2-4)** 이름+생년월일 동일 — 같은 학생의 두 반 중복 등록 의심. **담당자 확인이 필요해 보류**(2026-07-17). 기존 데이터이고 레거시도 양쪽 모두 집계하므로 인원 차이 원인이 아니며 전환을 막지 않음. 만약 중복이라면 양쪽 시스템 모두 1명 과다 집계 중인 상태
+        - NewFamilies 탭 정리 완료: 등반자 행 + 빈 행(Step 19) 삭제 → **11행 전부 ID 보유·전부 Students에 반영된 안정 상태**(Students의 `Grade='새친구'` 11명과 1:1 일치). 재실행해도 무변화
     - **5단계: 전환 후 정리**
-      - [ ] Step 24. 테스트 사본 시트 처리 — 실제 개인정보가 담긴 사본이므로, 롤백 대비 기간이 끝나면 테스트 참여자 공유 해제 또는 삭제
+      - [x] Step 24. 테스트 사본 시트 처리 **완료**(2026-07-17) — 테스트 종료 후 참여자 공유 해제. 실제 개인정보가 담긴 사본이므로 외부 접근 차단이 목적
+        - **시트 자체는 당분간 보존 권장** — 롤백용이 아니라(6월 말 이후 데이터가 없어 운영 대체 불가) **개발용 안전지대**로서의 가치: `.env.local`이 실시트를 가리키기로 한 상태라, cascade delete처럼 되돌릴 수 없는 플로우를 시험할 유일한 곳(Step 24 이후 결정 참조)
       - **결정: 전환 후에도 `.env.local`은 실시트를 계속 가리킨다** (사본으로 되돌리지 않음)
         - 근거: 1인 개발이라 본인이 무엇을 조작했는지 알고 있고, 출석 토글은 행 추가/삭제라 되돌리기 쉬움. 반대로 사본은 계속 낡아가므로 로컬에서 낡은 데이터를 보는 손해가 더 큼 (Step 21의 Preview 판단과 같은 논리)
         - ⚠️ **단, 삭제 플로우는 예외 — `/members`의 학생/교사 삭제는 cascade delete**로 해당 인원의 Attendance 기록까지 전부 지운다(`students/[id]`·`teachers/[id]`의 DELETE). 출석 토글과 달리 **앱에서 되돌릴 수 없고 1년치 기록이 소실**되므로, 삭제 기능을 로컬에서 시험할 때는 그때만 `.env.local`을 사본으로 교체할 것
         - 사고 시 복구 수단: 구글 시트의 **파일 > 버전 기록**
-      - [ ] Step 25. 병행 운영 주의 — **GAS로 등록되는 새친구는 NewFamilies에만 쌓임** → 새 앱 반영하려면 `migrate-newfamilies.mjs` 재실행 (멱등이라 반복 안전)
-      - [ ] Step 26. `docs/context-notes.md`에 전환 결과 기록, 본 진행 상태 갱신
+      - [x] Step 25. 병행 운영 중 새친구 동기화 — **불필요로 종결**. 레거시 GAS가 2026-07-12 예배를 끝으로 은퇴해 NewFamilies에 새 행이 쌓이지 않음. NewFamilies 탭은 과거 이력으로만 보존(11행, 전부 Students에 반영 완료)
+        - 이후 새친구 등록 경로는 **새 앱 단독**: `/members`의 "새친구 등록" 버튼 → `StudentForm`(`GRADE_OPTIONS`에 `새친구` 포함, 선택 시 반 입력 자동 비움·비활성화) → ID는 `2026-새친구-0-001` 형태로 생성(반이 비면 `generateStudentId`가 `0`으로 대체). GAS 없이 전 과정 동작 확인함
+        - `migrate-newfamilies.mjs`는 **연도별 시트 갱신 시에만 재사용**(`docs/yearly-sheet-operation.md`) — 상시 실행 대상 아님
+        - Step 23 사고를 받아 **동일인 판정 추가**: ID가 달라도 **이름+생년월일**이 같은 학생이 이미 있으면 건너뛰고, 해당 NewFamilies 행 번호를 출력해 수동 정리를 유도. 이름만으로는 판정하지 않음 — 실데이터에 동명이인이 여러 쌍 존재하므로 생년월일이 비면 판정을 포기하고 이전함(오탐으로 실제 새친구를 누락시키는 쪽이 더 위험)
+        - ⚠️ **이 동일인 판정 분기는 실데이터로 검증되지 않은 휴면 코드** — 사고 행을 이미 삭제해 재현 조건이 사라진 상태에서 수정했고, 재실행 결과는 "추가 0건"으로 회귀 없음만 확인됨. GAS 은퇴로 상시 실행 대상이 아니게 되어 검증 우선순위는 낮으나, **연도별 시트 갱신 때 이 코드가 처음 실행된다**는 점은 인지할 것
+      - [x] Step 26. `docs/context-notes.md`에 **Phase 8-B 결정 기록 완료** — 전환 타임라인·롤백 부재, 새친구 중복 사고(ID만으로 동일인 판정 금지), Preview/`.env.local` 실시트 통일 근거, 검증 스크립트가 조용히 낡는 문제, `verify-data.mjs`의 행 번호 한계, 보류 항목 2건. 단계별 실행 이력은 본 문서에 남기고, **재사용 가능한 판단 근거만** context-notes에 기록하는 식으로 분담
