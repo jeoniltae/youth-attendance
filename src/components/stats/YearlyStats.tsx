@@ -181,7 +181,7 @@ export function YearlyStats({
             </p>
             <h2 className="font-display text-xl font-bold text-ink">
               {year}년 출석 통계{" "}
-              <span className="text-base font-normal text-ink/40">({session}부)</span>
+              <span className="text-base font-normal text-ink/40">({session}반)</span>
             </h2>
           </div>
           <button

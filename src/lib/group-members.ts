@@ -29,6 +29,7 @@ export const TEAM_ORDER = [
   "1학년교사",
   "2학년교사",
   "3학년교사",
+  "새친구반",
 ];
 
 // 레거시 GAS(getStudents/getTeacherMembers)와 동일한 필수 필드 기준.
