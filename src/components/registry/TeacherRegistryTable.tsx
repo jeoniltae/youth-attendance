@@ -1,7 +1,7 @@
 "use client";
 // 교사 교적부 통합 테이블 — 학생 교적부(RegistryTable)의 교사판.
 // 상단 컨트롤바(세션 세그먼트 / 팀 탭 / 이름 검색 / 카운트) + sticky 스프레드시트 그리드.
-// 컬럼: 번호 · 이름 · 팀 · 연락처 · 생년월일 · 주소 · 출석률(1년기준) · 비고
+// 컬럼: 번호 · 이름 · 팀 · 연락처 · 생년월일 · 출석률(1년기준) · 비고
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -97,7 +97,6 @@ export function TeacherRegistryTable({
       { accessorKey: "team", header: "팀", sortingFn: teamSort, filterFn: "equalsString", cell: (c) => textCell(c.getValue()) },
       { accessorKey: "phone", header: "연락처", cell: (c) => telCell(c.getValue()) },
       { accessorKey: "birthdate", header: "생년월일", cell: (c) => textCell(c.getValue()) },
-      { accessorKey: "address", header: "주소", cell: (c) => textCell(c.getValue()) },
       {
         id: "attendanceRate",
         header: "출석률(1년기준)",
@@ -250,7 +249,7 @@ export function TeacherRegistryTable({
           loading ? "pointer-events-none opacity-50" : "opacity-100"
         }`}
       >
-        <table className="w-full min-w-[820px] border-separate border-spacing-0 text-sm">
+        <table className="w-full min-w-[720px] border-separate border-spacing-0 text-sm">
           <thead>
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id}>
