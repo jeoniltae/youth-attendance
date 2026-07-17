@@ -197,6 +197,18 @@
   }
 }
 
+/* 페이지 전환 크로스페이드 (app/template.tsx) — transform을 쓰지 않는 게 핵심.
+   transform을 쓰면 래퍼가 containing block이 되어 내부 position:fixed(AuthGateModal,
+   FloatingSummaryBar)가 뷰포트 기준을 잃는다 — MobileNavMenu가 겪었던 문제와 동일. */
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* 팝오버가 앵커(버튼)에서 자라나오는 모션 — transform-origin을 버튼 쪽 모서리로 두고
    작게→원래 크기로 확대한다. 60%에서 살짝 오버슈트해 툭 튀어나오는 탄성을 준다 */
 @keyframes pop-from-anchor {
