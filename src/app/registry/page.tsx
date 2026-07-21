@@ -4,7 +4,7 @@
 // /birthday)과 동일한 교사용 비밀번호(session) 게이트로 보호한다.
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { PublicGate } from "@/components/common/PublicGate";
@@ -17,6 +17,25 @@ import type { Session } from "@/types";
 
 export default function RegistryPage() {
   const [session, setSession] = useState<Session>("오전");
+
+  // URL 쿼리(?session=오후)로 초기 세션 지정 — 공유/북마크용. 마운트 때 1회만 읽는다.
+  // 잘못된 값은 무시하고 기본(오전) 유지. window API라 useSearchParams와 달리 Suspense 경계가 불필요.
+  // (참고: 다른 화면에서도 필요해지면 작은 공용 훅으로 추출)
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("session");
+    if (q === "오전" || q === "오후") setSession(q);
+  }, []);
+
+  // 세그먼트 클릭 시 화면과 URL을 함께 갱신 — replaceState라 재요청도, 뒤로가기 히스토리 오염도 없음.
+  // 기본(오전)은 쿼리를 제거해 URL을 깔끔하게 유지. 다른 쿼리 파라미터가 있으면 보존.
+  const handleSessionChange = (next: Session) => {
+    setSession(next);
+    const params = new URLSearchParams(window.location.search);
+    if (next === "오후") params.set("session", "오후");
+    else params.delete("session");
+    const qs = params.toString();
+    window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
+  };
 
   // 단일 인스턴스만 유지 — PublicGate에도 이 값을 그대로 넘겨 로그인 직후
   // useRoster의 enabled가 함께 갱신되도록 한다 (history/page.tsx와 동일 패턴, 별도 호출 금지)
@@ -78,7 +97,7 @@ export default function RegistryPage() {
             <RegistryTable
               students={students}
               session={session}
-              onSessionChange={setSession}
+              onSessionChange={handleSessionChange}
               rates={ratesData?.rates}
               loading={isPlaceholderData}
             />
