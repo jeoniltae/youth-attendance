@@ -9,6 +9,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-body);
   --font-display: var(--font-display);
+  --font-clock: var(--font-clock);
   --color-paper: var(--paper);
   --color-paper-deep: var(--paper-deep);
   --color-ink: var(--ink);
@@ -96,6 +97,11 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+}
+
+/* 전자시계 글로우 — 은은한 발광. currentColor를 따르므로 글자색(text-*)을 바꾸면 글로우도 자동으로 맞춰짐 */
+.clock-glow {
+  text-shadow: 0 0 6px color-mix(in oklch, currentColor 55%, transparent);
 }
 
 /* 태블릿/PC(640px+)에서만 가장 많이 쓰이는 text-xs·text-sm을 살짝 키움 — 모바일은 그대로.

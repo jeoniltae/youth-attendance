@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Gowun_Batang, IBM_Plex_Sans_KR } from "next/font/google";
+import { Gowun_Batang, IBM_Plex_Sans_KR, Share_Tech_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { Providers } from "./providers";
 import "./globals.css";
@@ -12,6 +12,13 @@ const display = Gowun_Batang({
 const body = IBM_Plex_Sans_KR({
   variable: "--font-body",
   weight: ["400", "500", "600"],
+});
+
+// 전자시계 느낌의 현재 시각 표시용 (LiveClock) — 라틴 숫자·콜론만 쓰므로 subset이 가볍다
+const clock = Share_Tech_Mono({
+  variable: "--font-clock",
+  weight: ["400"],
+  subsets: ["latin"],
 });
 
 // VERCEL_URL은 배포마다 바뀌는 고유 URL이라 Deployment Protection(SSO)에 걸려
@@ -45,7 +52,7 @@ export default function RootLayout({
   return (
     <html
       lang="ko"
-      className={`${display.variable} ${body.variable} h-full antialiased`}
+      className={`${display.variable} ${body.variable} ${clock.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-paper text-ink font-body">
         <Providers>{children}</Providers>
