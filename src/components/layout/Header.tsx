@@ -76,7 +76,7 @@ export function Header({ session, onSessionChange, date, actions, mobileMenu }: 
               <span className="whitespace-nowrap font-display text-sm font-semibold text-ink">
                 {todayLabel}
               </span>
-              <LiveClock className="text-[12px] font-semibold text-teal" />
+              <LiveClock className="clock-glow font-clock text-[13px] tracking-[0.08em] text-gold" />
             </div>
           </div>
         </div>
