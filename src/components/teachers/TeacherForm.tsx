@@ -431,7 +431,9 @@ export function TeacherForm({
               <span />
             )}
 
-            <div className="flex items-center gap-2">
+            {/* 삭제 확인 중에는 모바일에서만 이 묶음을 숨김 — 좁은 폭에서 삭제 취소/삭제 버튼과
+                겹쳐 "취소"가 두 개로 보이는 문제 방지. sm+는 공간이 충분해 항상 노출. 삭제 취소 시 다시 보임 */}
+            <div className={`items-center gap-2 ${confirmDelete ? "hidden sm:flex" : "flex"}`}>
               <button
                 type="button"
                 onClick={() => onOpenChange(false)}
