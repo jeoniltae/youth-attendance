@@ -23,8 +23,14 @@ export async function GET(request: NextRequest) {
 
   try {
     const attendance = await readSheet(SHEET.ATTENDANCE);
+    // 출석은 인당 하루 1회(세션 무관) — POST도 Date+StudentID로만 매칭한다.
+    // 따라서 출석 여부는 '날짜만의 사실'이고, 세션 좁히기는 화면이 명단(roster)으로 한다.
+    // session 파라미터는 API 하위호환을 위해 계속 받되 필터에는 쓰지 않는다.
+    // (세션으로 거르면, 소속이 오전↔오후로 바뀐 인원의 당일 출석 행이 반대 세션 화면에서
+    //  보이지 않아 체크가 저장돼도 즉시 되돌아가는 문제가 생긴다)
+    void session;
     const studentIds = attendance
-      .filter((r) => r.Date === date && r.Session === session && r.Status === '출석')
+      .filter((r) => r.Date === date && r.Status === '출석')
       .map((r) => r.StudentID);
 
     return NextResponse.json({ studentIds });
