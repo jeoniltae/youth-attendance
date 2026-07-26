@@ -91,6 +91,12 @@ export default function Home() {
     () => groups.reduce((sum, g) => sum + countMembers(g), 0),
     [groups],
   );
+  // 출석 인원 = 이 세션 명단 ∩ attendedIds. attendedIds는 세션 무관(날짜 전체 출석자)이라
+  // 크기를 그대로 쓰면 반대 세션까지 세므로, 반드시 명단과 교집합해야 한다 (/history와 동일 방식)
+  const attendedCount = useMemo(() => {
+    const members = [...(roster?.students ?? []), ...(roster?.teachers ?? [])];
+    return members.filter((m) => attendedIds.has(m.id)).length;
+  }, [roster, attendedIds]);
 
   const memberLookup = useMemo(() => {
     const map = new Map<
@@ -232,12 +238,12 @@ export default function Home() {
         className="animate-[rise-in_0.5s_ease-out_both]"
         style={{ animationDelay: "140ms" }}
       >
-        <SummaryBar total={total} attended={attendedIds.size} loading={isLoading} />
+        <SummaryBar total={total} attended={attendedCount} loading={isLoading} />
       </div>
       <FloatingSummaryBar
         anchorRef={summaryRef}
         total={total}
-        attended={attendedIds.size}
+        attended={attendedCount}
         loading={isLoading}
       />
 
