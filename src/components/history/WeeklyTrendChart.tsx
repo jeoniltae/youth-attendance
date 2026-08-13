@@ -8,6 +8,7 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
+import { CalendarDays } from "lucide-react";
 import {
   Area,
   Bar,
@@ -86,24 +87,30 @@ export function WeeklyTrendChart({
 
   return (
     <section className="rounded-2xl border-[1.5px] border-ink/12 bg-paper-deep p-4 shadow-[0_3px_0_rgba(30,34,51,0.06)] sm:p-5">
+      {/*
+        보조 문구는 ink/75(5.6:1) 이상으로 둔다 — paper-deep 위에서 ink/40은 2:1대라
+        읽히지 않는다. 숫자만 ink 100%로 올려 시선이 먼저 가게 한다.
+      */}
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <h2 className="font-display text-lg font-bold text-ink">
           주차별 출석 추이
-          <span className="ml-2 text-xs font-medium text-ink/40">명단 {total}명 기준</span>
-        </h2>
-        <div className="flex items-center gap-3 text-xs text-ink/40">
-          {/* 평균선 범례 — ReferenceLine 자체 라벨은 마지막 주 데이터와 겹쳐서 헤더로 뺐다 */}
-          <span className="flex items-center gap-1.5">
-            <span className="h-px w-4 border-t border-dashed border-ink/50" />
-            평균 {average}명
+          <span className="ml-2 text-xs font-medium text-ink/75">
+            명단 <span className="font-semibold text-ink">{total}명</span> 기준
           </span>
-          <span>차트를 누르면 그 주만 보기</span>
-        </div>
+        </h2>
+        <span className="shrink-0 text-xs text-ink/75">차트를 누르면 그 주만 보기</span>
       </div>
 
+      {/*
+        x축 날짜는 ink/70, 출석 숫자는 ink 100% + 굵게 — 축과 데이터가 한눈에 다른 정보로 읽히게.
+        ⚠ ui/chart.tsx의 `.recharts-cartesian-axis-tick text → fill-muted-foreground` 규칙은
+        recharts v2 기준이라 v3에서는 매칭되지 않는다(v3는 text에 직접
+        `.recharts-cartesian-axis-tick-value`를 붙인다). 그래서 눈금은 팔레트가 아닌 recharts
+        기본 회색 #666으로 그려지고 있었고, 아래에서 실제 클래스로 지정해 팔레트로 되돌린다.
+      */}
       <ChartContainer
         config={chartConfig}
-        className="mt-3 aspect-auto h-40 w-full [&_.recharts-surface]:cursor-pointer"
+        className="mt-3 aspect-auto h-40 w-full [&_.recharts-surface]:cursor-pointer [&_.recharts-cartesian-axis-tick-value]:fill-ink/70"
       >
         <ComposedChart
           data={chartData}
@@ -127,7 +134,7 @@ export function WeeklyTrendChart({
             // minTickGap을 주면 recharts가 실제 너비를 보고 라벨을 솎아낸다.
             interval="preserveStartEnd"
             minTickGap={28}
-            tick={{ fontSize: 11 }}
+            tick={{ fontSize: 12 }}
           />
           <YAxis hide domain={domain} />
           <ChartTooltip
@@ -169,13 +176,32 @@ export function WeeklyTrendChart({
                 dataKey="출석"
                 position="top"
                 offset={8}
-                className="fill-ink/50 tabular-nums"
-                fontSize={11}
+                className="fill-ink font-display font-semibold tabular-nums"
+                fontSize={12}
               />
             )}
           </Area>
         </ComposedChart>
       </ChartContainer>
+
+      {/*
+        범례 — 차트 안의 세 가지 표식(점 위 숫자 / 점선 / 아래쪽 날짜)이 각각 무엇인지 이름을 붙인다.
+        눈금마다 아이콘을 달면 52주 조회에서 축이 지저분해지므로, 축 전체를 여기서 한 번만 설명한다.
+      */}
+      <div className="mt-2 flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-xs text-ink/75">
+        <span className="flex items-center gap-1.5">
+          <span className="size-2 shrink-0 rounded-full bg-stamp" />
+          주간 출석 인원
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-px w-4 shrink-0 border-t border-dashed border-ink/60" />
+          평균 <span className="font-semibold text-ink">{average}명</span>
+        </span>
+        <span className="flex items-center gap-1.5">
+          <CalendarDays className="size-3.5 shrink-0 text-ink/60" />
+          예배일
+        </span>
+      </div>
     </section>
   );
 }

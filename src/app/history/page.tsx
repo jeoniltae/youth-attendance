@@ -101,6 +101,16 @@ export default function HistoryPage() {
   const isLoading = rosterLoading || attendanceQuery.isLoading;
   const isError = rosterError || attendanceQuery.isError;
 
+  // 본문 바와 스크롤 시 상단에 붙는 플로팅 바가 같은 문구를 쓰도록 한 곳에서 만든다.
+  // 스크롤한 상태에서는 날짜 컨트롤이 화면 밖이라, 이 문구가 없으면 평균 인원을
+  // 그날 하루 출석으로 오해하기 쉽다.
+  const summaryCaption =
+    isRange && !isLoading
+      ? weeks === 0
+        ? "선택 기간에 출석 기록이 없습니다"
+        : `${weeks}주 평균`
+      : undefined;
+
   return (
     <PublicGate
       isAuthenticated={sessionAuth.isAuthenticated}
@@ -176,13 +186,7 @@ export default function HistoryPage() {
           attended={attended}
           showAbsent
           loading={isLoading}
-          caption={
-            isRange && !isLoading
-              ? weeks === 0
-                ? "선택 기간에 출석 기록이 없습니다"
-                : `${weeks}주 평균`
-              : undefined
-          }
+          caption={summaryCaption}
         />
       </div>
       <FloatingSummaryBar
@@ -191,6 +195,7 @@ export default function HistoryPage() {
         attended={attended}
         showAbsent
         loading={isLoading}
+        caption={summaryCaption}
       />
 
       {isRange && !isLoading && !isError && weeks > 0 && (

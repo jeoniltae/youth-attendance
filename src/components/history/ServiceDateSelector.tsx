@@ -227,14 +227,32 @@ export function ServiceDateSelector({
         )}
       </div>
 
-      {/* break-keep: 좁은 화면에서 '평균 기준'이 단어 중간에서 잘리지 않게 */}
+      {/*
+        '지금 여러 주를 묶어 보고 있다'는 상태 표시라 눈에 걸려야 한다.
+        색으로 강조하고 싶어도 stamp(2.84:1)·teal(3.97:1) 같은 강조색은 paper-deep 위
+        12px 텍스트로 쓰면 WCAG AA(4.5:1)에 못 미친다. 그래서 글자는 대비가 확실한 ink로 두고
+        (11.6:1), 색은 배지 배경이 담당한다. 틴트는 휘도차가 작지만 색상이 달라 실제로는
+        충분히 구분된다 — 같은 화면의 개근/무출석 칩이 같은 방식이다.
+        break-keep: 좁은 화면에서 '평균 기준'이 단어 중간에서 잘리지 않게.
+      */}
       {weeks > 1 && (
-        <p className="break-keep text-center text-xs text-ink/45">
-          {from} ~ {date} · {weeks}주
-          {serviceWeeks !== null &&
-            (serviceWeeks === 0
-              ? " · 출석 기록 없음"
-              : ` 중 ${serviceWeeks}주 예배 · 평균 기준`)}
+        <p className="flex flex-wrap items-center justify-center gap-x-1 break-keep rounded-lg border border-stamp/35 bg-stamp/15 px-2.5 py-1 text-center text-xs text-ink/75">
+          <span className="font-display font-semibold tabular-nums text-ink">
+            {from} ~ {date}
+          </span>
+          <span>
+            · <span className="font-semibold text-ink">{weeks}주</span>
+            {serviceWeeks !== null &&
+              (serviceWeeks === 0 ? (
+                <span className="font-semibold text-ink"> · 출석 기록 없음</span>
+              ) : (
+                <>
+                  {" 중 "}
+                  <span className="font-semibold text-ink">{serviceWeeks}주</span>
+                  {" 예배 · 평균 기준"}
+                </>
+              ))}
+          </span>
         </p>
       )}
 
