@@ -35,7 +35,9 @@ export function resolveRange(
   const toIndex = Math.max(0, sundayOptions.indexOf(date));
 
   if (preset === 'custom') {
-    // 시작 > 종료로 뒤집혀 있으면 스왑해 정규화 (API 400을 유발하지 않도록)
+    // 화면(ServiceDateSelector)이 뒤집힌 선택을 경고로 막으므로 여기 도달할 일은 없지만,
+    // 이 함수는 순수 함수라 어떤 입력이든 받을 수 있다. 스왑해 정규화해서 API가 400을
+    // 받는 상태(from > to)로는 절대 나가지 않게 하는 최후 방어선.
     const a = customFrom || date;
     const [from, to] = a <= date ? [a, date] : [date, a];
     const fromIndex = Math.max(0, sundayOptions.indexOf(from));

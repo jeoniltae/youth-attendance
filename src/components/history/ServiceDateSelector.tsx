@@ -8,7 +8,9 @@
 
 "use client";
 
+import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { AlertDialog } from "@/components/common/AlertDialog";
 import { formatDateLabel, parseInputDate } from "@/lib/date";
 import type { RangePreset } from "@/lib/attendance-range";
 
@@ -85,6 +87,13 @@ export function ServiceDateSelector({
   weeks,
   serviceWeeks,
 }: ServiceDateSelectorProps) {
+  // 경고 내용. null이면 닫힌 상태
+  const [alert, setAlert] = useState<{
+    title: string;
+    details: { label: string; value: string }[];
+    description: string;
+  } | null>(null);
+
   const isCustom = preset === "custom";
   const dateIndex = sundayOptions.indexOf(date);
   const isPrevDisabled = dateIndex === -1 || dateIndex >= sundayOptions.length - 1;
@@ -103,6 +112,43 @@ export function ServiceDateSelector({
   // 목록보다 긴 프리셋은 의미가 없으므로 숨긴다 (연초에 올해 일요일이 몇 개 없을 때)
   const availableWeeks = PRESET_WEEKS.filter((w) => w <= sundayOptions.length);
   const hasRangeOptions = sundayOptions.length > 1;
+
+  // 직접 지정 유효성 — 시작일과 종료일이 뒤집히면 경고하고 선택을 되돌린다.
+  // select는 props로 제어되므로, setter를 호출하지 않으면 이전 값으로 자동 복귀한다.
+  // (같은 날짜는 1주 조회로 유효하므로 막지 않는다)
+  function dateLabel(value: string) {
+    return formatDateLabel(parseInputDate(value));
+  }
+
+  function handleCustomFromChange(next: string) {
+    if (next > date) {
+      setAlert({
+        title: "시작일이 종료일보다 늦습니다",
+        details: [
+          { label: "선택한 시작일", value: dateLabel(next) },
+          { label: "현재 종료일", value: dateLabel(date) },
+        ],
+        description: "시작일은 종료일과 같거나 이전 날짜여야 합니다.",
+      });
+      return;
+    }
+    onCustomFromChange(next);
+  }
+
+  function handleEndDateChange(next: string) {
+    if (isCustom && next < from) {
+      setAlert({
+        title: "종료일이 시작일보다 이릅니다",
+        details: [
+          { label: "현재 시작일", value: dateLabel(from) },
+          { label: "선택한 종료일", value: dateLabel(next) },
+        ],
+        description: "종료일은 시작일과 같거나 이후 날짜여야 합니다.",
+      });
+      return;
+    }
+    onDateChange(next);
+  }
 
   return (
     <div className="flex flex-1 flex-col items-center gap-1.5 px-4 py-3">
@@ -125,14 +171,14 @@ export function ServiceDateSelector({
             <DateSelect
               value={from}
               options={sundayOptions}
-              onChange={onCustomFromChange}
+              onChange={handleCustomFromChange}
               label="조회 시작일 (일요일)"
             />
             <span className="text-sm text-ink/40">~</span>
             <DateSelect
               value={date}
               options={sundayOptions}
-              onChange={onDateChange}
+              onChange={handleEndDateChange}
               label="조회 종료일 (일요일)"
             />
           </div>
@@ -190,6 +236,16 @@ export function ServiceDateSelector({
               ? " · 출석 기록 없음"
               : ` 중 ${serviceWeeks}주 예배 · 평균 기준`)}
         </p>
+      )}
+
+      {alert && (
+        <AlertDialog
+          open
+          onClose={() => setAlert(null)}
+          title={alert.title}
+          details={alert.details}
+          description={alert.description}
+        />
       )}
     </div>
   );
