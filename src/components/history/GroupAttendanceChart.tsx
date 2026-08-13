@@ -19,7 +19,10 @@ import {
 
 interface GroupAttendanceChartProps {
   group: TopGroup;
-  attendedIds: Set<string>;
+  /** id → 기간 내 출석 횟수. 1주 모드에서는 출석자만 1이 들어온다 */
+  attendCounts: Map<string, number>;
+  /** 분모가 되는 예배 주 수. 1주 모드면 1이라 계산 결과가 단일 날짜 집계와 같아진다 */
+  weeks: number;
 }
 
 interface ChartRow {
@@ -28,12 +31,18 @@ interface ChartRow {
   members: MemberItem[];
 }
 
+// 1주 모드는 정수(16/22), 기간 모드는 평균이라 소수 1자리(16.8/22)로 표기
+function formatCount(value: number, weeks: number) {
+  return weeks === 1 ? String(value) : value.toFixed(1);
+}
+
 function renderCountLabel(
   x: unknown,
   y: unknown,
   width: unknown,
   height: unknown,
   row: { 출석: number; 결석: number },
+  weeks: number,
 ) {
   return (
     <text
@@ -43,7 +52,7 @@ function renderCountLabel(
       fontSize={11}
       className="fill-ink/50 font-medium tabular-nums"
     >
-      {row.출석}/{row.출석 + row.결석}
+      {formatCount(row.출석, weeks)}/{Math.round(row.출석 + row.결석)}
     </text>
   );
 }
@@ -80,10 +89,12 @@ interface ChartDatum {
 const AttendanceBars = memo(function AttendanceBars({
   chartData,
   height,
+  weeks,
   onBarClick,
 }: {
   chartData: ChartDatum[];
   height: number;
+  weeks: number;
   onBarClick: (data: unknown) => void;
 }) {
   return (
@@ -95,7 +106,8 @@ const AttendanceBars = memo(function AttendanceBars({
       <BarChart
         data={chartData}
         layout="vertical"
-        margin={{ left: 0, right: 46, top: 4, bottom: 4 }}
+        // 기간 모드는 라벨이 소수점만큼 길어지므로(16.8/22) 오른쪽 여백을 더 준다
+        margin={{ left: 0, right: weeks === 1 ? 46 : 58, top: 4, bottom: 4 }}
         barCategoryGap={10}
       >
         <YAxis
@@ -126,7 +138,7 @@ const AttendanceBars = memo(function AttendanceBars({
               const { x, y, width, height: h, value } = props;
               const row = chartData.find((r) => r.label === value);
               if (!row || row.결석 !== 0) return null;
-              return renderCountLabel(x, y, width, h, row);
+              return renderCountLabel(x, y, width, h, row, weeks);
             }}
           />
         </Bar>
@@ -153,7 +165,7 @@ const AttendanceBars = memo(function AttendanceBars({
               const { x, y, width, height: h, value } = props;
               const row = chartData.find((r) => r.label === value);
               if (!row || row.결석 === 0) return null;
-              return renderCountLabel(x, y, width, h, row);
+              return renderCountLabel(x, y, width, h, row, weeks);
             }}
           />
         </Bar>
@@ -162,7 +174,11 @@ const AttendanceBars = memo(function AttendanceBars({
   );
 });
 
-export function GroupAttendanceChart({ group, attendedIds }: GroupAttendanceChartProps) {
+export function GroupAttendanceChart({
+  group,
+  attendCounts,
+  weeks,
+}: GroupAttendanceChartProps) {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   // 모달 열림/닫힘(selectedKey)만 바뀌어도 이 컴포넌트가 재렌더링되는데, 매번 새 배열을
@@ -176,10 +192,12 @@ export function GroupAttendanceChart({ group, attendedIds }: GroupAttendanceChar
     [group],
   );
 
+  // 기간 모드에서는 '주당 평균 출석 인원'(실수). weeks=1이면 정수라 단일 날짜 집계와 동일하다
   const chartData = useMemo(
     () =>
       rows.map((row) => {
-        const attended = row.members.filter((m) => attendedIds.has(m.id)).length;
+        const sum = row.members.reduce((s, m) => s + (attendCounts.get(m.id) ?? 0), 0);
+        const attended = weeks > 0 ? sum / weeks : 0;
         return {
           key: row.key,
           label: row.label,
@@ -187,11 +205,12 @@ export function GroupAttendanceChart({ group, attendedIds }: GroupAttendanceChar
           결석: row.members.length - attended,
         };
       }),
-    [rows, attendedIds],
+    [rows, attendCounts, weeks],
   );
 
   const total = countMembers(group);
-  const attendedTotal = allMembers(group).filter((m) => attendedIds.has(m.id)).length;
+  const attendedSum = allMembers(group).reduce((s, m) => s + (attendCounts.get(m.id) ?? 0), 0);
+  const attendedTotal = weeks > 0 ? attendedSum / weeks : 0;
   const ratio = total === 0 ? 0 : Math.round((attendedTotal / total) * 100);
   const selectedRow = rows.find((r) => r.key === selectedKey) ?? null;
 
@@ -209,7 +228,7 @@ export function GroupAttendanceChart({ group, attendedIds }: GroupAttendanceChar
           {group.label}
         </h2>
         <span className="font-display text-sm tabular-nums text-ink/40">
-          {attendedTotal} / {total}
+          {formatCount(attendedTotal, weeks)} / {total}
         </span>
       </div>
       <div className="mt-2 h-[3px] w-full overflow-hidden rounded-full bg-ink/8">
@@ -222,6 +241,7 @@ export function GroupAttendanceChart({ group, attendedIds }: GroupAttendanceChar
       <AttendanceBars
         chartData={chartData}
         height={Math.max(rows.length * 44, 90)}
+        weeks={weeks}
         onBarClick={handleBarClick}
       />
 
@@ -233,7 +253,8 @@ export function GroupAttendanceChart({ group, attendedIds }: GroupAttendanceChar
           }}
           title={selectedRow.label}
           members={selectedRow.members}
-          attendedIds={attendedIds}
+          attendCounts={attendCounts}
+          weeks={weeks}
         />
       )}
     </section>

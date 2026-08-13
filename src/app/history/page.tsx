@@ -1,44 +1,44 @@
 "use client";
 // 출석 현황 페이지 — 날짜/세션별 학년·교사·새친구 출석 차트 조회
+//
+// 조회 구간은 1주(단일 예배일)가 기본이고, 기간 길이를 늘리면 여러 주를 묶어 '주당 평균'으로
+// 본다. 두 모드는 아래로 흘려보내는 값이 (attendCounts, weeks) 한 쌍으로 같아서,
+// 1주 모드는 weeks=1인 특수 케이스일 뿐 별도 렌더 경로가 없다.
 
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { PublicGate } from "@/components/common/PublicGate";
 import { SummaryBar } from "@/components/attendance/SummaryBar";
 import { FloatingSummaryBar } from "@/components/attendance/FloatingSummaryBar";
 import { GroupAttendanceChart } from "@/components/history/GroupAttendanceChart";
 import { GroupAttendanceChartSkeleton } from "@/components/history/GroupAttendanceChartSkeleton";
+import { ServiceDateSelector } from "@/components/history/ServiceDateSelector";
+import { WeeklyTrendChart } from "@/components/history/WeeklyTrendChart";
+import { AttendanceHighlights } from "@/components/history/AttendanceHighlights";
 import { useRoster } from "@/hooks/useRoster";
 import { useAttendance } from "@/hooks/useAttendance";
+import { useAttendanceRange } from "@/hooks/useAttendanceRange";
 import { useAuthGate } from "@/hooks/useAuthGate";
-import { groupStudentsAndTeachers } from "@/lib/group-members";
-import { formatDateLabel, parseInputDate, sundaysThisYear } from "@/lib/date";
+import { groupStudentsAndTeachers, type MemberItem } from "@/lib/group-members";
+import { buildRangeStats, resolveRange, type RangePreset } from "@/lib/attendance-range";
+import { sundaysThisYear } from "@/lib/date";
 import type { Session } from "@/types";
 
 const SESSIONS: Session[] = ["오전", "오후"];
 
 export default function HistoryPage() {
-  // 올해 일요일(예배일) 목록 — index 0이 가장 최근, 값이 클수록 과거
+  // 올해 일요일(예배일) 목록 — index 0이 가장 최근, 값이 클수록 과거.
+  // 과거 연도는 별도 스프레드시트라 현재 시트에 없으므로 구간은 이 목록을 벗어나지 않는다.
   const sundayOptions = useMemo(() => sundaysThisYear(), []);
   const [date, setDate] = useState(() => sundayOptions[0] ?? "");
+  const [preset, setPreset] = useState<RangePreset>(1);
+  const [customFrom, setCustomFrom] = useState(() => sundayOptions[0] ?? "");
   const [session, setSession] = useState<Session>("오전");
   const summaryRef = useRef<HTMLDivElement>(null);
 
-  const dateIndex = sundayOptions.indexOf(date);
-  const isPrevDisabled = dateIndex === -1 || dateIndex >= sundayOptions.length - 1;
-  const isNextDisabled = dateIndex <= 0;
-
-  function goToPrevSunday() {
-    if (dateIndex === -1) return;
-    const next = sundayOptions[dateIndex + 1];
-    if (next) setDate(next);
-  }
-
-  function goToNextSunday() {
-    if (dateIndex <= 0) return;
-    setDate(sundayOptions[dateIndex - 1]);
-  }
+  const { from, to, weeks: spanWeeks } = resolveRange(sundayOptions, date, preset, customFrom);
+  const isRange = spanWeeks > 1;
 
   // 단일 인스턴스만 유지 — PublicGate에도 이 값을 그대로 props로 넘겨서
   // 로그인 직후 데이터 훅의 enabled가 함께 갱신되도록 한다 (별도 호출 금지)
@@ -49,24 +49,57 @@ export default function HistoryPage() {
     session,
     isSessionAuthenticated,
   );
-  const {
-    attendedIds,
-    isLoading: attendanceLoading,
-    isError: attendanceError,
-  } = useAttendance(date, session, isSessionAuthenticated);
+
+  // 두 훅을 항상 호출하고 enabled로만 스위치한다 — 1주 모드는 기존 훅 그대로라 회귀가 없고,
+  // 주일에 '/'에서 넘어오면 같은 쿼리 키를 공유해 즉시 그려진다
+  const single = useAttendance(date, session, isSessionAuthenticated && !isRange);
+  const range = useAttendanceRange(
+    from,
+    to,
+    isSessionAuthenticated && isRange,
+    to === sundayOptions[0], // 진행 중인 주를 볼 때만 폴링
+  );
 
   const groups = useMemo(
     () => groupStudentsAndTeachers(roster?.students ?? [], roster?.teachers ?? []),
     [roster],
   );
 
-  const total = (roster?.students.length ?? 0) + (roster?.teachers.length ?? 0);
-  const attended = [...(roster?.students ?? []), ...(roster?.teachers ?? [])].filter((m) =>
-    attendedIds.has(m.id),
-  ).length;
+  const rosterMembers: MemberItem[] = useMemo(
+    () => [
+      ...(roster?.students ?? []).map((s) => ({ id: s.id, name: s.name })),
+      ...(roster?.teachers ?? []).map((t) => ({ id: t.id, name: t.name })),
+    ],
+    [roster],
+  );
 
-  const isLoading = rosterLoading || attendanceLoading;
-  const isError = rosterError || attendanceError;
+  const rangeStats = useMemo(
+    () =>
+      buildRangeStats(
+        range.data?.dates ?? {},
+        new Set(rosterMembers.map((m) => m.id).filter(Boolean)),
+      ),
+    [range.data, rosterMembers],
+  );
+
+  // 1주 모드는 '출석자 = 1회'인 기간 통계와 같다 — 아래 컴포넌트들은 이 한 쌍만 본다
+  const attendCounts = useMemo(
+    () =>
+      isRange
+        ? rangeStats.attendCounts
+        : new Map([...single.attendedIds].map((id) => [id, 1] as const)),
+    [isRange, rangeStats.attendCounts, single.attendedIds],
+  );
+  // 분모는 달력상 주 수가 아니라 실제로 예배가 있던 주 수 (수련회·명절 주 제외)
+  const weeks = isRange ? rangeStats.serviceDates.length : 1;
+
+  const total = (roster?.students.length ?? 0) + (roster?.teachers.length ?? 0);
+  const attendedSum = rosterMembers.reduce((s, m) => s + (attendCounts.get(m.id) ?? 0), 0);
+  const attended = weeks > 0 ? Math.round(attendedSum / weeks) : 0;
+
+  const attendanceQuery = isRange ? range : single;
+  const isLoading = rosterLoading || attendanceQuery.isLoading;
+  const isError = rosterError || attendanceQuery.isError;
 
   return (
     <PublicGate
@@ -95,41 +128,22 @@ export default function HistoryPage() {
         className="flex flex-col overflow-hidden rounded-2xl border-[1.5px] border-ink/15 bg-paper-deep shadow-[0_2px_0_rgba(30,34,51,0.08)] sm:flex-row animate-[rise-in_0.5s_ease-out_both]"
         style={{ animationDelay: "70ms" }}
       >
-        <div className="flex flex-1 items-center justify-center gap-2 px-4 py-3">
-          <button
-            type="button"
-            onClick={goToPrevSunday}
-            disabled={isPrevDisabled}
-            aria-label="이전 주일"
-            className="flex size-8 items-center justify-center rounded-full border border-ink/20 text-ink/60 hover:border-ink/40 hover:text-ink disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-ink/20 disabled:hover:text-ink/60"
-          >
-            <ChevronLeft className="size-4" />
-          </button>
-          <div className="relative">
-            <select
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              aria-label="조회할 예배일 (일요일)"
-              className="appearance-none rounded-full border border-dashed border-ink/30 bg-paper py-1.5 pl-4 pr-8 font-display text-sm font-semibold text-ink hover:border-ink/50"
-            >
-              {sundayOptions.map((d) => (
-                <option key={d} value={d}>
-                  {formatDateLabel(parseInputDate(d))}
-                </option>
-              ))}
-            </select>
-            <ChevronRight className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 rotate-90 text-ink/40" />
-          </div>
-          <button
-            type="button"
-            onClick={goToNextSunday}
-            disabled={isNextDisabled}
-            aria-label="다음 주일"
-            className="flex size-8 items-center justify-center rounded-full border border-ink/20 text-ink/60 hover:border-ink/40 hover:text-ink disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-ink/20 disabled:hover:text-ink/60"
-          >
-            <ChevronRight className="size-4" />
-          </button>
-        </div>
+        <ServiceDateSelector
+          sundayOptions={sundayOptions}
+          date={date}
+          onDateChange={setDate}
+          preset={preset}
+          onPresetChange={(p) => {
+            // '직접 지정'으로 처음 들어오면 현재 구간의 시작일을 이어받는다
+            if (p === "custom") setCustomFrom(from);
+            setPreset(p);
+          }}
+          customFrom={customFrom}
+          onCustomFromChange={setCustomFrom}
+          from={from}
+          weeks={spanWeeks}
+          serviceWeeks={isRange && !isLoading ? weeks : null}
+        />
         <div className="h-px w-full shrink-0 bg-[repeating-linear-gradient(to_right,var(--ink)_0,var(--ink)_4px,transparent_4px,transparent_9px)] opacity-20 sm:h-auto sm:w-px sm:self-stretch sm:bg-[repeating-linear-gradient(to_bottom,var(--ink)_0,var(--ink)_4px,transparent_4px,transparent_9px)]" />
         <div className="flex flex-1 items-center justify-center gap-3 px-4 py-3">
           <span className="font-display text-[0.65rem] tracking-[0.2em] text-ink/50">예배</span>
@@ -157,7 +171,19 @@ export default function HistoryPage() {
         className="animate-[rise-in_0.5s_ease-out_both]"
         style={{ animationDelay: "140ms" }}
       >
-        <SummaryBar total={total} attended={attended} showAbsent loading={isLoading} />
+        <SummaryBar
+          total={total}
+          attended={attended}
+          showAbsent
+          loading={isLoading}
+          caption={
+            isRange && !isLoading
+              ? weeks === 0
+                ? "선택 기간에 출석 기록이 없습니다"
+                : `${weeks}주 평균`
+              : undefined
+          }
+        />
       </div>
       <FloatingSummaryBar
         anchorRef={summaryRef}
@@ -166,6 +192,24 @@ export default function HistoryPage() {
         showAbsent
         loading={isLoading}
       />
+
+      {isRange && !isLoading && !isError && weeks > 0 && (
+        <>
+          <AttendanceHighlights
+            members={rosterMembers}
+            attendCounts={attendCounts}
+            weeks={weeks}
+          />
+          <WeeklyTrendChart
+            weeklyTotals={rangeStats.weeklyTotals}
+            total={total}
+            onSelectDate={(d) => {
+              setDate(d);
+              setPreset(1);
+            }}
+          />
+        </>
+      )}
 
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2 xl:grid-cols-3">
         {isLoading ? (
@@ -181,7 +225,11 @@ export default function HistoryPage() {
               className="animate-[rise-in_0.5s_ease-out_both]"
               style={{ animationDelay: `${210 + i * 70}ms` }}
             >
-              <GroupAttendanceChart group={group} attendedIds={attendedIds} />
+              <GroupAttendanceChart
+                group={group}
+                attendCounts={attendCounts}
+                weeks={weeks}
+              />
             </div>
           ))
         )}

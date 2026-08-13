@@ -14,6 +14,11 @@ export interface SummaryBarProps {
   loading?: boolean;
   /** 플로팅(스크롤 고정) 표시용 축소 모드 — 패딩·글자 크기를 줄여 화면 점유를 최소화 */
   compact?: boolean;
+  /**
+   * 숫자 아래 얇은 설명 줄. 기간 조회에서 "6주 평균"처럼 숫자의 기준을 밝혀
+   * 평균 인원이 하루 수치로 오독되는 것을 막는다. compact 모드에서는 무시.
+   */
+  caption?: string;
 }
 
 export function SummaryBar({
@@ -22,6 +27,7 @@ export function SummaryBar({
   showAbsent = false,
   loading = false,
   compact = false,
+  caption,
 }: SummaryBarProps) {
   const rate = total === 0 ? 0 : Math.round((attended / total) * 100);
 
@@ -32,8 +38,11 @@ export function SummaryBar({
     { label: '출석률', value: rate, suffix: '%' },
   ];
 
+  const showCaption = !!caption && !compact;
+
   return (
-    <div className="flex divide-x divide-paper/15 overflow-hidden rounded-2xl bg-ink">
+    <div className="overflow-hidden rounded-2xl bg-ink">
+    <div className="flex divide-x divide-paper/15">
       {stats.map((stat) => (
         <div
           key={stat.label}
@@ -51,6 +60,12 @@ export function SummaryBar({
           )}
         </div>
       ))}
+    </div>
+    {showCaption && (
+      <p className="border-t border-paper/15 px-4 py-1.5 text-center font-display text-[11px] tracking-[0.15em] text-paper/55">
+        {caption}
+      </p>
+    )}
     </div>
   );
 }
