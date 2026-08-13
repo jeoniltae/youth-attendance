@@ -1,4 +1,4 @@
-// 기간 모드 전용 — 기간 내 개근/무출석 인원을 칩으로 요약. 누르면 명단 모달을 띄운다.
+// 기간 모드 전용 — 기간 내 개근/결석 인원을 칩으로 요약. 누르면 명단 모달을 띄운다.
 // 모달은 AttendanceListModal을 그대로 재사용한다(기간 모드 렌더가 이미 들어 있음).
 
 "use client";
@@ -31,7 +31,7 @@ export function AttendanceHighlights({
     openKey === "perfect"
       ? { title: `개근 (${weeks}주 전체 출석)`, list: perfect }
       : openKey === "none"
-        ? { title: `무출석 (${weeks}주 중 0회)`, list: none }
+        ? { title: `결석 (${weeks}주 중 0회)`, list: none }
         : null;
 
   return (
@@ -52,7 +52,7 @@ export function AttendanceHighlights({
         className="flex items-center gap-1.5 rounded-full border-[1.5px] border-stamp/40 bg-stamp/10 px-3.5 py-1.5 text-sm font-semibold text-ink hover:border-stamp disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-stamp/40"
       >
         <TriangleAlert className="size-3.5 text-stamp" strokeWidth={2.5} />
-        무출석 {none.length}명
+        결석 {none.length}명
       </button>
 
       {selected && (

@@ -102,15 +102,13 @@ export function WeeklyTrendChart({
       </div>
 
       {/*
-        x축 날짜는 ink/70, 출석 숫자는 ink 100% + 굵게 — 축과 데이터가 한눈에 다른 정보로 읽히게.
-        ⚠ ui/chart.tsx의 `.recharts-cartesian-axis-tick text → fill-muted-foreground` 규칙은
-        recharts v2 기준이라 v3에서는 매칭되지 않는다(v3는 text에 직접
-        `.recharts-cartesian-axis-tick-value`를 붙인다). 그래서 눈금은 팔레트가 아닌 recharts
-        기본 회색 #666으로 그려지고 있었고, 아래에서 실제 클래스로 지정해 팔레트로 되돌린다.
+        x축 날짜(ink/70)는 ChartContainer 공통 규칙이 칠한다 — 여기서 다시 지정하면 특정도가
+        같아 어느 쪽이 이길지 스타일시트 순서에 좌우되므로 두지 않는다.
+        출석 숫자만 ink 100% + 굵게로 올려 축과 데이터가 한눈에 다른 정보로 읽히게 한다.
       */}
       <ChartContainer
         config={chartConfig}
-        className="mt-3 aspect-auto h-40 w-full [&_.recharts-surface]:cursor-pointer [&_.recharts-cartesian-axis-tick-value]:fill-ink/70"
+        className="mt-3 aspect-auto h-40 w-full [&_.recharts-surface]:cursor-pointer"
       >
         <ComposedChart
           data={chartData}
