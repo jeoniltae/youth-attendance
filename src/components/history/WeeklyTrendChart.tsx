@@ -29,6 +29,68 @@ const chartConfig: ChartConfig = {
   출석: { label: "출석", color: "var(--stamp)" },
 };
 
+const TICK_ICON = 11; // 달력 아이콘 한 변
+const TICK_ICON_GAP = 2;
+
+/**
+ * x축 눈금 — 축이 '예배일'임을 표시하려고 달력 아이콘을 붙이되 **첫 눈금에만** 붙인다.
+ *
+ * 모든 눈금에 붙여봤더니 recharts가 눈금 폭을 글자만 보고 계산해서 아이콘(11+2px)만큼
+ * 옆 글자를 파고들었다. 이를 막으려 minTickGap을 28→42로 벌렸더니 표시되는 날짜가
+ * 크게 줄었다(데스크탑 32주 17→11개, 모바일 8주 5→3개). 첫 눈금만 붙이면 축의 의미는
+ * 그대로 전달하면서 간격을 원래대로 되돌릴 수 있다.
+ *
+ * recharts는 눈금을 SVG <text>로 그리므로 HTML 아이콘을 못 쓴다. 대신 <g> 안에
+ * 중첩 <svg>(lucide)와 <text>를 직접 배치하고, 아이콘+글자 덩어리 폭의 절반만큼 왼쪽으로
+ * 밀어 눈금 위치에 가운데 정렬한다. 글자 폭은 렌더 시점에 알 수 없어 글자수로 근사한다
+ * (날짜는 "6/21"·"8/9"처럼 짧은 숫자뿐이라 1~2px 오차는 보이지 않는다).
+ */
+function DateTick({
+  x,
+  y,
+  payload,
+  index,
+}: {
+  x?: number;
+  y?: number;
+  payload?: { value?: string };
+  index?: number;
+}) {
+  const label = String(payload?.value ?? "");
+
+  // interval="preserveStartEnd"는 첫 데이터 눈금을 항상 남기므로 index 0이 곧 첫 눈금이다
+  if (index !== 0) {
+    return (
+      <text x={x} y={(y ?? 0) + 12} textAnchor="middle" fontSize={12} className="fill-ink/70">
+        {label}
+      </text>
+    );
+  }
+
+  const left = -(TICK_ICON + TICK_ICON_GAP + label.length * 6.2) / 2;
+  return (
+    <g transform={`translate(${x ?? 0},${y ?? 0})`}>
+      <CalendarDays
+        x={left}
+        y={3}
+        width={TICK_ICON}
+        height={TICK_ICON}
+        className="text-ink/45"
+        strokeWidth={2.5}
+      />
+      <text
+        x={left + TICK_ICON + TICK_ICON_GAP}
+        y={12}
+        textAnchor="start"
+        fontSize={12}
+        className="fill-ink/70"
+      >
+        {label}
+      </text>
+    </g>
+  );
+}
+
 interface WeeklyTrendChartProps {
   weeklyTotals: { date: string; attended: number }[];
   /** 세션 전체 인원 — 헤더에 기준으로 표기 */
@@ -130,9 +192,11 @@ export function WeeklyTrendChart({
             axisLine={false}
             // 주 수로 간격을 고정하면 데스크탑에 맞춘 값이 모바일에서 겹친다.
             // minTickGap을 주면 recharts가 실제 너비를 보고 라벨을 솎아낸다.
+            // 달력 아이콘은 첫 눈금에만 붙으므로(DateTick 주석 참고) 나머지 눈금 폭은
+            // 글자 그대로라 28을 유지한다.
             interval="preserveStartEnd"
             minTickGap={28}
-            tick={{ fontSize: 12 }}
+            tick={<DateTick />}
           />
           <YAxis hide domain={domain} />
           <ChartTooltip
