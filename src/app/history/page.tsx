@@ -162,6 +162,7 @@ export default function HistoryPage() {
           customFrom={customFrom}
           onCustomFromChange={setCustomFrom}
           from={from}
+          to={to}
           weeks={spanWeeks}
           serviceWeeks={isRange && !isLoading ? weeks : null}
         />

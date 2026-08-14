@@ -63,15 +63,20 @@ function DateSelect({
 interface ServiceDateSelectorProps {
   /** 올해 일요일 목록 — 최신이 앞 */
   sundayOptions: string[];
-  /** 기준일 = 조회 구간의 종료일 */
+  /** 기준일 — select의 제어 값. 사용자가 고른 원본이며 화면 표기에는 쓰지 않는다 */
   date: string;
   onDateChange: (date: string) => void;
   preset: RangePreset;
   onPresetChange: (preset: RangePreset) => void;
   customFrom: string;
   onCustomFromChange: (date: string) => void;
-  /** resolveRange 결과 — 캡션 표기용 */
+  /**
+   * resolveRange가 계산한 실제 조회 구간 — 캡션은 반드시 이 값으로 표기한다.
+   * date를 그대로 찍으면 "화면에 적힌 기간"과 "실제로 집계한 기간"이 서로 다른 출처가 되어,
+   * 어긋나도 화면만 봐서는 알 수 없다(직접 지정에서 뒤집힌 선택을 스왑하는 경우 등).
+   */
   from: string;
+  to: string;
   weeks: number;
   /** 기간 내 실제로 예배가 있던 주 수. 로딩 중이면 null */
   serviceWeeks: number | null;
@@ -86,6 +91,7 @@ export function ServiceDateSelector({
   customFrom,
   onCustomFromChange,
   from,
+  to,
   weeks,
   serviceWeeks,
 }: ServiceDateSelectorProps) {
@@ -242,7 +248,7 @@ export function ServiceDateSelector({
       {weeks > 1 && (
         <p className="flex flex-wrap items-center justify-center gap-x-1 break-keep rounded-lg border border-stamp/35 bg-stamp/15 px-2.5 py-1 text-center text-xs text-ink/75">
           <span className="font-display font-semibold tabular-nums text-ink">
-            {from} ~ {date}
+            {from} ~ {to}
           </span>
           <span>
             · <span className="font-semibold text-ink">{weeks}주</span>
