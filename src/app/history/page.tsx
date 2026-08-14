@@ -164,7 +164,12 @@ export default function HistoryPage() {
           from={from}
           to={to}
           weeks={spanWeeks}
-          serviceWeeks={isRange && !isLoading ? weeks : null}
+          // 기간을 바꾸면 배지의 '13주'는 즉시 바뀌는데 weeks(실제 예배 주)는 새 응답이
+          // 와야 갱신된다. keepPreviousData 때문에 그 사이 isLoading이 false라, 그냥 두면
+          // "13주 중 4주 예배"처럼 계산 결과를 단정하는 거짓 문구가 0.5초쯤 뜬다.
+          // isPlaceholderData(=지금 보이는 건 이전 기간 데이터)일 때 null을 넘겨 꼬리말만
+          // 감춘다. isFetching을 쓰면 30초 폴링 때도 참이라 같은 기간에서 문구가 깜빡인다.
+          serviceWeeks={isRange && !isLoading && !range.isPlaceholderData ? weeks : null}
         />
         <div className="h-px w-full shrink-0 bg-[repeating-linear-gradient(to_right,var(--ink)_0,var(--ink)_4px,transparent_4px,transparent_9px)] opacity-20 sm:h-auto sm:w-px sm:self-stretch sm:bg-[repeating-linear-gradient(to_bottom,var(--ink)_0,var(--ink)_4px,transparent_4px,transparent_9px)]" />
         <div className="flex flex-1 items-center justify-center gap-3 px-4 py-3">
