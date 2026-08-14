@@ -132,7 +132,7 @@ export function AttendanceHighlights({
 
       {/* 추이 차트의 "차트를 누르면 그 주만 보기"와 같은 결의 안내 — 터치에는 hover가
           없어서 시각 효과만으로는 부족하다 */}
-      <p className="text-xs text-ink/75">누르면 해당 인원 명단 보기</p>
+      <p className="text-xs text-ink/75">💡각 버튼을 누르면 해당 인원 명단 확인이 가능합니다</p>
 
       {selected && (
         <AttendanceListModal

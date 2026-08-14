@@ -15,6 +15,8 @@ import { GroupAttendanceChart } from "@/components/history/GroupAttendanceChart"
 import { GroupAttendanceChartSkeleton } from "@/components/history/GroupAttendanceChartSkeleton";
 import { ServiceDateSelector } from "@/components/history/ServiceDateSelector";
 import { WeeklyTrendChart } from "@/components/history/WeeklyTrendChart";
+import { WeeklyTrendChartSkeleton } from "@/components/history/WeeklyTrendChartSkeleton";
+import { Skeleton } from "@/components/common/Skeleton";
 import { AttendanceHighlights } from "@/components/history/AttendanceHighlights";
 import { useRoster } from "@/hooks/useRoster";
 import { useAttendance } from "@/hooks/useAttendance";
@@ -206,6 +208,25 @@ export default function HistoryPage() {
         loading={isLoading}
         caption={summaryCaption}
       />
+
+      {/* 로딩 중에도 자리를 잡아둔다 — 비워두면 데이터 도착 시 아래 차트들이 통째로 밀린다.
+          칩 자리까지 함께 잡아야 밀림이 실제로 사라진다 */}
+      {isRange && isLoading && !isError && (
+        <>
+          {/* AttendanceHighlights와 같은 구조(칩 줄 + 안내 문구)로 높이를 맞춘다 */}
+          <div className="flex flex-col items-center gap-1.5">
+            <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
+              {/* 폭은 실제 칩(모바일 82/116/90px)보다 살짝 좁게 — 넘치면 2줄로 접혀
+                  오히려 스켈레톤이 실제보다 커진다 */}
+              <Skeleton className="h-7.75 w-18 rounded-full sm:h-9.25 sm:w-24" />
+              <Skeleton className="h-7.75 w-26 rounded-full sm:h-9.25 sm:w-32" />
+              <Skeleton className="h-7.75 w-20 rounded-full sm:h-9.25 sm:w-24" />
+            </div>
+            <Skeleton className="h-4.75 w-40" />
+          </div>
+          <WeeklyTrendChartSkeleton />
+        </>
+      )}
 
       {isRange && !isLoading && !isError && weeks > 0 && (
         <>
