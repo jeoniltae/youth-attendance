@@ -11,7 +11,7 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { AlertDialog } from "@/components/common/AlertDialog";
-import { formatDateLabel, parseInputDate } from "@/lib/date";
+import { formatDateLabel, formatDateLabelShort, parseInputDate } from "@/lib/date";
 import type { RangePreset } from "@/lib/attendance-range";
 
 const PRESET_WEEKS = [1, 2, 4, 8, 13];
@@ -47,9 +47,11 @@ function DateSelect({
         aria-label={label}
         className={PILL_CLASS}
       >
+        {/* 연도 생략 — 375px에서 이 pill 하나가 160px(가용폭 294px의 절반 이상)을 먹는데
+            연도는 올해로 고정이라 정보량이 없다. 자세한 설명은 formatDateLabelShort 주석 참고 */}
         {options.map((d) => (
           <option key={d} value={d}>
-            {formatDateLabel(parseInputDate(d))}
+            {formatDateLabelShort(parseInputDate(d))}
           </option>
         ))}
       </select>
@@ -214,13 +216,15 @@ export function ServiceDateSelector({
               aria-label="조회 기간"
               className={PILL_CLASS}
             >
+              {/* select 폭은 '가장 긴 옵션'이 정한다 — 1주가 선택돼 있어도 예전엔
+                  "13주(분기)" 때문에 119px였다. 라벨을 줄여 폭을 되찾는다(의미는 그대로) */}
               {availableWeeks.map((w) => (
                 <option key={w} value={w}>
-                  {w === 13 ? "13주(분기)" : `${w}주`}
+                  {w}주
                 </option>
               ))}
-              <option value="year">올해 전체</option>
-              <option value="custom">직접 지정</option>
+              <option value="year">올해</option>
+              <option value="custom">맞춤</option>
             </select>
             <SelectCaret />
           </div>

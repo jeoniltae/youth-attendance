@@ -14,6 +14,16 @@ export function formatDateLabel(date: Date): string {
   return `${y}-${m}-${d}(${WEEKDAY_LABELS[date.getDay()]})`;
 }
 
+// 연도를 뺀 짧은 표기 — "08-09(일)".
+// 조회 컨트롤처럼 폭이 빠듯한 곳에서만 쓴다. 이 앱은 설계상 올해만 조회할 수 있어
+// (과거 연도는 별도 스프레드시트 — docs/yearly-sheet-operation.md) 연도가 항상 같은 값이라
+// 정보량이 없다. 화면 어디서든 연도를 보여야 하는 곳은 formatDateLabel을 그대로 쓸 것.
+export function formatDateLabelShort(date: Date): string {
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${m}-${d}(${WEEKDAY_LABELS[date.getDay()]})`;
+}
+
 export function toInputDateValue(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
