@@ -1,14 +1,11 @@
-// 학년/교사/새친구 그룹별 출석 현황 — 반/팀 단위 누적 가로 막대 차트, 막대 클릭 시 명단 모달
+// 학년/교사/새친구 그룹별 출석 현황 — 반/팀 단위 누적 가로 막대 차트, 행을 누르면 명단 모달.
+// 호버 시 나오던 recharts 툴팁은 제거했다 — 행 전체를 덮는 클릭 오버레이가 마우스 이벤트를
+// 먼저 받아 도달하지 못하고, 내용(출석/결석 수)도 막대 끝 라벨 "16/22"와 겹쳤다.
 "use client";
 
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { Bar, BarChart, LabelList, Rectangle, XAxis, YAxis, type BarShapeProps } from "recharts";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart";
+import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { AttendanceListModal } from "./AttendanceListModal";
 import {
   allMembers,
@@ -90,17 +87,15 @@ const AttendanceBars = memo(function AttendanceBars({
   chartData,
   height,
   weeks,
-  onBarClick,
 }: {
   chartData: ChartDatum[];
   height: number;
   weeks: number;
-  onBarClick: (data: unknown) => void;
 }) {
   return (
     <ChartContainer
       config={chartConfig}
-      className="mt-3 aspect-auto w-full"
+      className="aspect-auto w-full"
       style={{ height }}
     >
       <BarChart
@@ -119,15 +114,14 @@ const AttendanceBars = memo(function AttendanceBars({
           tick={{ fontSize: 12 }}
         />
         <XAxis type="number" hide />
-        <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+        {/* 클릭은 막대가 아니라 위에 덮은 행 버튼이 받는다(아래 GroupAttendanceChart 주석 참고).
+            그래서 여기 막대에는 onClick·cursor를 두지 않는다 */}
         <Bar
           dataKey="출석"
           stackId="a"
           fill="var(--color-출석)"
           radius={[6, 0, 0, 6]}
           barSize={18}
-          style={{ cursor: "pointer" }}
-          onClick={onBarClick}
         >
           {/* 결석이 0명이면 결석 막대 폭이 0이라 그 위의 라벨이 그려지지 않으므로, 그 경우엔 출석 막대 끝에 라벨을 붙인다.
               주의: 폭 0인 막대가 라벨 목록에서 빠지면 index가 행과 어긋나므로, index 대신 라벨 값(dataKey="label")으로 행을 찾는다 */}
@@ -147,8 +141,6 @@ const AttendanceBars = memo(function AttendanceBars({
           stackId="a"
           fill="var(--color-결석)"
           barSize={18}
-          style={{ cursor: "pointer" }}
-          onClick={onBarClick}
           // 출석이 0명이면 출석 막대(왼쪽 라운드 담당)가 폭 0으로 사라져 결석 막대 왼쪽 끝이
           // 각지게 보이므로, 그 경우엔 결석 막대에 좌우 모두 라운드를 준다
           shape={(props: BarShapeProps) => {
@@ -214,13 +206,6 @@ export function GroupAttendanceChart({
   const ratio = total === 0 ? 0 : Math.round((attendedTotal / total) * 100);
   const selectedRow = rows.find((r) => r.key === selectedKey) ?? null;
 
-  // memo된 AttendanceBars가 이 핸들러 참조 변화로 재렌더되지 않도록 안정적으로 유지
-  const handleBarClick = useCallback((data: unknown) => {
-    const payload = (data as { payload?: { key?: string }; key?: string })?.payload ?? data;
-    const key = (payload as { key?: string })?.key;
-    if (key) setSelectedKey(key);
-  }, []);
-
   return (
     <section className="rounded-2xl border-[1.5px] border-ink/12 bg-paper-deep p-4 shadow-[0_3px_0_rgba(30,34,51,0.06)] sm:p-5">
       <div className="flex items-center justify-between">
@@ -238,12 +223,38 @@ export function GroupAttendanceChart({
         />
       </div>
 
-      <AttendanceBars
-        chartData={chartData}
-        height={Math.max(rows.length * 44, 90)}
-        weeks={weeks}
-        onBarClick={handleBarClick}
-      />
+      {/*
+        클릭 영역을 막대가 아니라 '행 전체'로 잡는다.
+        막대에 onClick을 걸면 실제 눌리는 곳이 높이 18px(권장 터치 타깃 44px의 41%)에,
+        가로도 인원수에 비례해 차트 폭의 34~59%뿐이라 인원이 적은 반일수록 누르기 어려웠다.
+        반 이름(y축 라벨)도 막대 밖이라 반응하지 않았다.
+
+        recharts에 투명 막대를 추가하는 방법은 여기선 못 쓴다 — 이미 stacked Bar 2개가
+        한 밴드를 쓰고 있어서 stackId가 다른 Bar를 넣으면 밴드를 나눠 가져 기존 막대가 밀린다.
+        그래서 차트 위에 HTML 버튼을 행 수만큼 덮는다. 부수 효과로 키보드 포커스·엔터가 되고
+        hover/active 하이라이트도 CSS로 직접 준다.
+
+        top-1/bottom-1 = BarChart margin(top 4, bottom 4)과 같은 값 — 카테고리 밴드가
+        그 안쪽에 균등 분배되므로 flex-1로 나누면 행 위치가 정확히 맞는다.
+      */}
+      <div className="relative mt-3">
+        <AttendanceBars
+          chartData={chartData}
+          height={Math.max(rows.length * 44, 90)}
+          weeks={weeks}
+        />
+        <div className="absolute inset-x-0 top-1 bottom-1 flex flex-col">
+          {rows.map((row) => (
+            <button
+              key={row.key}
+              type="button"
+              onClick={() => setSelectedKey(row.key)}
+              aria-label={`${row.label} 명단 보기`}
+              className="flex-1 rounded-lg transition-colors hover:bg-ink/6 focus-visible:ring-2 focus-visible:ring-ink/30 active:bg-ink/12 motion-reduce:transition-none"
+            />
+          ))}
+        </div>
+      </div>
 
       {selectedRow && (
         <AttendanceListModal

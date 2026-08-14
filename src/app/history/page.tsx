@@ -246,6 +246,13 @@ export default function HistoryPage() {
         </>
       )}
 
+      {/* 카드가 5개라 카드마다 넣으면 같은 문구가 5번 반복돼 시끄럽다 — 그리드 위에 한 번만 */}
+      {!isLoading && !isError && groups.length > 0 && (
+        <p className="text-center text-xs text-ink/75">
+          💡아래의 각 차트 항목을 누르면 해당 반·교사 명단 확인이 가능합니다
+        </p>
+      )}
+
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2 xl:grid-cols-3">
         {isLoading ? (
           Array.from({ length: 3 }).map((_, i) => <GroupAttendanceChartSkeleton key={i} />)
