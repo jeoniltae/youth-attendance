@@ -1,11 +1,16 @@
 // 학생/교사 목록을 학년·반 또는 교사팀 단위로 묶는 유틸 (정렬: 학년→반→이름, 한국어 localeCompare)
 
-import type { Student, Teacher } from "@/types";
+import type { MemberType, Student, Teacher } from "@/types";
 
 export interface MemberItem {
   id: string;
   name: string;
   secondary?: string;
+  /**
+   * 학생/교사 구분. 반·팀 그룹은 한 종류뿐이라 비워두고, 학생과 교사가 섞이는 명단
+   * (개근·결석 칩)에서만 채운다 — 채워져 있으면 모달이 종류별로 나눠 보여준다.
+   */
+  type?: MemberType;
 }
 
 export interface SubGroup {

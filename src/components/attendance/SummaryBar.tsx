@@ -14,6 +14,12 @@ export interface SummaryBarProps {
   loading?: boolean;
   /** 플로팅(스크롤 고정) 표시용 축소 모드 — 패딩·글자 크기를 줄여 화면 점유를 최소화 */
   compact?: boolean;
+  /**
+   * 숫자 아래 얇은 설명 줄. 기간 조회에서 "6주 평균"처럼 숫자의 기준을 밝혀
+   * 평균 인원이 하루 수치로 오독되는 것을 막는다.
+   * compact(플로팅 바)에서도 표시한다 — 스크롤한 상태에서 오히려 기준을 잊기 쉽다.
+   */
+  caption?: string;
 }
 
 export function SummaryBar({
@@ -22,6 +28,7 @@ export function SummaryBar({
   showAbsent = false,
   loading = false,
   compact = false,
+  caption,
 }: SummaryBarProps) {
   const rate = total === 0 ? 0 : Math.round((attended / total) * 100);
 
@@ -32,8 +39,11 @@ export function SummaryBar({
     { label: '출석률', value: rate, suffix: '%' },
   ];
 
+  const showCaption = !!caption;
+
   return (
-    <div className="flex divide-x divide-paper/15 overflow-hidden rounded-2xl bg-ink">
+    <div className="overflow-hidden rounded-2xl bg-ink">
+    <div className="flex divide-x divide-paper/15">
       {stats.map((stat) => (
         <div
           key={stat.label}
@@ -51,6 +61,22 @@ export function SummaryBar({
           )}
         </div>
       ))}
+    </div>
+    {/*
+      크기는 PC/모바일 공통 14px 고정(항목 라벨과 동일 — 라벨은 compact에서도 14px이다),
+      색은 paper 최대 불투명도. 잉크 배경 위에서 gold(2.97:1)·teal(2.92:1)·stamp(4.08:1)
+      같은 강조색은 전부 WCAG AA(4.5:1)에 못 미쳐서, 대비가 확보되는 paper 계열로 간다 — 12.4:1.
+      compact에서는 세로 여백만 줄여 플로팅 바가 화면을 덜 차지하게 한다.
+    */}
+    {showCaption && (
+      <p
+        className={`border-t border-paper/15 bg-paper/8 px-4 text-center font-display text-[14px] font-semibold tracking-[0.15em] text-paper ${
+          compact ? 'py-0.5' : 'py-1.5'
+        }`}
+      >
+        {caption}
+      </p>
+    )}
     </div>
   );
 }
