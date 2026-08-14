@@ -47,11 +47,17 @@ export function AttendanceListModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[80vh] overflow-y-auto rounded-2xl border-[1.5px] border-ink/15 bg-paper p-5 ring-0 sm:max-w-md">
-        <DialogHeader>
+      {/*
+        제목을 고정하고 명단만 스크롤한다 — 인원이 많으면 스크롤 도중 "어느 반/무슨 기준
+        명단인지"를 잃어버리기 때문. 스크롤 컨테이너를 DialogContent에서 본문 div로 옮기고
+        (prop 기본값이 grid라 flex로 덮어씀), 헤더는 shrink-0으로 눌리지 않게 고정한다.
+        pr-12: 우상단 닫기(X) 버튼과 제목이 겹치지 않도록 확보.
+      */}
+      <DialogContent className="flex max-h-[80vh] flex-col gap-0 overflow-hidden rounded-2xl border-[1.5px] border-ink/15 bg-paper p-0 ring-0 sm:max-w-md">
+        <DialogHeader className="shrink-0 border-b border-ink/10 px-5 py-4 pr-12">
           <DialogTitle className="font-display text-lg font-bold text-ink">
             {title}
-            <span className="ml-2 text-sm font-medium text-ink/40">
+            <span className="ml-2 text-sm font-medium text-ink/45">
               {isRange
                 ? `${weeks}주 · ${members.length}명`
                 : `출석 ${attended.length} / ${members.length}`}
@@ -59,6 +65,8 @@ export function AttendanceListModal({
           </DialogTitle>
         </DialogHeader>
 
+        {/* min-h-0 없으면 flex 자식이 내용 높이만큼 커져 max-h가 무시된다 */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
         {isRange ? (
           <ul className="flex flex-col divide-y divide-ink/8">
             {ranked.map((m) => {
@@ -121,6 +129,7 @@ export function AttendanceListModal({
             </section>
           </div>
         )}
+        </div>
       </DialogContent>
     </Dialog>
   );
