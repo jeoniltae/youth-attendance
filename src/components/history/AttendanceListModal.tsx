@@ -38,12 +38,39 @@ export function AttendanceListModal({
   const absent = members.filter((m) => (attendCounts.get(m.id) ?? 0) === 0);
 
   // 기간 모드: 출석 횟수 많은 순 → 같으면 이름순
-  const ranked = isRange
-    ? [...members].sort((a, b) => {
-        const diff = (attendCounts.get(b.id) ?? 0) - (attendCounts.get(a.id) ?? 0);
-        return diff !== 0 ? diff : a.name.localeCompare(b.name, 'ko');
-      })
-    : [];
+  const rank = (list: MemberItem[]) =>
+    [...list].sort((a, b) => {
+      const diff = (attendCounts.get(b.id) ?? 0) - (attendCounts.get(a.id) ?? 0);
+      return diff !== 0 ? diff : a.name.localeCompare(b.name, 'ko');
+    });
+
+  // 학생과 교사가 섞여 들어온 경우(개근·결석 명단)에만 학생 → 선생님 순으로 나눈다.
+  // 반/팀 모달은 한 종류뿐이라 type이 비어 있고, 그대로 한 덩어리로 나온다.
+  const students = members.filter((m) => m.type === 'student');
+  const teachers = members.filter((m) => m.type === 'teacher');
+  // 색은 화면 다른 곳과 같은 의미색을 쓴다 — 학년(학생)=ink, 선생님=teal
+  // (GroupAttendanceChart의 HEADER_COLOR와 동일).
+  // 배경을 bg-ink/12 같은 반투명으로 주면 sticky 머리글 아래로 스크롤되는 행이 비쳐 보이므로,
+  // color-mix로 같은 톤의 '불투명' 색을 만들어 쓴다.
+  const sections =
+    students.length > 0 && teachers.length > 0
+      ? [
+          {
+            key: 'student',
+            label: '학생',
+            band: 'bg-[color-mix(in_oklab,var(--ink)_12%,var(--paper))]',
+            dot: 'bg-ink',
+            list: rank(students),
+          },
+          {
+            key: 'teacher',
+            label: '선생님',
+            band: 'bg-[color-mix(in_oklab,var(--teal)_20%,var(--paper))]',
+            dot: 'bg-teal',
+            list: rank(teachers),
+          },
+        ]
+      : [{ key: 'all', label: null, band: '', dot: '', list: rank(members) }];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -65,27 +92,47 @@ export function AttendanceListModal({
           </DialogTitle>
         </DialogHeader>
 
-        {/* min-h-0 없으면 flex 자식이 내용 높이만큼 커져 max-h가 무시된다 */}
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+        {/*
+          min-h-0 없으면 flex 자식이 내용 높이만큼 커져 max-h가 무시된다.
+          위쪽 패딩은 주지 않는다 — sticky 머리글은 padding 안쪽(content box)에 붙으므로
+          pt가 있으면 그 틈으로 스크롤되는 행이 머리글 위에 비쳐 보인다. 상단 여백은
+          머리글이 없는 갈래에서만 각자 pt-4로 준다.
+        */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4">
         {isRange ? (
-          <ul className="flex flex-col divide-y divide-ink/8">
-            {ranked.map((m) => {
-              const count = attendCounts.get(m.id) ?? 0;
-              return (
-                <li key={m.id} className="flex items-center gap-3 py-2">
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
-                    {m.name}
-                  </span>
-                  <span className="shrink-0 font-display text-sm tabular-nums text-ink/50">
-                    {count}/{weeks}
-                  </span>
-                  <RateBar value={Math.round((count / weeks) * 100)} />
-                </li>
-              );
-            })}
-          </ul>
+          sections.map((sec) => (
+            <div key={sec.key} className={sec.label ? undefined : 'pt-4'}>
+              {/* 구분 머리글은 스크롤에 붙여둔다 — 긴 명단에서 지금 어느 쪽을 보는지 잃지 않게.
+                  -mx-5 px-5: 본문 좌우 패딩만큼 넓혀 배경이 끝까지 덮이도록 */}
+              {sec.label && (
+                <h3
+                  className={`sticky top-0 z-10 -mx-5 flex items-center gap-2 border-y border-ink/10 px-5 py-2 font-display text-sm font-bold tracking-[0.06em] text-ink ${sec.band}`}
+                >
+                  <span className={`size-2 shrink-0 rounded-full ${sec.dot}`} />
+                  {sec.label}
+                  <span className="font-medium text-ink/60">{sec.list.length}명</span>
+                </h3>
+              )}
+              <ul className="flex flex-col divide-y divide-ink/8">
+                {sec.list.map((m) => {
+                  const count = attendCounts.get(m.id) ?? 0;
+                  return (
+                    <li key={m.id} className="flex items-center gap-3 py-2">
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
+                        {m.name}
+                      </span>
+                      <span className="shrink-0 font-display text-sm tabular-nums text-ink/50">
+                        {count}/{weeks}
+                      </span>
+                      <RateBar value={Math.round((count / weeks) * 100)} />
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 pt-4">
             <section>
               <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-stamp">
                 <Check className="size-3.5" strokeWidth={3} />

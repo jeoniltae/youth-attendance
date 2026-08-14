@@ -65,10 +65,19 @@ export default function HistoryPage() {
     [roster],
   );
 
+  // type을 실어 보내면 개근·결석 모달이 학생/선생님을 나눠 보여준다 (group-members.ts 참고)
   const rosterMembers: MemberItem[] = useMemo(
     () => [
-      ...(roster?.students ?? []).map((s) => ({ id: s.id, name: s.name })),
-      ...(roster?.teachers ?? []).map((t) => ({ id: t.id, name: t.name })),
+      ...(roster?.students ?? []).map((s) => ({
+        id: s.id,
+        name: s.name,
+        type: "student" as const,
+      })),
+      ...(roster?.teachers ?? []).map((t) => ({
+        id: t.id,
+        name: t.name,
+        type: "teacher" as const,
+      })),
     ],
     [roster],
   );
