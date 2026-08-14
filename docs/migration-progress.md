@@ -161,3 +161,14 @@ GAS → Next.js 마이그레이션의 단계별 실행 이력입니다. `CLAUDE.
   - [x] `src/components/ui/chart.tsx` 축 눈금 셀렉터를 recharts v3에 맞게 수정 — 기존 `.recharts-cartesian-axis-tick text`는 v2 구조라 **매칭조차 안 돼** 축 글자가 팔레트가 아닌 기본 회색 `#666`이었음. `.recharts-cartesian-axis-tick-value` + `ink/70`으로 교체(전 차트 공통)
   - [x] `npm run build` 통과, 실데이터 브라우저 검증 완료(집계 교차검증·클릭 이동·유효성·대비 실측)
   - 결정 근거는 `docs/context-notes.md`의 "출석 현황 기간 조회 추가 (2026-08)" 참조 — 평균 집계 기준, 올해 제한 이유, recharts v3 함정 2건, 팔레트 강조색 대비 한계 등
+- [x] 부가 기능 후속: 출석 현황 화면 사용성 다듬기 (`/history`) — 2026-08. 기간 조회를 실제로 써보며 나온 문제 정리
+  - [x] `AttendanceListModal` 제목 고정 — 스크롤 컨테이너를 `DialogContent`에서 본문 div로 옮김. 118명 명단에서 4,156px 스크롤해도 제목 유지 확인
+  - [x] `AttendanceListModal` 학생/선생님 구분 — `MemberItem.type`(선택 필드) 추가. 두 종류가 섞인 명단(개근·결석)에서만 나뉘고, 반/팀 모달은 그대로 한 덩어리. 구분 머리글은 sticky
+  - [x] `AttendanceHighlights`에 **부분 출석** 칩 추가 — 개근/결석 양 끝만 있어 중간이 요약에서 빠졌음(4주 33%, 8주 48%). 세 칩 합계 = 명단 인원 검증(2주 79+52+133=264, 8주 29+126+109=264)
+  - [x] 모바일 한 줄 배치 — 칩은 패딩·글자 축소 + `명` 숨김(384→300px), 날짜 컨트롤은 연도 생략 + 기간 라벨 축약(361→275px). `HighlightChip` 컴포넌트로 추출
+  - [x] 어포던스 보강 — 칩·차트 행에 그림자/눌림(`active`)·포커스 링, 안내 문구 추가. 터치에는 hover가 없어 `active`가 핵심
+  - [x] `WeeklyTrendChartSkeleton` 신규 + 로딩 분기 — 기존엔 로딩 중 이 영역이 비어 있다가 데이터 도착 시 아래가 밀렸음. 스켈레톤/실제 높이 실측 일치(데스크탑 269=269, 모바일 칩 56=56)
+  - [x] `GroupAttendanceChart` 클릭 영역 수정 — 막대(18px, 차트폭 34~59%)에서 **행 전체**(43px × 100%)로. 반 이름 라벨도 타깃에 포함. recharts 툴팁은 제거(오버레이가 이벤트를 먼저 받음)
+  - [x] `WeeklyTrendChart` x축 첫 눈금에 달력 아이콘(`DateTick`) — 전 눈금에 붙이면 `minTickGap`을 벌려야 해 라벨이 크게 줄어듦(32주 17→11개)
+  - [x] `npm run build` 통과, 데스크탑·모바일(375px) 실브라우저 검증
+  - 결정 근거는 `docs/context-notes.md`의 "출석 현황 화면 다듬기 (2026-08)" 참조 — 요약 배지 분할 원칙, 차트 클릭 타깃, sticky/패딩 함정, `<select>` 폭 규칙 등

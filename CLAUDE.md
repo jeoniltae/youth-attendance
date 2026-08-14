@@ -181,7 +181,7 @@ interface AttendanceRecord {
 | 경로 | 파일 | 설명 |
 |------|------|------|
 | `/` | `app/page.tsx` | 출석체크 메인 (카드 UI, 세션 필터, 요약 통계) |
-| `/history` | `app/history/page.tsx` | 출석 현황 (학년/반/팀별 그룹핑). **기준일 + 기간 길이**로 1주(기본) 또는 여러 주를 조회 — 기간 모드에서는 주당 평균 인원으로 집계하고 주차별 추이 차트·개근/결석 배지가 추가됨 |
+| `/history` | `app/history/page.tsx` | 출석 현황 (학년/반/팀별 그룹핑). **기준일 + 기간 길이**로 1주(기본) 또는 여러 주를 조회 — 기간 모드에서는 주당 평균 인원으로 집계하고 주차별 추이 차트·개근/부분 출석/결석 배지가 추가됨. 차트의 각 행과 배지를 누르면 해당 인원 명단 모달 |
 | `/members` | `app/members/page.tsx` | 교적 관리 — 관리자 전용 (학생/교사 정보 추가·수정·삭제 + 특정 날짜 출석 상태 수정) |
 | `/birthday` | `app/birthday/page.tsx` | 생일자 조회 |
 | `/registry` | `app/registry/page.tsx` | 교적부 — 교사용(session) 열람 전용 학생 명단 데이터 그리드 (TanStack Table: 세션/학년 탭 필터·이름 검색·컬럼 정렬, sticky 헤더/좌측 열, 반별 담당교사 칩) |
@@ -302,11 +302,12 @@ src/
 │   │   └── FloatingSummaryBar.tsx      ✅ 본문 SummaryBar가 화면 밖으로 나가면 상단에 미끄러져 나타나는 플로팅 요약 바 (caption도 함께 표시)
 │   ├── history/
 │   │   ├── ServiceDateSelector.tsx     ✅ 조회 구간 선택 — 기준일(=종료일) + 기간 길이(1/2/4/8/13주·올해 전체·직접 지정)
-│   │   ├── AttendanceListModal.tsx     ✅ 명단 모달 (1주: 출석/결석 칩 · 기간: 개인별 n/N회 + RateBar)
-│   │   ├── GroupAttendanceChart.tsx    ✅ 그룹별 출석 차트 (attendCounts + weeks — 기간 모드는 주당 평균 인원)
+│   │   ├── AttendanceListModal.tsx     ✅ 명단 모달 — 제목 고정 + 본문만 스크롤. 1주: 출석/결석 칩 · 기간: 개인별 n/N회 + RateBar. MemberItem.type이 채워져 학생·교사가 섞이면 sticky 머리글로 나눠 표시
+│   │   ├── GroupAttendanceChart.tsx    ✅ 그룹별 출석 차트 (attendCounts + weeks — 기간 모드는 주당 평균 인원). 클릭은 막대가 아니라 **행 전체를 덮은 HTML 버튼**이 받는다(막대는 값에 비례해 타깃이 좁아짐) — 그래서 recharts 툴팁은 없음
 │   │   ├── GroupAttendanceChartSkeleton.tsx ✅ 출석 차트 로딩 스켈레톤
-│   │   ├── WeeklyTrendChart.tsx        ✅ 주차별 출석 추이 (면적+평균선, 클릭 시 그 주 1주 모드로 이동) — 기간 모드 전용
-│   │   └── AttendanceHighlights.tsx    ✅ 개근/결석 인원 칩 → AttendanceListModal 재사용 — 기간 모드 전용
+│   │   ├── WeeklyTrendChart.tsx        ✅ 주차별 출석 추이 (면적+평균선, 클릭 시 그 주 1주 모드로 이동) — 기간 모드 전용. x축 첫 눈금에만 달력 아이콘(DateTick)
+│   │   ├── WeeklyTrendChartSkeleton.tsx ✅ 주차별 추이 로딩 스켈레톤 (실제 차트와 높이 동일 — 데이터 도착 시 밀리지 않게)
+│   │   └── AttendanceHighlights.tsx    ✅ 개근/부분 출석/결석 인원 칩 → AttendanceListModal 재사용 — 기간 모드 전용. 세 칩의 합 = 명단 인원
 │   ├── stats/
 │   │   └── YearlyStats.tsx             ✅ 1년 통계 플로팅 오버레이 (도넛 차트)
 │   ├── students/
@@ -349,9 +350,9 @@ src/
 │   └── teachers.ts                     ✅ getTeachers / createTeacher / updateTeacher / deleteTeacher
 ├── lib/
 │   ├── sheets.ts                       ✅ Google Sheets API v4 클라이언트 (readSheet / appendRow / findRowNumber / updateRow / deleteRow)
-│   ├── group-members.ts                ✅ 학생·교사 그룹핑 유틸 (학년→반→이름 정렬)
+│   ├── group-members.ts                ✅ 학생·교사 그룹핑 유틸 (학년→반→이름 정렬) + MemberItem 타입(선택 필드 `type`으로 학생/교사 구분)
 │   ├── attendance-range.ts             ✅ 기간 조회 유틸 — resolveRange(기준일+기간→구간, 올해 밖으로 안 나감) / buildRangeStats(집계)
-│   ├── date.ts                         ✅ 한국 시간 기준 날짜 유틸
+│   ├── date.ts                         ✅ 한국 시간 기준 날짜 유틸 (formatDateLabel 전체 표기 / formatDateLabelShort 연도 생략 — 폭이 빠듯한 조회 컨트롤 전용)
 │   ├── birthdays.ts                    ✅ 생일 계산 유틸
 │   ├── lunar.ts                        ✅ 음력→해당 연도 양력 변환 (korean-lunar-calendar) — 교사 Lunar 생일자 처리
 │   └── utils.ts                        ✅ Tailwind clsx + tailwind-merge 유틸 (cn — 뒤 클래스가 앞 클래스를 덮어씀)
