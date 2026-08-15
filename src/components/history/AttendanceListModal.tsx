@@ -48,18 +48,21 @@ export function AttendanceListModal({
   // 반/팀 모달은 한 종류뿐이라 type이 비어 있고, 그대로 한 덩어리로 나온다.
   const students = members.filter((m) => m.type === 'student');
   const teachers = members.filter((m) => m.type === 'teacher');
-  // 색은 화면 다른 곳과 같은 의미색을 쓴다 — 학년(학생)=ink, 선생님=teal
-  // (GroupAttendanceChart의 HEADER_COLOR와 동일).
-  // 배경을 bg-ink/12 같은 반투명으로 주면 sticky 머리글 아래로 스크롤되는 행이 비쳐 보이므로,
+  // 배경을 bg-teal/20 같은 반투명으로 주면 sticky 머리글 아래로 스크롤되는 행이 비쳐 보이므로,
   // color-mix로 같은 톤의 '불투명' 색을 만들어 쓴다.
+  //
+  // 학생 띠는 원래 ink(학년 그룹의 의미색) 틴트였는데, ink가 남색이라 옅히면 채도가 3까지
+  // 떨어져 무채색이 된다 — 모달 뒤 딤드(black/10, 채도 0)와 색 구분이 안 됐다(대비 1.02:1).
+  // 밝기를 올려도 회색 계열이라 해결되지 않아 색상 자체를 stamp로 바꿨다.
+  // 선생님의 차가운 teal과 따뜻한 stamp가 정반대 톤이라 두 구간이 확실히 갈린다.
   const sections =
     students.length > 0 && teachers.length > 0
       ? [
           {
             key: 'student',
             label: '학생',
-            band: 'bg-[color-mix(in_oklab,var(--ink)_12%,var(--paper))]',
-            dot: 'bg-ink',
+            band: 'bg-[color-mix(in_oklab,var(--stamp)_18%,var(--paper))]',
+            dot: 'bg-stamp',
             list: rank(students),
           },
           {
