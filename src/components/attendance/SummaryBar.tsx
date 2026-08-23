@@ -32,10 +32,13 @@ export function SummaryBar({
 }: SummaryBarProps) {
   const rate = total === 0 ? 0 : Math.round((attended / total) * 100);
 
-  const stats: { label: string; value: number; suffix?: string }[] = [
-    { label: '전체', value: total },
-    { label: '출석', value: attended },
-    ...(showAbsent ? [{ label: '결석', value: total - attended }] : []),
+  // unit(명)은 NumberFlow의 suffix가 아니라 옆에 별도 span으로 붙인다 — suffix는 숫자와 같은
+  // 크기로 그려져서, 375px 4칸(칸 콘텐츠폭 50px)에서 "264명"이 61px가 되어 넘친다.
+  // %는 지금처럼 suffix로 둔다(숫자와 함께 굴러가는 게 자연스럽고 폭도 여유가 있다).
+  const stats: { label: string; value: number; unit?: string; suffix?: string }[] = [
+    { label: '전체', value: total, unit: '명' },
+    { label: '출석', value: attended, unit: '명' },
+    ...(showAbsent ? [{ label: '결석', value: total - attended, unit: '명' }] : []),
     { label: '출석률', value: rate, suffix: '%' },
   ];
 
@@ -47,17 +50,28 @@ export function SummaryBar({
       {stats.map((stat) => (
         <div
           key={stat.label}
-          className={`flex flex-1 flex-col items-center gap-0.5 ${compact ? 'px-3 py-1.5' : 'px-4 py-4'}`}
+          // 모바일은 좌우 패딩을 줄여 '명'이 들어갈 자리를 만든다 (칸 콘텐츠폭 50 → 66px).
+          // 덤으로 '출석률' 라벨이 두 줄로 접히던 것도 해소된다.
+          className={`flex flex-1 flex-col items-center gap-0.5 ${compact ? 'px-2 py-1.5 sm:px-3' : 'px-2 py-4 sm:px-4'}`}
         >
           <span className="font-display text-[14px] tracking-[0.25em] text-paper/55">{stat.label}</span>
           {loading ? (
             <Skeleton className={`my-1 bg-paper/20 ${compact ? 'h-5 w-8' : 'h-6 w-10'}`} />
           ) : (
-            <RollingNumber
-              value={stat.value}
-              suffix={stat.suffix}
-              className={`font-display font-bold tabular-nums text-paper ${compact ? 'text-lg' : 'text-2xl'}`}
-            />
+            <span className="flex items-baseline gap-0.5">
+              <RollingNumber
+                value={stat.value}
+                suffix={stat.suffix}
+                className={`font-display font-bold tabular-nums text-paper ${compact ? 'text-lg' : 'text-2xl'}`}
+              />
+              {stat.unit && (
+                <span
+                  className={`font-display font-semibold self-center text-paper/70 ${compact ? 'text-[11px]' : 'text-sm'}`}
+                >
+                  {stat.unit}
+                </span>
+              )}
+            </span>
           )}
         </div>
       ))}
