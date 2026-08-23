@@ -483,10 +483,15 @@ export default function BirthdayPage() {
               {isLoading ? (
                 <Skeleton className="my-1 h-6 w-10 bg-paper/20" />
               ) : (
-                <RollingNumber
-                  value={stat.value}
-                  className="font-display text-2xl font-bold tabular-nums text-paper"
-                />
+                // '명'은 숫자보다 작게 별도 span으로 — 같은 크기로 붙이면 좁은 화면에서 넘친다
+                // (SummaryBar와 같은 처리)
+                <span className="flex items-baseline gap-0.5">
+                  <RollingNumber
+                    value={stat.value}
+                    className="font-display text-2xl font-bold tabular-nums text-paper"
+                  />
+                  <span className="self-center font-display text-sm font-semibold text-paper/70">명</span>
+                </span>
               )}
             </div>
           ))}
