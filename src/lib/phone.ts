@@ -44,7 +44,7 @@ function hyphenate(digits: string): string {
 function isCompletePhone(digits: string): boolean {
   return (
     /^02\d{7,8}$/.test(digits) || // 02-123-4567 / 02-1234-5678
-    /^01\d{8,9}$/.test(digits) || // 010-1234-5678 / 011-123-4567
+    /^01\d{8,9}$/.test(digits) || // 010-0000-0000 / 011-000-0000
     /^0[3-6]\d{7,9}$/.test(digits) || // 031-123-4567 등 지역번호
     /^1[5-9]\d{6}$/.test(digits) // 1588-1234
   );

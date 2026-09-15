@@ -82,8 +82,8 @@ Google Sheets는 WebSocket을 지원하지 않으므로 Polling 방식을 사용
 | Grade | string | 1, 2, 3 (학년) |
 | Class | string | 반 번호 |
 | Name | string | 학생 이름 |
-| Phone | string | 학생 연락처 |
-| ParentPhone | string | 부모 연락처 |
+| Phone | string | 학생 연락처 — 자유 문자열. 폼은 `PhoneInput`이 `010-0000-0000` 형태로 하이픈을 붙이지만 시트 값을 일괄 정규화하지는 않는다 |
+| ParentPhone | string | 부모 연락처 — 한 칸에 `010-0000-0000(모),010-0000-0000(부)`처럼 **관계 표기와 복수 번호**가 들어있는 칸이 있다. 구분자는 쉼표와 줄바꿈 둘 다 쓰이므로 쪼갤 때는 `splitPhones` 사용 |
 | Address | string | 주소 |
 | Birthdate | string | 생년월일 (YYYY-MM-DD) |
 | School | string | 학교명 |
@@ -331,6 +331,7 @@ src/
 │       ├── AlertDialog.tsx             ✅ 경고 알림 모달 (네이티브 alert() 대체 — 제목 + 라벨/값 상세 + 확인 버튼)
 │       ├── PublicGate.tsx              ✅ 공개 4화면(/, /history, /birthday, /registry) 교사용 게이트 래퍼
 │       ├── Skeleton.tsx                ✅ 로딩 스켈레톤 프리미티브 (pulse 박스 — 각 화면 스켈레톤이 공용)
+│       ├── PhoneInput.tsx              ✅ 연락처 입력칸 — 타이핑하는 대로 하이픈 삽입 (학생 폼 2칸·교사 폼 1칸 공용). 커서는 '앞쪽 숫자 개수' 기준으로 복원해 가운데를 고쳐도 끝으로 튀지 않음
 │       ├── RollingNumber.tsx           ✅ 자릿수 굴러가는 숫자 (@number-flow/react 래퍼, 마운트 시 0→값 카운팅)
 │       ├── LiveClock.tsx               ✅ 현재 시각 롤링 시계 (Header에서 사용)
 │       ├── LoadingOverlay.tsx          ✅ 저장/삭제 처리 중 팝업 전체를 덮는 스피너 오버레이 (학생/교사 폼)
@@ -357,6 +358,7 @@ src/
 │   ├── date.ts                         ✅ 한국 시간 기준 날짜 유틸 (formatDateLabel 전체 표기 / formatDateLabelShort 연도 생략 — 폭이 빠듯한 조회 컨트롤 전용)
 │   ├── birthdays.ts                    ✅ 생일 계산 유틸
 │   ├── lunar.ts                        ✅ 음력→해당 연도 양력 변환 (korean-lunar-calendar) — 교사 Lunar 생일자 처리
+│   ├── phone.ts                        ✅ 연락처 하이픈 표기 — formatPhoneInput(타이핑 중) / formatPhoneDisplay(표시) / splitPhones(복수 번호 분리). **번호로 보일 때만** 손댄다 — 관계 표기·`휴대폰없음` 같은 값은 원본 유지
 │   └── utils.ts                        ✅ Tailwind clsx + tailwind-merge 유틸 (cn — 뒤 클래스가 앞 클래스를 덮어씀)
 └── types/
     └── index.ts                        ✅ 전역 타입 정의 (Session / MemberType / Student / Teacher / AttendanceRecord)
