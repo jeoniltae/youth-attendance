@@ -215,3 +215,15 @@ GAS → Next.js 마이그레이션의 단계별 실행 이력입니다. `CLAUDE.
   - [x] 커서 보존: 문자 위치가 아니라 **커서 앞의 숫자 개수**를 기준으로 복원(하이픈 증감과 무관). `010`은 항상 3-4-4로 고정해 입력 중 하이픈이 이동하지 않게 함
   - [x] 검증: 실데이터 820칸 + 입력 시뮬레이션 — 숫자 손실 0건, 관계 표기 보존 17칸, 하이픈 없던 4칸 전부 표기 전환, 번호 아닌 2칸 원본 유지, 정상 728칸 무변경, 타이핑 6종(010·02 2형태·031·1588·011) 정확, 자유 입력 3종 통과, 삭제 시 하이픈 되살아남 없음, 복수 번호 15칸 `tel:` 정상, `npm run build` 통과
   - 결정 근거는 `docs/context-notes.md`의 "연락처 하이픈 자동 표기" 섹션 참조
+- [x] 교적부 전용 비밀번호 분리 + 인증 게이트 캐시 누수 수정 — 2026-09-16
+  - [x] `useAuthGate.ts`·`api/auth/route.ts` — role에 `registry` 추가(`REGISTRY_PASSWORD` / `registry_token`). 교적부는 주소·생년월일·부모 연락처를 한 화면에 모아 보여줘서 교사 전체가 아는 비밀번호로 열어두기엔 범위가 넓다는 판단
+  - [x] 세 게이트(`session`/`registry`/`admin`)는 **서로 독립** — 관리자도 교적부는 다시 입력해야 한다(의도된 동작). role 간 비밀번호 통용 안 됨(401 확인)
+  - [x] `registry/page.tsx` — `PublicGate`(교사용 문구 고정) 대신 `/teachers`처럼 `AuthGateModal` 직접 사용. 문구를 props로 빼면 공개 3화면 호출부까지 고쳐야 해서 피함. 취소 버튼 → `router.push("/")` (주소창 직접 진입 시 `back()`은 앱 밖으로 나감)
+  - [x] 메인 화면의 교적부 버튼은 **진입로 확보를 위해 그대로 노출** — 권한 없으면 모달에서 막힘
+  - [x] **버그 수정(중요)**: `enabled: false`는 새 요청만 막고 **캐시 읽기는 막지 못한다.** `["roster", session]`을 `/`·`/history`·`/registry`·`/teachers`가 공유해서, 메인에서 인증해 캐시를 채운 뒤 교적부로 이동하면 모달 뒤에 명단 전체가 그려졌다. `/teachers`도 동일하게 뚫려 있었음
+  - [x] 수정 방식 — 표가 하나인 `/registry`·`/teachers`는 `{!isAuthenticated ? null : …}`로 렌더 차단, 표시 지점이 여럿인 `/`·`/history`·`/birthday`는 `isLoading`에 인증 여부를 합쳐 요약 바·플로팅 바·필터 칩까지 한 번에 덮음
+  - [x] `/members`는 대상 아님 — `["students"|"teachers", session]`을 `/members`만 써서 다른 화면이 캐시를 채울 경로가 없음(캐시 키 전수 확인)
+  - [x] `useRoster.ts`의 "enabled:false가 강한 보호"라는 **틀린 주석을 정정**하고 함정을 명시
+  - [x] 검증: role별 인증(200/401/400) · role 간 격리(401) · 게이트 배선 6화면 · `npm run build` 통과. **화면 동작은 사용자가 직접 확인**(메인→교적부, 교적부→메인 양방향)
+  - [x] 배포: Vercel에 `REGISTRY_PASSWORD`(Production+Preview) 등록 후 **재배포 필요** — 누락 시 `/api/auth` 500으로 교적부가 열리지 않음. `docs/security-checklist.md`에 기재
+  - 결정 근거는 `docs/context-notes.md`의 "교적부 전용 비밀번호 + 인증 게이트의 캐시 누수" 섹션 참조

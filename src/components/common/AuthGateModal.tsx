@@ -1,5 +1,6 @@
 "use client";
-// 비밀번호 입력 모달 — /members(관리자) + 공개 4화면(교사) 공용 인증 게이트
+// 비밀번호 입력 모달 — 세 게이트 공용 (admin: /members·/teachers, session: 공개 3화면,
+// registry: /registry). 제목·설명은 호출부가 정하고, 취소 버튼은 onCancel을 줄 때만 그린다.
 
 import { useState } from "react";
 import { Lock } from "lucide-react";

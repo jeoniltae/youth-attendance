@@ -71,7 +71,10 @@ export default function Home() {
     toggle,
   } = useAttendance(date, session, isSessionAuthenticated);
 
-  const isLoading = rosterLoading || attendanceLoading;
+  // 인증 전에는 "아직 로딩 중"으로 취급한다 — useRoster의 enabled:false는 새 요청만 막고
+  // 캐시 읽기는 막지 못해서, 다른 화면(교적부 등)이 같은 queryKey로 받아둔 데이터가 있으면
+  // 게이트 모달 뒤에 출석 카드와 요약 숫자가 그대로 그려진다 (useRoster.ts 주석 참고)
+  const isLoading = !isSessionAuthenticated || rosterLoading || attendanceLoading;
   const isError = rosterError || attendanceError;
 
   // 화면이 다루는 날짜(date)가 실제 오늘과 같을 때만 체크 가능 — 지난 예배는 조회만,
