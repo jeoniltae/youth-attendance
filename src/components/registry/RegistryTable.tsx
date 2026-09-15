@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/tooltip";
 import { RollingNumber } from "@/components/common/RollingNumber";
 import { RateBar } from "@/components/registry/RateBar";
+import { formatPhoneDisplay, splitPhones } from "@/lib/phone";
 import type { HalfTermStats } from "@/api/stats";
 import type { Session, Student } from "@/types";
 
@@ -130,14 +131,13 @@ export function RegistryTable({
   const textCell = (v: unknown) => (v ? String(v) : "—");
 
   // 연락처 셀 — tel: 링크로 감싸 스마트폰에서 탭하면 바로 전화 연결.
-  // 쉼표로 여러 번호가 있으면 각각 별도 링크로 처리(tel: 값은 숫자·+만 남김)
+  // 여러 번호가 든 칸은 각각 별도 링크로 처리하고(splitPhones가 쉼표·줄바꿈 모두 구분),
+  // 하이픈이 없이 저장된 번호는 formatPhoneDisplay로 하이픈을 넣어 보여준다.
+  // 시트 값 자체는 건드리지 않는다 — 표기만 화면에서 통일한다.
   const telCell = (v: unknown) => {
     const raw = v ? String(v).trim() : "";
     if (!raw) return "—";
-    return raw
-      .split(",")
-      .map((p) => p.trim())
-      .filter(Boolean)
+    return splitPhones(raw)
       .map((part, idx) => (
         <Fragment key={idx}>
           {idx > 0 && ", "}
@@ -145,7 +145,7 @@ export function RegistryTable({
             href={`tel:${part.replace(/[^\d+]/g, "")}`}
             className="whitespace-nowrap font-medium text-teal no-underline hover:underline"
           >
-            {part}
+            {formatPhoneDisplay(part)}
           </a>
         </Fragment>
       ));

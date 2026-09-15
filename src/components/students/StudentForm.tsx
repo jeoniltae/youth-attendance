@@ -11,6 +11,7 @@ import {
 import { Loader2, TriangleAlert } from "lucide-react";
 import { Skeleton } from "@/components/common/Skeleton";
 import { LoadingOverlay } from "@/components/common/LoadingOverlay";
+import { PhoneInput } from "@/components/common/PhoneInput";
 import { formatDateLabel, parseInputDate, sundaysThisYear } from "@/lib/date";
 import { toggleAttendance } from "@/api/attendance";
 import { getMemberStats } from "@/api/stats";
@@ -336,19 +337,19 @@ export function StudentForm({
               />
             </Field>
             <Field label="학생 연락처">
-              <input
+              <PhoneInput
                 className={inputClass}
                 value={draft.phone}
-                onChange={(e) => update("phone", e.target.value)}
+                onChange={(v) => update("phone", v)}
                 placeholder="010-0000-0000"
               />
             </Field>
             <div className="col-span-2 sm:col-span-1">
               <Field label="부모 연락처">
-                <input
+                <PhoneInput
                   className={inputClass}
                   value={draft.parentPhone}
-                  onChange={(e) => update("parentPhone", e.target.value)}
+                  onChange={(v) => update("parentPhone", v)}
                   placeholder="010-0000-0000"
                 />
               </Field>
