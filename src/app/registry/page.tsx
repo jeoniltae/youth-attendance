@@ -99,6 +99,8 @@ export default function RegistryPage() {
               session={session}
               onSessionChange={handleSessionChange}
               rates={ratesData?.rates}
+              firstHalf={ratesData?.firstHalf}
+              secondHalf={ratesData?.secondHalf}
               loading={isPlaceholderData}
             />
           )}
