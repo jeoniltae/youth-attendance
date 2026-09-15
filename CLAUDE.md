@@ -247,9 +247,11 @@ GET  /api/birthdays?session=오전                     → 세션별 학생·교
 
 GET  /api/stats?session=오전                         → 최근 1년 학년별·교사별 출석률 통계
 GET  /api/stats/member?id=&session=오전              → 개인(학생/교사) 최근 3개월·1년 출석일수/예배일수
-GET  /api/stats/rates                                → 전 인원 1년 출석률 일괄 계산 → { total1y, rates: { [id]: % } }
-                                                       (교적부·교사 현황의 "출석률(1년기준)" 컬럼용. 세션 무관,
-                                                        Attendance 1회 읽기로 계산 — 시트의 출석률 컬럼은 비어 있음)
+GET  /api/stats/rates                                → { total1y, rates, firstHalf, secondHalf }
+                                                       (교적부·교사 현황의 "출석률(1년기준)" + 교적부의
+                                                        "상반기/하반기" 컬럼용. 세션 무관, Attendance 1회
+                                                        읽기로 세 집계를 한 번에 계산. 분모는 서로 달라서
+                                                        1년은 실제 기록이 있는 날 수, 반기는 일요일 수다)
 
 GET  /api/summary?date=YYYY-MM-DD&session=오전       → 요약 통계 (현재 미사용 — roster+attendance로 클라이언트에서 직접 계산, 엔드포인트는 보류 상태로 유지)
 POST /api/auth { password, role }                    → role별(session/admin) 비밀번호 검증
@@ -281,7 +283,7 @@ src/
 │       ├── stats/
 │       │   ├── route.ts                ✅ 1년 출석 통계(GET) — 학년별·교사별 집계
 │       │   ├── member/route.ts         ✅ 개인 출석 통계(GET) — 최근 3개월/1년 (학생·교사 폼)
-│       │   └── rates/route.ts          ✅ 전 인원 1년 출석률 일괄 계산(GET) — id→% 맵 (교적부·교사 현황 컬럼)
+│       │   └── rates/route.ts          ✅ 전 인원 출석 집계 일괄 계산(GET) — 1년 출석률(id→%) + 올해 상/하반기 출석 횟수. 분자는 셋 다 같은 규칙(하루 1회, 날짜 Set)이지만 **분모가 다르다** — 1년은 실제 예배일 수, 반기는 countSundays()로 센 일요일 수(고정)
 │       ├── students/
 │       │   ├── route.ts                ✅ 학생 목록 조회(GET) / 신규 등록(POST)
 │       │   └── [id]/route.ts           ✅ 학생 수정(PUT) / 삭제(DELETE)
@@ -315,7 +317,7 @@ src/
 │   ├── teachers/
 │   │   └── TeacherForm.tsx             ✅ 교사 추가/수정/삭제 모달 폼 (출석 수정 포함)
 │   ├── registry/
-│   │   ├── RegistryTable.tsx           ✅ 교적부 통합 테이블 (TanStack Table: 세션/학년 탭·이름 검색·정렬·sticky·담당교사 칩)
+│   │   ├── RegistryTable.tsx           ✅ 교적부 통합 테이블 (TanStack Table: 세션/학년 탭·이름 검색·정렬·sticky·담당교사 칩). 상반기/하반기(출석횟수/반기 일요일 수 — 분모 고정) + 출석률(1년기준) 컬럼. ⚠️ 출석 계산값은 accessorFn이 아니라 **행 데이터(RegistryRow)에 합쳐** 둔다 — 늦게 도착하는 값을 accessorFn으로 읽으면 TanStack 행 값 캐시에 초기 0이 박힘
 │   │   ├── RegistryTableSkeleton.tsx   ✅ 교적부 로딩 스켈레톤
 │   │   ├── TeacherRegistryTable.tsx    ✅ 교사 현황 통합 테이블 (교적부 교사판: 세션/팀 탭·이름 검색·정렬·sticky)
 │   │   ├── TeacherRegistryTableSkeleton.tsx ✅ 교사 현황 로딩 스켈레톤
