@@ -53,22 +53,37 @@ Google Sheets는 WebSocket을 지원하지 않으므로 Polling 방식을 사용
 - 출석 버튼 클릭 → UI 즉시 반영(0ms) → 서버 저장(~300ms) → 실패 시 롤백
 
 ### 인증 구조
-비밀번호 게이트를 두 단계로 분리합니다. 레거시 GAS는 구글 계정 관리자 승인이 있어야
+비밀번호 게이트를 세 단계로 분리합니다. 레거시 GAS는 구글 계정 관리자 승인이 있어야
 출석부 화면 자체를 볼 수 있었는데, 새 앱도 동일한 수준으로 공개 화면을 보호합니다.
 
-- **교사용 게이트**(`session` role): `/`(출석체크)·`/history`(출석 현황)·`/birthday`(생일자)·
-  `/registry`(교적부) 공개 4화면 진입 시 `PublicGate` 컴포넌트가 비밀번호를 요구합니다. 여러
-  교사가 공유해서 아는 비밀번호(`SESSION_PASSWORD`)이며, 통과하면 `sessionStorage`에
-  `session_token`을 저장(한 번 통과하면 4화면 공통).
+- **교사용 게이트**(`session` role): `/`(출석체크)·`/history`(출석 현황)·`/birthday`(생일자)
+  공개 3화면 진입 시 `PublicGate` 컴포넌트가 비밀번호를 요구합니다. 여러 교사가 공유해서
+  아는 비밀번호(`SESSION_PASSWORD`)이며, 통과하면 `sessionStorage`에 `session_token`을
+  저장(한 번 통과하면 3화면 공통).
+- **교역자용 게이트**(`registry` role): `/registry`(교적부) 진입 시 별도 비밀번호
+  (`REGISTRY_PASSWORD`)를 요구합니다. 교적부는 주소·생년월일·부모 연락처를 한 화면에 모아
+  보여줘서 교사 전체가 아는 비밀번호로 열어두기엔 범위가 넓다는 판단입니다. `registry_token`
+  으로 저장되며, 문구가 교사용과 달라야 해서 `PublicGate`를 쓰지 않고 `/teachers`처럼
+  `AuthGateModal`을 직접 띄웁니다(취소 버튼 → `/`).
 - **관리자용 게이트**(`admin` role): `/members`(학생·교사 데이터 수정)·`/teachers`(교사 명단
   열람) 진입 시 별도 비밀번호(`ADMIN_PASSWORD`)를 요구합니다. `admin_token`으로 별도 저장되어
   교사용 인증과 섞이지 않습니다.
-- 두 게이트 모두 `POST /api/auth { password, role }`로 검증하고, `useAuthGate(role)` 훅 +
+- **세 게이트는 서로 독립입니다.** 관리자라고 교적부가 자동으로 열리지 않고, 교사용을 통과해도
+  교적부는 다시 물어봅니다(의도된 동작). 메인 화면의 교적부 버튼은 진입로 확보를 위해 모두에게
+  보이며, 권한이 없으면 모달에서 막힙니다.
+- 세 게이트 모두 `POST /api/auth { password, role }`로 검증하고, `useAuthGate(role)` 훅 +
   `AuthGateModal` 컴포넌트를 공유합니다 (`src/hooks/useAuthGate.ts`,
   `src/components/common/AuthGateModal.tsx`, `src/components/common/PublicGate.tsx`).
 - **보호 수준은 화면(UI) 레벨입니다.** 데이터 API(`/api/students` 등)에는 서버사이드
   인증 체크가 없어 URL을 알면 직접 호출은 가능합니다 — "외부인이 화면 URL로 못 들어오게"가
   목표이며, API 자체를 잠그는 건 별도 작업 범위입니다.
+- ⚠️ **게이트 화면은 데이터 훅의 `enabled`뿐 아니라 렌더도 막아야 합니다.** React Query의
+  `enabled: false`는 새 요청만 막고 **캐시 읽기는 막지 못합니다.** `["roster", session]`처럼
+  queryKey를 공유하는 화면이 있으면, 다른 화면에서 이미 받아둔 데이터가 그대로 꺼내져
+  `isLoading`이 false가 되고 게이트 모달 뒤에 실데이터가 그려집니다. 표가 하나면
+  `{!isAuthenticated ? null : …}`로, 표시 지점이 여러 곳이면 `isLoading`에 인증 여부를
+  합쳐서 막습니다. **주소창으로 직접 들어가면 캐시가 비어 있어 증상이 안 보이므로, 검증은
+  반드시 다른 화면을 거쳐 이동하는 경로로 해야 합니다**(SSR HTML 확인으로는 잡히지 않음).
 
 ## 스프레드시트 DB 구조
 
@@ -82,15 +97,15 @@ Google Sheets는 WebSocket을 지원하지 않으므로 Polling 방식을 사용
 | Grade | string | 1, 2, 3 (학년) |
 | Class | string | 반 번호 |
 | Name | string | 학생 이름 |
-| Phone | string | 학생 연락처 |
-| ParentPhone | string | 부모 연락처 |
+| Phone | string | 학생 연락처 — 자유 문자열. 폼은 `PhoneInput`이 `010-0000-0000` 형태로 하이픈을 붙이지만 시트 값을 일괄 정규화하지는 않는다 |
+| ParentPhone | string | 부모 연락처 — 한 칸에 `010-0000-0000(모),010-0000-0000(부)`처럼 **관계 표기와 복수 번호**가 들어있는 칸이 있다. 구분자는 쉼표와 줄바꿈 둘 다 쓰이므로 쪼갤 때는 `splitPhones` 사용 |
 | Address | string | 주소 |
 | Birthdate | string | 생년월일 (YYYY-MM-DD) |
 | School | string | 학교명 |
 | Teacher | string | 담당 교사 |
 | Notes | string | 비고 |
 | 출석률 | string | 출석률(%) — 실제 운영 시트 헤더가 한글, 컬럼명 그대로 표기 |
-| 세례 | string | 세례 여부/구분 — 실제 운영 시트 헤더가 한글, 컬럼명 그대로 표기 |
+| 세례 | string | `미세례` \| `유아세례` \| `입교` \| `학습` \| `세례` (빈 값 허용) — 실제 운영 시트 헤더가 한글, 컬럼명 그대로 표기. **검증 없는 자유 문자열이라 목록 밖 값(`모태신앙` 등)이 실제로 섞여 있다** — `StudentForm`이 `(기존 값)` option으로 보존하므로 화면에서 값이 사라지진 않는다 |
 | gender | string | `남` \| `여` — 실제 운영 시트 헤더가 영문 소문자, 컬럼명 그대로 표기 |
 
 ### Teachers 시트
@@ -247,9 +262,11 @@ GET  /api/birthdays?session=오전                     → 세션별 학생·교
 
 GET  /api/stats?session=오전                         → 최근 1년 학년별·교사별 출석률 통계
 GET  /api/stats/member?id=&session=오전              → 개인(학생/교사) 최근 3개월·1년 출석일수/예배일수
-GET  /api/stats/rates                                → 전 인원 1년 출석률 일괄 계산 → { total1y, rates: { [id]: % } }
-                                                       (교적부·교사 현황의 "출석률(1년기준)" 컬럼용. 세션 무관,
-                                                        Attendance 1회 읽기로 계산 — 시트의 출석률 컬럼은 비어 있음)
+GET  /api/stats/rates                                → { total1y, rates, firstHalf, secondHalf }
+                                                       (교적부·교사 현황의 "출석률(1년기준)" + 교적부의
+                                                        "상반기/하반기" 컬럼용. 세션 무관, Attendance 1회
+                                                        읽기로 세 집계를 한 번에 계산. 분모는 서로 달라서
+                                                        1년은 실제 기록이 있는 날 수, 반기는 일요일 수다)
 
 GET  /api/summary?date=YYYY-MM-DD&session=오전       → 요약 통계 (현재 미사용 — roster+attendance로 클라이언트에서 직접 계산, 엔드포인트는 보류 상태로 유지)
 POST /api/auth { password, role }                    → role별(session/admin) 비밀번호 검증
@@ -264,7 +281,7 @@ src/
 │   ├── history/page.tsx                ✅ 출석 현황 (1주 기본 / 기간 모드 — weeks=1이 곧 1주 모드라 렌더 경로는 하나)
 │   ├── members/page.tsx                ✅ 교적 관리 (관리자) — Google Sheets 실연동, 비밀번호 게이트
 │   ├── birthday/page.tsx               ✅ 생일자 조회
-│   ├── registry/page.tsx               ✅ 교적부 (교사용 열람 전용 학생 명단 그리드) — session 게이트
+│   ├── registry/page.tsx               ✅ 교적부 (열람 전용 학생 명단 그리드) — **registry 게이트**(교역자·부장집사 전용, 공개 3화면과 다른 비밀번호)
 │   ├── teachers/page.tsx               ✅ 교사 현황 (관리자 열람 전용 교사 명단 그리드) — admin 게이트
 │   ├── providers.tsx                   ✅ React Query QueryClientProvider + 전역 ScrollToTopButton
 │   ├── layout.tsx                      ✅ 루트 레이아웃
@@ -281,7 +298,7 @@ src/
 │       ├── stats/
 │       │   ├── route.ts                ✅ 1년 출석 통계(GET) — 학년별·교사별 집계
 │       │   ├── member/route.ts         ✅ 개인 출석 통계(GET) — 최근 3개월/1년 (학생·교사 폼)
-│       │   └── rates/route.ts          ✅ 전 인원 1년 출석률 일괄 계산(GET) — id→% 맵 (교적부·교사 현황 컬럼)
+│       │   └── rates/route.ts          ✅ 전 인원 출석 집계 일괄 계산(GET) — 1년 출석률(id→%) + 올해 상/하반기 출석 횟수. 분자는 셋 다 같은 규칙(하루 1회, 날짜 Set)이지만 **분모가 다르다** — 1년은 실제 예배일 수, 반기는 countSundays()로 센 일요일 수(고정)
 │       ├── students/
 │       │   ├── route.ts                ✅ 학생 목록 조회(GET) / 신규 등록(POST)
 │       │   └── [id]/route.ts           ✅ 학생 수정(PUT) / 삭제(DELETE)
@@ -311,11 +328,11 @@ src/
 │   ├── stats/
 │   │   └── YearlyStats.tsx             ✅ 1년 통계 플로팅 오버레이 (도넛 차트)
 │   ├── students/
-│   │   └── StudentForm.tsx             ✅ 학생 추가/수정/삭제 모달 폼 (출석 수정 포함)
+│   │   └── StudentForm.tsx             ✅ 학생 추가/수정/삭제 모달 폼 (출석 수정 포함). 세례 select는 `미선택`(빈 값)과 목록 밖 기존 값을 임시 option으로 살려 둔다 — 제어 select는 값이 목록에 없으면 빈 칸을 그리는데, 저장이 행 전체를 덮어써서 그대로 두면 기록이 지워진다
 │   ├── teachers/
 │   │   └── TeacherForm.tsx             ✅ 교사 추가/수정/삭제 모달 폼 (출석 수정 포함)
 │   ├── registry/
-│   │   ├── RegistryTable.tsx           ✅ 교적부 통합 테이블 (TanStack Table: 세션/학년 탭·이름 검색·정렬·sticky·담당교사 칩)
+│   │   ├── RegistryTable.tsx           ✅ 교적부 통합 테이블 (TanStack Table: 세션/학년 탭·이름 검색·정렬·sticky·담당교사 칩). 상반기/하반기(출석횟수/반기 일요일 수 — 분모 고정) + 출석률(1년기준) 컬럼. ⚠️ 출석 계산값은 accessorFn이 아니라 **행 데이터(RegistryRow)에 합쳐** 둔다 — 늦게 도착하는 값을 accessorFn으로 읽으면 TanStack 행 값 캐시에 초기 0이 박힘
 │   │   ├── RegistryTableSkeleton.tsx   ✅ 교적부 로딩 스켈레톤
 │   │   ├── TeacherRegistryTable.tsx    ✅ 교사 현황 통합 테이블 (교적부 교사판: 세션/팀 탭·이름 검색·정렬·sticky)
 │   │   ├── TeacherRegistryTableSkeleton.tsx ✅ 교사 현황 로딩 스켈레톤
@@ -327,8 +344,9 @@ src/
 │   └── common/
 │       ├── AuthGateModal.tsx           ✅ 비밀번호 입력 모달 (admin/session 공용, 오류 시 shake)
 │       ├── AlertDialog.tsx             ✅ 경고 알림 모달 (네이티브 alert() 대체 — 제목 + 라벨/값 상세 + 확인 버튼)
-│       ├── PublicGate.tsx              ✅ 공개 4화면(/, /history, /birthday, /registry) 교사용 게이트 래퍼
+│       ├── PublicGate.tsx              ✅ 공개 3화면(/, /history, /birthday) 교사용 게이트 래퍼 — 문구가 교사용으로 고정이라 session role 전용. /registry는 거치지 않음
 │       ├── Skeleton.tsx                ✅ 로딩 스켈레톤 프리미티브 (pulse 박스 — 각 화면 스켈레톤이 공용)
+│       ├── PhoneInput.tsx              ✅ 연락처 입력칸 — 타이핑하는 대로 하이픈 삽입 (학생 폼 2칸·교사 폼 1칸 공용). 커서는 '앞쪽 숫자 개수' 기준으로 복원해 가운데를 고쳐도 끝으로 튀지 않음
 │       ├── RollingNumber.tsx           ✅ 자릿수 굴러가는 숫자 (@number-flow/react 래퍼, 마운트 시 0→값 카운팅)
 │       ├── LiveClock.tsx               ✅ 현재 시각 롤링 시계 (Header에서 사용)
 │       ├── LoadingOverlay.tsx          ✅ 저장/삭제 처리 중 팝업 전체를 덮는 스피너 오버레이 (학생/교사 폼)
@@ -355,6 +373,7 @@ src/
 │   ├── date.ts                         ✅ 한국 시간 기준 날짜 유틸 (formatDateLabel 전체 표기 / formatDateLabelShort 연도 생략 — 폭이 빠듯한 조회 컨트롤 전용)
 │   ├── birthdays.ts                    ✅ 생일 계산 유틸
 │   ├── lunar.ts                        ✅ 음력→해당 연도 양력 변환 (korean-lunar-calendar) — 교사 Lunar 생일자 처리
+│   ├── phone.ts                        ✅ 연락처 하이픈 표기 — formatPhoneInput(타이핑 중) / formatPhoneDisplay(표시) / splitPhones(복수 번호 분리). **번호로 보일 때만** 손댄다 — 관계 표기·`휴대폰없음` 같은 값은 원본 유지
 │   └── utils.ts                        ✅ Tailwind clsx + tailwind-merge 유틸 (cn — 뒤 클래스가 앞 클래스를 덮어씀)
 └── types/
     └── index.ts                        ✅ 전역 타입 정의 (Session / MemberType / Student / Teacher / AttendanceRecord)
@@ -377,11 +396,15 @@ GOOGLE_SERVICE_ACCOUNT_EMAIL=
 GOOGLE_PRIVATE_KEY=
 GOOGLE_SPREADSHEET_ID=
 
-# 관리자 비밀번호 (/members 전용)
+# 관리자 비밀번호 (/members · /teachers 게이트)
 ADMIN_PASSWORD=
 
-# 교사용 비밀번호 (공개 4화면: /, /history, /birthday, /registry 게이트)
+# 교사용 비밀번호 (공개 3화면: /, /history, /birthday 게이트)
 SESSION_PASSWORD=
+
+# 교역자용 비밀번호 (/registry 교적부 게이트 — 교역자·부장집사 전용)
+# 누락 시 /api/auth가 500을 반환해 교적부가 열리지 않는다
+REGISTRY_PASSWORD=
 ```
 
 실제 값은 `.env.local`에만 작성하고, `docs/context-notes.md`나 코드 주석에도 평문으로 남기지 않습니다.

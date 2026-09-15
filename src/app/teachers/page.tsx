@@ -72,7 +72,12 @@ export default function TeachersPage() {
         className="flex min-h-0 flex-1 flex-col animate-[rise-in_0.5s_ease-out_both]"
         style={{ animationDelay: "70ms" }}
       >
-        {isLoading ? (
+        {/*
+          ⚠️ 인증 전에는 표를 아예 렌더하지 않는다 — /registry와 동일한 이유.
+          useRoster의 enabled:false는 새 요청만 막고, 메인(/)이 같은
+          queryKey(["roster", session])로 받아둔 캐시는 그대로 읽힌다.
+        */}
+        {!isAuthenticated ? null : isLoading ? (
           <TeacherRegistryTableSkeleton />
         ) : isError ? (
           <div className="rounded-2xl border-[1.5px] border-ink/12 bg-paper-deep p-12 text-center text-sm text-celebrate">

@@ -11,6 +11,7 @@ import {
 import { Loader2, TriangleAlert } from "lucide-react";
 import { Skeleton } from "@/components/common/Skeleton";
 import { LoadingOverlay } from "@/components/common/LoadingOverlay";
+import { PhoneInput } from "@/components/common/PhoneInput";
 import { formatDateLabel, parseInputDate, sundaysThisYear } from "@/lib/date";
 import { TEAM_ORDER } from "@/lib/group-members";
 import { toggleAttendance } from "@/api/attendance";
@@ -244,10 +245,10 @@ export function TeacherForm({
               </select>
             </Field>
             <Field label="연락처">
-              <input
+              <PhoneInput
                 className={inputClass}
                 value={draft.phone}
-                onChange={(e) => update("phone", e.target.value)}
+                onChange={(v) => update("phone", v)}
                 placeholder="010-0000-0000"
               />
             </Field>

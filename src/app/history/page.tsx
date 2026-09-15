@@ -109,7 +109,11 @@ export default function HistoryPage() {
   const attended = weeks > 0 ? Math.round(attendedSum / weeks) : 0;
 
   const attendanceQuery = isRange ? range : single;
-  const isLoading = rosterLoading || attendanceQuery.isLoading;
+  // 인증 전에는 "아직 로딩 중"으로 취급한다 — useRoster의 enabled:false는 새 요청만 막고
+  // 캐시 읽기는 막지 못해서, 다른 화면이 같은 queryKey로 받아둔 데이터가 있으면
+  // 게이트 모달 뒤에 실제 명단·집계가 그려진다 (useRoster.ts 주석 참고)
+  const isLoading =
+    !isSessionAuthenticated || rosterLoading || attendanceQuery.isLoading;
   const isError = rosterError || attendanceQuery.isError;
 
   // 본문 바와 스크롤 시 상단에 붙는 플로팅 바가 같은 문구를 쓰도록 한 곳에서 만든다.

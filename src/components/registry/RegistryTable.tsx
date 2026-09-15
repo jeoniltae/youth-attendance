@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/tooltip";
 import { RollingNumber } from "@/components/common/RollingNumber";
 import { RateBar } from "@/components/registry/RateBar";
+import { formatPhoneDisplay, splitPhones } from "@/lib/phone";
+import type { HalfTermStats } from "@/api/stats";
 import type { Session, Student } from "@/types";
 
 // 셀/헤더의 sticky·정렬 부가정보 (TanStack ColumnMeta로 전달)
@@ -33,13 +35,31 @@ import type { Session, Student } from "@/types";
 // widthClass: clamp 컬럼의 폭을 컬럼별로 개별 지정(미지정 시 기본값 사용)
 type ColMeta = { sticky?: "num" | "name"; align?: "center"; clamp?: boolean; widthClass?: string };
 
+/**
+ * 표에 실제로 들어가는 행 — 학생 원본 + 출석 계산값.
+ *
+ * ⚠️ 계산값을 accessorFn(= props를 클로저로 읽는 방식)으로 두면 안 된다.
+ * TanStack은 행 값(getValue)을 행 인스턴스에 캐시하는데, getCoreRowModel은 data가
+ * 바뀔 때만 행을 재생성한다. rates 응답은 표가 그려진 뒤 도착하므로 accessorFn을 쓰면
+ * "첫 렌더의 undefined(=0)"가 캐시에 박히고 cell만 새 값을 읽어 "0/26" 같은 모순이 생긴다.
+ * 계산값을 data에 합쳐 두면 응답 도착 시 data 정체성이 바뀌어 행이 재생성된다.
+ */
+type RegistryRow = Student & {
+  /** 최근 1년 출석률(정수 %) */
+  rate1y: number;
+  /** 올해 상반기 출석 횟수 */
+  h1Count: number;
+  /** 올해 하반기 출석 횟수 */
+  h2Count: number;
+};
+
 // 학년 1→2→3→새친구 순서 고정 (기본 문자열 정렬은 "새친구"가 애매하게 끼는 것 방지)
 const gradeRank = (g: string) => (g === "새친구" ? 99 : parseInt(g, 10) || 98);
-const gradeSort: SortingFn<Student> = (a, b, id) =>
+const gradeSort: SortingFn<RegistryRow> = (a, b, id) =>
   gradeRank(a.getValue(id)) - gradeRank(b.getValue(id));
 
 // 반 번호가 문자열이라 "10"이 "1","2" 사이로 가는 것 방지 (numeric 비교)
-const classSort: SortingFn<Student> = (a, b, id) =>
+const classSort: SortingFn<RegistryRow> = (a, b, id) =>
   String(a.getValue(id)).localeCompare(String(b.getValue(id)), "ko", { numeric: true });
 
 const GRADE_TABS = ["전체", "1", "2", "3"] as const;
@@ -68,6 +88,10 @@ interface RegistryTableProps {
   onSessionChange: (session: Session) => void;
   /** id → 1년 출석률(정수 %). 시트의 출석률 컬럼이 비어 있어 Attendance에서 계산한 값 */
   rates?: Record<string, number>;
+  /** 올해 상반기(1~6월) 출석 횟수 집계 */
+  firstHalf?: HalfTermStats;
+  /** 올해 하반기(7~12월) 출석 횟수 집계 */
+  secondHalf?: HalfTermStats;
   /** 세션 전환 등으로 새 데이터를 불러오는 중 — 그리드를 살짝 흐리게 처리 */
   loading?: boolean;
 }
@@ -77,6 +101,8 @@ export function RegistryTable({
   session,
   onSessionChange,
   rates,
+  firstHalf,
+  secondHalf,
   loading = false,
 }: RegistryTableProps) {
   const [gradeFilter, setGradeFilter] = useState<GradeTab>("전체");
@@ -89,18 +115,29 @@ export function RegistryTable({
 
   const hasNewFamily = useMemo(() => students.some((s) => s.grade === "새친구"), [students]);
 
+  // 출석 계산값을 행에 합친다 (위 RegistryRow 주석 참고 — 캐시 때문에 accessorFn 금지)
+  const data = useMemo<RegistryRow[]>(
+    () =>
+      students.map((s) => ({
+        ...s,
+        rate1y: rates?.[s.id] ?? 0,
+        h1Count: firstHalf?.counts[s.id] ?? 0,
+        h2Count: secondHalf?.counts[s.id] ?? 0,
+      })),
+    [students, rates, firstHalf, secondHalf],
+  );
+
   // 빈 값은 "—"로 표시하는 공통 셀
   const textCell = (v: unknown) => (v ? String(v) : "—");
 
   // 연락처 셀 — tel: 링크로 감싸 스마트폰에서 탭하면 바로 전화 연결.
-  // 쉼표로 여러 번호가 있으면 각각 별도 링크로 처리(tel: 값은 숫자·+만 남김)
+  // 여러 번호가 든 칸은 각각 별도 링크로 처리하고(splitPhones가 쉼표·줄바꿈 모두 구분),
+  // 하이픈이 없이 저장된 번호는 formatPhoneDisplay로 하이픈을 넣어 보여준다.
+  // 시트 값 자체는 건드리지 않는다 — 표기만 화면에서 통일한다.
   const telCell = (v: unknown) => {
     const raw = v ? String(v).trim() : "";
     if (!raw) return "—";
-    return raw
-      .split(",")
-      .map((p) => p.trim())
-      .filter(Boolean)
+    return splitPhones(raw)
       .map((part, idx) => (
         <Fragment key={idx}>
           {idx > 0 && ", "}
@@ -108,13 +145,26 @@ export function RegistryTable({
             href={`tel:${part.replace(/[^\d+]/g, "")}`}
             className="whitespace-nowrap font-medium text-teal no-underline hover:underline"
           >
-            {part}
+            {formatPhoneDisplay(part)}
           </a>
         </Fragment>
       ));
   };
 
-  const columns = useMemo<ColumnDef<Student>[]>(
+  // 반기 출석 셀 — "출석 횟수/그 반기 일요일 수". 분모를 흐리게 둬 앞의 실제 출석 수가 먼저 읽히게 한다.
+  // 분모는 달력으로 미리 계산된 고정값이라, 반기가 진행돼도 8/11 → 8/12처럼 변하지 않는다.
+  // (응답 전이거나 total 0인 비정상 상황에서만 "—")
+  const halfCell = (count: number, stats?: HalfTermStats) => {
+    if (!stats || stats.total === 0) return "—";
+    return (
+      <span className="tabular-nums font-medium text-ink">
+        {count}
+        <span className="font-normal text-ink/45">/{stats.total}</span>
+      </span>
+    );
+  };
+
+  const columns = useMemo<ColumnDef<RegistryRow>[]>(
     () => [
       { id: "번호", header: "번호", enableSorting: false, cell: () => null, meta: { sticky: "num", align: "center" } satisfies ColMeta },
       { accessorKey: "name", header: "이름", filterFn: "includesString", cell: (c) => textCell(c.getValue()), meta: { sticky: "name" } satisfies ColMeta },
@@ -128,17 +178,34 @@ export function RegistryTable({
       { accessorKey: "address", header: "주소", cell: (c) => textCell(c.getValue()) },
       { accessorKey: "baptism", header: "세례", cell: (c) => textCell(c.getValue()), meta: { align: "center" } satisfies ColMeta },
       {
+        id: "firstHalf",
+        header: "상반기",
+        // 정렬은 '출석 횟수' 기준(분모는 전원 동일하므로 비율 정렬과 결과가 같다)
+        accessorKey: "h1Count",
+        sortingFn: "basic",
+        cell: (c) => halfCell(c.getValue<number>(), firstHalf),
+        meta: { align: "center" } satisfies ColMeta,
+      },
+      {
+        id: "secondHalf",
+        header: "하반기",
+        accessorKey: "h2Count",
+        sortingFn: "basic",
+        cell: (c) => halfCell(c.getValue<number>(), secondHalf),
+        meta: { align: "center" } satisfies ColMeta,
+      },
+      {
         id: "attendanceRate",
         header: "출석률(1년기준)",
         // 시트 컬럼이 비어 있어 계산된 rates(id→%)에서 값을 가져온다. 기록 없으면 0%
-        accessorFn: (s) => rates?.[s.id] ?? 0,
+        accessorKey: "rate1y",
         sortingFn: "basic",
         cell: (c) => (rates ? <RateBar value={c.getValue<number>()} /> : "—"),
         meta: { align: "center" } satisfies ColMeta,
       },
       { accessorKey: "notes", header: "비고", cell: (c) => textCell(c.getValue()) },
     ],
-    [rates],
+    [rates, firstHalf, secondHalf],
   );
 
   const columnFilters = useMemo<ColumnFiltersState>(() => {
@@ -149,7 +216,7 @@ export function RegistryTable({
   }, [gradeFilter, nameQuery]);
 
   const table = useReactTable({
-    data: students,
+    data,
     columns,
     state: { sorting, columnFilters },
     onSortingChange: setSorting,
@@ -311,7 +378,7 @@ export function RegistryTable({
           loading ? "pointer-events-none opacity-50" : "opacity-100"
         }`}
       >
-        <table className="w-full min-w-[1040px] border-separate border-spacing-0 text-sm">
+        <table className="w-full min-w-[1180px] border-separate border-spacing-0 text-sm">
           <thead>
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id}>

@@ -17,6 +17,7 @@ import {
 } from "@tanstack/react-table";
 import { ChevronDown, ChevronUp, ChevronsUpDown, Search, X } from "lucide-react";
 import { TEAM_ORDER } from "@/lib/group-members";
+import { formatPhoneDisplay, splitPhones } from "@/lib/phone";
 import { RollingNumber } from "@/components/common/RollingNumber";
 import { RateBar } from "@/components/registry/RateBar";
 import type { Session, Teacher } from "@/types";
@@ -69,25 +70,22 @@ export function TeacherRegistryTable({
 
   const textCell = (v: unknown) => (v ? String(v) : "—");
 
-  // 연락처 셀 — tel: 링크로 감싸 스마트폰에서 탭하면 바로 전화 연결
+  // 연락처 셀 — tel: 링크로 감싸 스마트폰에서 탭하면 바로 전화 연결.
+  // 표기 규칙은 교적부(RegistryTable)와 동일하게 lib/phone.ts를 공유한다
   const telCell = (v: unknown) => {
     const raw = v ? String(v).trim() : "";
     if (!raw) return "—";
-    return raw
-      .split(",")
-      .map((p) => p.trim())
-      .filter(Boolean)
-      .map((part, idx) => (
-        <Fragment key={idx}>
-          {idx > 0 && ", "}
-          <a
-            href={`tel:${part.replace(/[^\d+]/g, "")}`}
-            className="whitespace-nowrap font-medium text-teal no-underline hover:underline"
-          >
-            {part}
-          </a>
-        </Fragment>
-      ));
+    return splitPhones(raw).map((part, idx) => (
+      <Fragment key={idx}>
+        {idx > 0 && ", "}
+        <a
+          href={`tel:${part.replace(/[^\d+]/g, "")}`}
+          className="whitespace-nowrap font-medium text-teal no-underline hover:underline"
+        >
+          {formatPhoneDisplay(part)}
+        </a>
+      </Fragment>
+    ));
   };
 
   const columns = useMemo<ColumnDef<Teacher>[]>(

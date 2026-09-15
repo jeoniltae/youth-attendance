@@ -232,7 +232,15 @@ export default function BirthdayPage() {
   // 단일 인스턴스만 유지 — PublicGate에도 이 값을 그대로 props로 넘겨서
   // 로그인 직후 데이터 훅의 enabled가 함께 갱신되도록 한다 (별도 호출 금지)
   const sessionAuth = useAuthGate("session");
-  const { data, isLoading, isError } = useBirthdays(session, sessionAuth.isAuthenticated);
+  const {
+    data,
+    isLoading: birthdaysLoading,
+    isError,
+  } = useBirthdays(session, sessionAuth.isAuthenticated);
+  // 인증 전에는 "아직 로딩 중"으로 취급한다 — enabled:false는 새 요청만 막고 캐시 읽기는
+  // 막지 못해서, 한 번 받아둔 뒤 다시 들어오면 게이트 모달 뒤에 생일자 명단이 그려진다
+  // (/, /history, /registry도 같은 이유로 동일 처리 — useRoster.ts 주석 참고)
+  const isLoading = !sessionAuth.isAuthenticated || birthdaysLoading;
 
   const groups = useMemo(
     () =>

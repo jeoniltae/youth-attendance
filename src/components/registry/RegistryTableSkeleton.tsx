@@ -3,10 +3,11 @@
 
 import { Skeleton } from "@/components/common/Skeleton";
 
-// 13열을 비율(fr)로 나눠 컨테이너 폭 100%를 채운다 (번호·학년·반은 좁게, 주소·학교는 넓게)
+// 15열을 비율(fr)로 나눠 컨테이너 폭 100%를 채운다 (번호·학년·반·반기는 좁게, 주소·학교는 넓게)
+// ⚠️ RegistryTable의 컬럼 수와 반드시 같아야 한다 — 어긋나면 로딩 중 칸이 밀려 보인다
 // Tailwind JIT가 인식하도록 전체 클래스 문자열을 리터럴로 둔다
 const GRID_COLS =
-  "grid-cols-[0.4fr_0.9fr_0.4fr_0.4fr_0.4fr_1.2fr_1fr_1.1fr_1.1fr_1.6fr_0.5fr_1.2fr_0.7fr]";
+  "grid-cols-[0.4fr_0.9fr_0.4fr_0.4fr_0.4fr_1.2fr_1fr_1.1fr_1.1fr_1.6fr_0.5fr_0.6fr_0.6fr_1.2fr_0.7fr]";
 
 export function RegistryTableSkeleton() {
   return (
@@ -38,7 +39,7 @@ export function RegistryTableSkeleton() {
         <div
           className={`grid ${GRID_COLS} items-center gap-3 border-b-2 border-ink bg-paper-deep px-3 py-3`}
         >
-          {Array.from({ length: 13 }).map((_, i) => (
+          {Array.from({ length: 15 }).map((_, i) => (
             <Skeleton key={i} className="h-4 w-4/5 bg-ink/15" />
           ))}
         </div>
@@ -48,7 +49,7 @@ export function RegistryTableSkeleton() {
             key={r}
             className={`grid ${GRID_COLS} items-center gap-3 border-b border-ink/8 px-3 py-3`}
           >
-            {Array.from({ length: 13 }).map((_, i) => (
+            {Array.from({ length: 15 }).map((_, i) => (
               <Skeleton key={i} className="h-3.5 w-4/5" />
             ))}
           </div>

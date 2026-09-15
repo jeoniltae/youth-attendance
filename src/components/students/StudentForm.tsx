@@ -11,6 +11,7 @@ import {
 import { Loader2, TriangleAlert } from "lucide-react";
 import { Skeleton } from "@/components/common/Skeleton";
 import { LoadingOverlay } from "@/components/common/LoadingOverlay";
+import { PhoneInput } from "@/components/common/PhoneInput";
 import { formatDateLabel, parseInputDate, sundaysThisYear } from "@/lib/date";
 import { toggleAttendance } from "@/api/attendance";
 import { getMemberStats } from "@/api/stats";
@@ -31,7 +32,9 @@ interface StudentFormProps {
 }
 
 const GRADE_OPTIONS = ["1", "2", "3", "새친구"];
-const BAPTISM_OPTIONS = ["세례", "유아세례", "미세례"];
+// 세례 구분 — 교회에서 쓰는 순서 그대로 둔다(가나다/빈도순으로 바꾸지 말 것).
+// 시트의 `세례` 컬럼은 자유 문자열이라 이 목록 밖의 값도 들어 있다 — 아래 select 주석 참고.
+const BAPTISM_OPTIONS = ["미세례", "유아세례", "입교", "학습", "세례"];
 const GENDER_OPTIONS = ["남", "여"];
 
 function emptyDraft(session: Session, grade: string): StudentDraft {
@@ -298,11 +301,28 @@ export function StudentForm({
                 value={draft.baptism}
                 onChange={(e) => update("baptism", e.target.value)}
               >
+                {/*
+                  시트에 세례 값이 비어 있는 학생이 많아 '미선택'을 실제 option으로 둔다.
+                  빈 문자열에 대응하는 option이 없으면 select는 selectedIndex=-1이 되어
+                  빈 칸으로 보이는데, 그러면 "안 고른 것"과 "고를 수 없는 것"이 구분되지 않고
+                  한 번 다른 값을 고르면 빈 값으로 되돌릴 수도 없다.
+                  '미선택'(값 없음)과 '미세례'(세례를 받지 않았다는 기록)는 다른 뜻이다.
+                */}
+                <option value="">미선택</option>
                 {BAPTISM_OPTIONS.map((b) => (
                   <option key={b} value={b}>
                     {b}
                   </option>
                 ))}
+                {/*
+                  목록에 없는 기존 값(모태신앙·미수료 등)은 그 값만의 option을 임시로 덧붙인다.
+                  ⚠️ 없으면 화면이 빈 칸으로 보이는데, 저장(PUT)은 updateRow로 행 전체를 덮어쓰므로
+                  "비어 있네" 하고 다른 값을 고르는 순간 원래 기록이 소리 없이 사라진다.
+                  목록을 정리해 시트 값을 통일하면 이 분기는 자연히 죽는다.
+                */}
+                {draft.baptism && !BAPTISM_OPTIONS.includes(draft.baptism) && (
+                  <option value={draft.baptism}>{draft.baptism} (기존 값)</option>
+                )}
               </select>
             </Field>
           </div>
@@ -317,19 +337,19 @@ export function StudentForm({
               />
             </Field>
             <Field label="학생 연락처">
-              <input
+              <PhoneInput
                 className={inputClass}
                 value={draft.phone}
-                onChange={(e) => update("phone", e.target.value)}
+                onChange={(v) => update("phone", v)}
                 placeholder="010-0000-0000"
               />
             </Field>
             <div className="col-span-2 sm:col-span-1">
               <Field label="부모 연락처">
-                <input
+                <PhoneInput
                   className={inputClass}
                   value={draft.parentPhone}
-                  onChange={(e) => update("parentPhone", e.target.value)}
+                  onChange={(v) => update("parentPhone", v)}
                   placeholder="010-0000-0000"
                 />
               </Field>
