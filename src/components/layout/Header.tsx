@@ -104,7 +104,7 @@ export function Header({ session, onSessionChange, date, actions, mobileMenu }: 
 
       {actions && (
         <div
-          className={`w-full flex-wrap items-center justify-between gap-2 border-t border-dashed border-ink/15 px-5 py-3 lg:w-auto lg:justify-start lg:border-t-0 lg:border-l ${
+          className={`w-full flex-wrap items-center justify-between gap-2 border-t border-dashed border-ink/15 px-5 py-3 lg:w-auto lg:shrink-0 lg:justify-start lg:border-t-0 lg:border-l ${
             mobileMenu ? 'hidden sm:flex' : 'flex'
           }`}
         >

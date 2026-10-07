@@ -4,7 +4,7 @@ type AuthRole = 'admin' | 'session' | 'registry';
 
 // role별 비교 대상 환경변수
 //   admin    : /members(데이터 수정) · /teachers(교사 명단)
-//   session  : 공개 3화면(/, /history, /birthday) — 교사 다수가 공유
+//   session  : 공개 3화면(/, /history, /birthday)·사용 안내(/guide) — 교사 다수가 공유
 //   registry : /registry(학생 교적부) — 교역자·부장집사 전용
 // 비밀번호를 셋으로 나눠, 교사 다수가 아는 비밀번호와 데이터 수정 권한,
 // 그리고 교적부 열람 권한이 서로 섞이지 않도록 한다.
