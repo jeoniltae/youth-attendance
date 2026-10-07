@@ -1,0 +1,58 @@
+<!doctype html>
+<!-- 이미지 합성용 HTML — compose.mjs가 장면마다 /*SHOT*/ 자리에 캡처 경로와 네모 좌표를 넣어 열고, .phone 요소만 찍는다. 배포되지 않는다. -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<style>
+  /* 색은 앱 토큰(src/app/globals.css)과 같은 값. 참고 아티팩트의 .phone/.mark 규칙을 정지 이미지용으로 옮김(애니메이션 없음) */
+  :root {
+    --stamp: oklch(0.68 0.19 32);
+    --frame: oklch(0.25 0.03 260);
+    --paper: oklch(0.99 0.006 95);
+  }
+  html, body { margin: 0; background: var(--paper); }
+  body { padding: 24px; font-family: "IBM Plex Sans KR", "Malgun Gothic", sans-serif; }
+  .phone {
+    position: relative; width: 300px;
+    border: 7px solid var(--frame); border-radius: 30px; overflow: hidden;
+    background: var(--frame);
+  }
+  .phone img { display: block; width: 100%; height: auto; }
+  .mark {
+    position: absolute;
+    border: 3px solid var(--stamp); border-radius: 10px;
+    box-shadow: 0 0 0 4px oklch(0.68 0.19 32 / 0.28);
+  }
+  .mark.soft { border-style: dashed; box-shadow: none; }
+  .mark span {
+    position: absolute; top: -12px; right: -12px;
+    min-width: 24px; height: 24px; padding: 0 6px; border-radius: 12px;
+    background: var(--stamp); color: #fff;
+    font-size: 13px; font-weight: 700; display: grid; place-items: center; white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+<div class="phone" id="phone"></div>
+<script>
+  const SHOT = /*SHOT*/ null;
+  const phone = document.getElementById("phone");
+  const img = new Image();
+  img.src = SHOT.image;
+  img.alt = "";
+  phone.appendChild(img);
+  for (const m of SHOT.marks) {
+    const el = document.createElement("div");
+    el.className = "mark" + (m.soft ? " soft" : "");
+    Object.assign(el.style, { left: m.l + "%", top: m.t + "%", width: m.w + "%", height: m.h + "%" });
+    if (m.label) {
+      const badge = document.createElement("span");
+      badge.textContent = m.label;
+      el.appendChild(badge);
+    }
+    phone.appendChild(el);
+  }
+  img.onload = () => document.body.setAttribute("data-ready", "1");
+</script>
+</body>
+</html>

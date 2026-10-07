@@ -31,7 +31,7 @@
 - `GOOGLE_PRIVATE_KEY`
 - `GOOGLE_SPREADSHEET_ID`
 - `ADMIN_PASSWORD` (/members·/teachers 관리자 게이트)
-- `SESSION_PASSWORD` (/, /history, /birthday 공개 화면 교사용 게이트)
+- `SESSION_PASSWORD` (/, /history, /birthday 공개 화면 + /guide 사용 안내 교사용 게이트)
 - `REGISTRY_PASSWORD` (/registry 교적부 — 교역자·부장집사 전용 게이트)
   - **등록을 빠뜨리면 `/api/auth`가 500을 반환해 교적부가 아예 열리지 않는다.** 소수만 쓰는
     화면이라 한참 뒤에야 발견될 수 있으므로, 등록 직후 실제로 `/registry`를 열어 확인한다.

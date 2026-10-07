@@ -1,5 +1,5 @@
 "use client";
-// 공개 3화면(/, /history, /birthday) 공용 게이트 — 교사용 비밀번호(session role) 검증.
+// 공개 3화면(/, /history, /birthday)·사용 안내(/guide) 공용 게이트 — 교사용 비밀번호(session role) 검증.
 // /members의 관리자 게이트와 별개 토큰(session_token)을 쓰므로 서로 섞이지 않는다.
 //
 // 교사용 문구가 고정이라 이 컴포넌트는 session role 전용이다. /registry는 교역자용

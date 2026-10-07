@@ -1,6 +1,6 @@
 // 비밀번호 게이트 인증 훅 — role별로 sessionStorage 키와 검증 대상 비밀번호를 분리한다.
 //   admin    : /members(학생·교사 데이터 수정) · /teachers(교사 명단 열람)
-//   session  : 공개 3화면(/, /history, /birthday) — 교사 다수가 공유해서 아는 비밀번호
+//   session  : 공개 3화면(/, /history, /birthday)·사용 안내(/guide) — 교사 다수가 공유해서 아는 비밀번호
 //   registry : /registry(학생 교적부) — 교역자·부장집사만 아는 별도 비밀번호
 //
 // registry를 session에서 떼어낸 이유: 교적부는 주소·생년월일·부모 연락처까지 한 화면에

@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { BookUser, Cake, ClipboardList, Lock, TriangleAlert } from "lucide-react";
+import { BookUser, Cake, CircleHelp, ClipboardList, Lock, TriangleAlert } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { MobileNavMenu } from "@/components/layout/MobileNavMenu";
 import { PublicGate } from "@/components/common/PublicGate";
@@ -176,13 +176,26 @@ export default function Home() {
                 </Link>
               </div>
               <div className="hidden h-7 w-[1.5px] self-center rounded-full bg-ink/40 lg:block" />
-              <Link
-                href="/members"
-                className="flex items-center gap-1.5 rounded-full bg-ink px-3.5 py-2 text-sm font-semibold text-paper hover:bg-ink/85"
-              >
-                <Lock className="size-3.5" />
-                학생 관리
-              </Link>
+              {/* 학생 관리 + 사용 안내를 한 묶음으로 — 헤더 줄이 justify-between이라 따로 두면 학생 관리가 가운데로 밀린다 */}
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/members"
+                  className="flex items-center gap-1.5 rounded-full bg-ink px-3.5 py-2 text-sm font-semibold text-paper hover:bg-ink/85"
+                >
+                  <Lock className="size-3.5" />
+                  학생 관리
+                </Link>
+                {/* 640px(sm)에서는 헤더 버튼 줄이 넘치므로 md 미만은 ? 아이콘만 — 이름은 aria-label/title로 */}
+                <Link
+                  href="/guide"
+                  aria-label="사용 안내"
+                  title="사용 안내"
+                  className="flex items-center gap-1.5 whitespace-nowrap rounded-full border border-ink/25 px-2.5 py-1.5 text-sm font-semibold text-ink/70 hover:border-ink/45 hover:text-ink md:px-3"
+                >
+                  <CircleHelp className="size-4 md:size-3.5" />
+                  <span className="hidden md:inline">사용 안내</span>
+                </Link>
+              </div>
             </div>
           }
           mobileMenu={
@@ -219,6 +232,14 @@ export default function Home() {
                   barClass: "bg-stamp",
                   iconClass: "text-stamp",
                   href: "/members",
+                },
+                {
+                  key: "guide",
+                  label: "사용 안내",
+                  icon: CircleHelp,
+                  barClass: "bg-ink/30",
+                  iconClass: "text-ink/60",
+                  href: "/guide",
                 },
               ]}
             />
