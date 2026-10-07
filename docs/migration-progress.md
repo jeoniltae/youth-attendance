@@ -227,3 +227,16 @@ GAS → Next.js 마이그레이션의 단계별 실행 이력입니다. `CLAUDE.
   - [x] 검증: role별 인증(200/401/400) · role 간 격리(401) · 게이트 배선 6화면 · `npm run build` 통과. **화면 동작은 사용자가 직접 확인**(메인→교적부, 교적부→메인 양방향)
   - [x] 배포: Vercel에 `REGISTRY_PASSWORD`(Production+Preview) 등록 후 **재배포 필요** — 누락 시 `/api/auth` 500으로 교적부가 열리지 않음. `docs/security-checklist.md`에 기재
   - 결정 근거는 `docs/context-notes.md`의 "교적부 전용 비밀번호 + 인증 게이트의 캐시 누수" 섹션 참조
+- [x] 사용 안내 페이지 `/guide` + 가짜 데이터 캡처 작업 폴더 `guide/` — 2026-10-05 (feature-workflow 첫 적용, spec·plan은 `docs/plans/2026-10-04-usage-guide/`)
+  - [x] `src/app/guide/page.tsx` **신규** — 교사용(session) 게이트, 통과 전 본문 렌더 안 함. 5개 절(출석 체크·출석 확인·출석현황·생일자·학생 관리) + 자주 묻는 것 7개, 단계 36개·캡처 36장. 교적부는 범위 밖
+  - [x] `src/components/guide/` **신규** — `GuideSection`·`GuideStep`(+`GuideSteps`)·`GuideWarning`·`GuideFaq`
+  - [x] 진입 버튼 — 메인 PC 헤더 끝 테두리형 `사용 안내`(768px 미만은 `?` 아이콘만), 모바일 메뉴 맨 아래 항목. `학생 관리`와 한 묶음으로 감쌈(`justify-between` 줄에서 가운데로 밀리지 않게)
+  - [x] `Header.tsx` 버튼 영역 `lg:shrink-0` — 1024px에서 버튼이 넘치던 문제. `/members`도 1024·1100·1280px 한 줄 확인
+  - [x] `guide/` **신규**(배포 안 됨) — `mock/`(더미 명단 + fetch 가로채기·시계 고정) · `capture/capture.mjs`(촬영 + 네모 좌표 측정) · `pages/`(shots.json, 합성) · `output/` → `public/guide/` 복사. 재촬영 절차는 `guide/README.md`
+  - [x] **스프레드시트 무접촉** — 촬영 서버는 구글 환경변수 무효값(직접 요청 시 500 확인), 촬영 중 서버 `/api` 요청은 사전 점검 1줄(500) 외 0건
+  - [x] 검증(BUILD 중): `tsc --noEmit`·`npm run build` 통과 / 미인증 직접 진입 시 게이트만, 메인에서 인증 후 이동 시 바로 열림 / 375·768px 가로 스크롤 없음 / 바로가기 6개 / README 절차대로 장면 1개 재촬영→`public/guide/` 반영
+  - [x] VERIFY(2026-10-05): tsc·build exit 0, 시나리오 26/26 PASS, 서버 `/api` 요청 0건(사전 점검 제외), 가짜 이름의 실데이터 겹침 0건 — `docs/plans/2026-10-04-usage-guide/verify.md`
+  - [x] 탐색 구조 추가(2026-10-07, 사용자 검토 "스크롤이 너무 길다") — 절 전부 접힌 채 시작 + 대상별 카드(학생·교사·총무팀) + 상단 고정 칩 줄(PC 왼쪽 목차)·현재 절 강조·부드러운 스크롤 + 주소 앵커 진입 시 펼침. `GuideNav.tsx` 신규, `GuideSection.tsx`에 접기·`GuideSubSection`. 390px 첫 화면에 카드 + 절 6개
+  - [x] VERIFY 2차(2026-10-07): tsc·build exit 0, 탐색 구조 23/23·시나리오 25/25 PASS, 서버 로그 `/api` 0건 — `verify.md` "2차 검증"
+  - [x] REVIEW(2026-10-07): code-review 8건 중 6건 수정(현재 절 강조 오판·제목 구조·aria-controls·미사용 eager·합성 치환·도구 정리)·2건 보류, 보안 점검 이상 없음, 수정 후 tsc·build·탐색 23/23·시나리오 25/25 — `verify.md` "REVIEW"
+  - 결정 근거는 `docs/context-notes.md`의 "사용 안내 페이지와 가짜 데이터 캡처" 섹션 참조

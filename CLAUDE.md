@@ -57,9 +57,9 @@ Google Sheets는 WebSocket을 지원하지 않으므로 Polling 방식을 사용
 출석부 화면 자체를 볼 수 있었는데, 새 앱도 동일한 수준으로 공개 화면을 보호합니다.
 
 - **교사용 게이트**(`session` role): `/`(출석체크)·`/history`(출석 현황)·`/birthday`(생일자)
-  공개 3화면 진입 시 `PublicGate` 컴포넌트가 비밀번호를 요구합니다. 여러 교사가 공유해서
-  아는 비밀번호(`SESSION_PASSWORD`)이며, 통과하면 `sessionStorage`에 `session_token`을
-  저장(한 번 통과하면 3화면 공통).
+  공개 3화면과 `/guide`(사용 안내) 진입 시 `PublicGate` 컴포넌트가 비밀번호를 요구합니다.
+  여러 교사가 공유해서 아는 비밀번호(`SESSION_PASSWORD`)이며, 통과하면 `sessionStorage`에
+  `session_token`을 저장(한 번 통과하면 이 화면들 공통).
 - **교역자용 게이트**(`registry` role): `/registry`(교적부) 진입 시 별도 비밀번호
   (`REGISTRY_PASSWORD`)를 요구합니다. 교적부는 주소·생년월일·부모 연락처를 한 화면에 모아
   보여줘서 교사 전체가 아는 비밀번호로 열어두기엔 범위가 넓다는 판단입니다. `registry_token`
@@ -191,7 +191,7 @@ interface AttendanceRecord {
 }
 ```
 
-## 화면 구성 (6개 페이지)
+## 화면 구성 (7개 페이지)
 
 | 경로 | 파일 | 설명 |
 |------|------|------|
@@ -201,6 +201,7 @@ interface AttendanceRecord {
 | `/birthday` | `app/birthday/page.tsx` | 생일자 조회 |
 | `/registry` | `app/registry/page.tsx` | 교적부 — 교사용(session) 열람 전용 학생 명단 데이터 그리드 (TanStack Table: 세션/학년 탭 필터·이름 검색·컬럼 정렬, sticky 헤더/좌측 열, 반별 담당교사 칩) |
 | `/teachers` | `app/teachers/page.tsx` | 교사 현황 — 관리자(admin) 전용 교사 명단 데이터 그리드 (교적부의 교사판: 세션/팀 탭 필터·이름 검색·정렬·sticky, 컬럼 번호·이름·팀·연락처·생년월일·주소·출석률(1년기준)·비고). `/members`에서 "교사 현황" 버튼으로 진입 |
+| `/guide` | `app/guide/page.tsx` | 사용 안내 — 교사용(session) 게이트. 출석 체크(학생)·출석 확인(교사)·출석현황·생일자·학생 관리(등록·고치기·지난 출석·지우기·교사 현황)·자주 묻는 것을 휴대폰 캡처와 함께 안내 (교적부는 제외). 단계가 36개라 **절을 모두 접은 채 시작**하고, 맨 위 대상별 카드(학생용·교사용·총무팀용)·상단 고정 칩 줄(PC는 왼쪽 목차)·주소 앵커로 필요한 절만 펼친다. 메인 화면의 PC 헤더 `사용 안내` 버튼(768px 미만은 `?` 아이콘만)·모바일 메뉴 맨 아래 항목으로 진입. 캡처는 저장소 루트 `guide/`에서 가짜 데이터로 만들어 `public/guide/`에 복사한 완성본만 사용 |
 
 ### 관리자 모드 진입 플로우
 1. 메인 화면에 "학생 관리" 버튼 존재
@@ -277,7 +278,8 @@ POST /api/auth { password, role }                    → role별(session/admin) 
 ```
 src/
 ├── app/
-│   ├── page.tsx                        ✅ 출석체크 메인
+│   ├── page.tsx                        ✅ 출석체크 메인 (헤더 `사용 안내` 버튼·모바일 메뉴 항목 → /guide)
+│   ├── guide/page.tsx                  ✅ 사용 안내 — session 게이트(통과 전 본문 렌더 안 함). 본문·FAQ는 이 파일에 직접, 캡처는 public/guide/. 절은 모두 접힌 채 시작 — 대상별 카드·고정 내비·주소 앵커(#id)가 펼침 상태(Set)를 바꾸고 렌더 후 스크롤
 │   ├── history/page.tsx                ✅ 출석 현황 (1주 기본 / 기간 모드 — weeks=1이 곧 1주 모드라 렌더 경로는 하나)
 │   ├── members/page.tsx                ✅ 교적 관리 (관리자) — Google Sheets 실연동, 비밀번호 게이트
 │   ├── birthday/page.tsx               ✅ 생일자 조회
@@ -308,7 +310,7 @@ src/
 │       └── auth/route.ts               ✅ 관리자 비밀번호 검증(POST)
 ├── components/
 │   ├── layout/
-│   │   ├── Header.tsx                  ✅ 세션(오전/오후) 선택 + 날짜 표시 (mobileMenu prop 전달 시 모바일 2줄 배치)
+│   │   ├── Header.tsx                  ✅ 세션(오전/오후) 선택 + 날짜 표시 (mobileMenu prop 전달 시 모바일 2줄 배치). 버튼 영역은 lg에서 `shrink-0` — 날짜 영역과 함께 줄어 버튼이 넘치지 않게(/ · /members 공용)
 │   │   └── MobileNavMenu.tsx           ✅ 모바일 햄버거 내비 — 햄버거↔X 모핑 버튼 + 버튼에서 펼쳐지는 팝오버(portal)
 │   ├── attendance/
 │   │   ├── MemberCard.tsx              ✅ 출석 카드 (학생/교사 공통)
@@ -325,6 +327,12 @@ src/
 │   │   ├── WeeklyTrendChart.tsx        ✅ 주차별 출석 추이 (면적+평균선, 클릭 시 그 주 1주 모드로 이동) — 기간 모드 전용. x축 첫 눈금에만 달력 아이콘(DateTick)
 │   │   ├── WeeklyTrendChartSkeleton.tsx ✅ 주차별 추이 로딩 스켈레톤 (실제 차트와 높이 동일 — 데이터 도착 시 밀리지 않게)
 │   │   └── AttendanceHighlights.tsx    ✅ 개근/부분 출석/결석 인원 칩 → AttendanceListModal 재사용 — 기간 모드 전용. 세 칩의 합 = 명단 인원
+│   ├── guide/                          # 사용 안내(/guide) 전용
+│   │   ├── GuideSection.tsx            ✅ 접히는 절·작은 주제(GuideSubSection) — 머리가 버튼(`aria-expanded`), 접힌 동안 본문·캡처를 그리지 않음. 펼침 상태는 GuideOpenContext(페이지가 관리)
+│   │   ├── GuideNav.tsx                ✅ 고정 내비 — 모바일 상단 칩 줄(GuideNavBar) / lg 왼쪽 목차(GuideNavSide). 누르면 펼치고 부드럽게 스크롤, 현재 절 강조
+│   │   ├── GuideStep.tsx               ✅ 단계(번호·제목·설명 + 완성 캡처 next/image) / GuideSteps 래퍼. 모바일 세로, md 이상 좌우
+│   │   ├── GuideWarning.tsx            ✅ 되돌릴 수 없는 작업 앞 경고 상자
+│   │   └── GuideFaq.tsx                ✅ 자주 묻는 것 — 네이티브 <details> 접기
 │   ├── stats/
 │   │   └── YearlyStats.tsx             ✅ 1년 통계 플로팅 오버레이 (도넛 차트)
 │   ├── students/
@@ -344,7 +352,7 @@ src/
 │   └── common/
 │       ├── AuthGateModal.tsx           ✅ 비밀번호 입력 모달 (admin/session 공용, 오류 시 shake)
 │       ├── AlertDialog.tsx             ✅ 경고 알림 모달 (네이티브 alert() 대체 — 제목 + 라벨/값 상세 + 확인 버튼)
-│       ├── PublicGate.tsx              ✅ 공개 3화면(/, /history, /birthday) 교사용 게이트 래퍼 — 문구가 교사용으로 고정이라 session role 전용. /registry는 거치지 않음
+│       ├── PublicGate.tsx              ✅ 공개 3화면(/, /history, /birthday)·사용 안내(/guide) 교사용 게이트 래퍼 — 문구가 교사용으로 고정이라 session role 전용. /registry는 거치지 않음
 │       ├── Skeleton.tsx                ✅ 로딩 스켈레톤 프리미티브 (pulse 박스 — 각 화면 스켈레톤이 공용)
 │       ├── PhoneInput.tsx              ✅ 연락처 입력칸 — 타이핑하는 대로 하이픈 삽입 (학생 폼 2칸·교사 폼 1칸 공용). 커서는 '앞쪽 숫자 개수' 기준으로 복원해 가운데를 고쳐도 끝으로 튀지 않음
 │       ├── RollingNumber.tsx           ✅ 자릿수 굴러가는 숫자 (@number-flow/react 래퍼, 마운트 시 0→값 카운팅)
@@ -377,7 +385,18 @@ src/
 │   └── utils.ts                        ✅ Tailwind clsx + tailwind-merge 유틸 (cn — 뒤 클래스가 앞 클래스를 덮어씀)
 └── types/
     └── index.ts                        ✅ 전역 타입 정의 (Session / MemberType / Student / Teacher / AttendanceRecord)
+
+public/guide/*.png                      ✅ 사용 안내 완성 캡처(배포됨) — guide/output/과 같은 파일. 직접 고치지 말고 guide/에서 다시 만든다
+
+guide/                                  ✅ 사용 안내 캡처 작업 폴더(배포·앱 참조 없음) — 실행 방법은 guide/README.md
+├── mock/                               가짜 시트: data.json(더미 명단) + intercept.js(촬영 브라우저 fetch 가로채기, 시계를 최근 일요일 11:00으로 고정)
+├── capture/capture.mjs                 shots.json대로 촬영 → capture/raw/(git 제외). 시작 시 서버가 실시트에 연결돼 있으면(200) 중단
+├── pages/                              shots.json(촬영 목록) · frame.html + compose.mjs(휴대폰 틀·빨간 네모 합성)
+└── output/                             완성본 → public/guide/로 복사
 ```
+
+⚠️ **사용 안내 캡처는 실시트로 찍지 않는다.** 촬영용 서버는 구글 환경변수 3개를 무효값으로 덮어 별도 포트(3100)로 띄우고,
+가짜 데이터는 촬영 브라우저 안에서만 공급된다 — 그 서버를 일반 브라우저로 열면 명단이 오류로 나오는 게 정상이다.
 
 ## 비즈니스 로직 요약
 
@@ -399,7 +418,7 @@ GOOGLE_SPREADSHEET_ID=
 # 관리자 비밀번호 (/members · /teachers 게이트)
 ADMIN_PASSWORD=
 
-# 교사용 비밀번호 (공개 3화면: /, /history, /birthday 게이트)
+# 교사용 비밀번호 (공개 3화면: /, /history, /birthday + 사용 안내 /guide 게이트)
 SESSION_PASSWORD=
 
 # 교역자용 비밀번호 (/registry 교적부 게이트 — 교역자·부장집사 전용)
