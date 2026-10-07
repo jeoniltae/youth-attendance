@@ -1,0 +1,1094 @@
+{
+  "_comment": "촬영 목록 — capture.mjs와 compose.mjs가 함께 읽는다. 필드와 요소 찾기 옵션(css/text/contains/tag/nth/up/self)은 guide/README.md의 \"shots.json 필드\" 참고.",
+  "shots": [
+    {
+      "id": "10-check-session",
+      "url": "/",
+      "marks": [
+        {
+          "text": "출석일",
+          "up": 1,
+          "label": "①"
+        },
+        {
+          "text": "오전",
+          "up": 1,
+          "label": "②"
+        }
+      ]
+    },
+    {
+      "id": "11-check-chip",
+      "url": "/",
+      "marks": [
+        {
+          "contains": "1-1반",
+          "label": "①"
+        }
+      ]
+    },
+    {
+      "id": "12-check-card",
+      "url": "/",
+      "actions": [
+        {
+          "click": {
+            "contains": "1-1반"
+          }
+        },
+        {
+          "wait": 1500
+        }
+      ],
+      "marks": [
+        {
+          "text": "김하늘",
+          "label": "①"
+        }
+      ]
+    },
+    {
+      "id": "13-check-stamped",
+      "url": "/",
+      "actions": [
+        {
+          "click": {
+            "contains": "1-1반"
+          }
+        },
+        {
+          "wait": 1500
+        },
+        {
+          "click": {
+            "text": "김하늘"
+          }
+        },
+        {
+          "wait": 900
+        }
+      ],
+      "marks": [
+        {
+          "text": "김하늘",
+          "label": "①"
+        }
+      ]
+    },
+    {
+      "id": "20-confirm-class",
+      "url": "/",
+      "actions": [
+        {
+          "click": {
+            "contains": "1-1반"
+          }
+        },
+        {
+          "wait": 1500
+        }
+      ],
+      "marks": [
+        {
+          "text": "최별",
+          "label": "①"
+        },
+        {
+          "text": "김하늘",
+          "label": "②"
+        }
+      ]
+    },
+    {
+      "id": "21-confirm-tap",
+      "url": "/",
+      "actions": [
+        {
+          "click": {
+            "contains": "1-1반"
+          }
+        },
+        {
+          "wait": 1500
+        },
+        {
+          "click": {
+            "text": "최별"
+          }
+        },
+        {
+          "wait": 900
+        }
+      ],
+      "marks": [
+        {
+          "text": "최별",
+          "label": "①"
+        }
+      ]
+    },
+    {
+      "id": "22-confirm-locked",
+      "url": "/",
+      "clockDays": 1,
+      "actions": [
+        {
+          "scrollTo": {
+            "contains": "지난 예배 출석"
+          },
+          "block": "start"
+        },
+        {
+          "eval": "window.scrollBy(0, -48); true"
+        },
+        {
+          "wait": 800
+        }
+      ],
+      "marks": [
+        {
+          "contains": "지난 예배 출석",
+          "label": "①"
+        },
+        {
+          "text": "김하늘",
+          "label": "②"
+        }
+      ]
+    },
+    {
+      "id": "30-history-entry",
+      "url": "/",
+      "actions": [
+        {
+          "click": {
+            "css": "button[aria-label='메뉴']"
+          }
+        },
+        {
+          "wait": 700
+        }
+      ],
+      "marks": [
+        {
+          "text": "출석현황",
+          "label": "①"
+        }
+      ]
+    },
+    {
+      "id": "31-history-week",
+      "url": "/history",
+      "marks": [
+        {
+          "css": "select[aria-label='조회할 예배일 (일요일)']",
+          "label": "①"
+        },
+        {
+          "css": "select[aria-label='조회 기간']",
+          "label": "②"
+        },
+        {
+          "text": "오전",
+          "up": 1,
+          "label": "③"
+        }
+      ]
+    },
+    {
+      "id": "32-history-chart",
+      "url": "/history",
+      "actions": [
+        {
+          "scrollTo": {
+            "css": "button[aria-label='1-1반 명단 보기']"
+          }
+        },
+        {
+          "wait": 800
+        }
+      ],
+      "marks": [
+        {
+          "css": "button[aria-label='1-1반 명단 보기']",
+          "label": "①"
+        }
+      ]
+    },
+    {
+      "id": "33-history-modal",
+      "url": "/history",
+      "actions": [
+        {
+          "scrollTo": {
+            "css": "button[aria-label='1-1반 명단 보기']"
+          }
+        },
+        {
+          "wait": 500
+        },
+        {
+          "click": {
+            "css": "button[aria-label='1-1반 명단 보기']"
+          }
+        },
+        {
+          "wait": 1000
+        }
+      ]
+    },
+    {
+      "id": "34-history-period",
+      "url": "/history",
+      "actions": [
+        {
+          "select": [
+            {
+              "css": "select[aria-label='조회 기간']"
+            },
+            "4"
+          ]
+        },
+        {
+          "wait": 2500
+        },
+        {
+          "scrollTo": {
+            "contains": "개근",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 900
+        }
+      ],
+      "marks": [
+        {
+          "css": "select[aria-label='조회 기간']",
+          "label": "①"
+        },
+        {
+          "contains": "개근",
+          "tag": "button",
+          "up": 1,
+          "label": "②"
+        }
+      ]
+    },
+    {
+      "id": "35-history-absent",
+      "url": "/history",
+      "actions": [
+        {
+          "select": [
+            {
+              "css": "select[aria-label='조회 기간']"
+            },
+            "4"
+          ]
+        },
+        {
+          "wait": 2500
+        },
+        {
+          "scrollTo": {
+            "contains": "결석",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 500
+        },
+        {
+          "click": {
+            "contains": "결석",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 1000
+        }
+      ]
+    },
+    {
+      "id": "40-birthday-entry",
+      "url": "/",
+      "actions": [
+        {
+          "click": {
+            "css": "button[aria-label='메뉴']"
+          }
+        },
+        {
+          "wait": 700
+        }
+      ],
+      "marks": [
+        {
+          "text": "생일축하",
+          "label": "①"
+        }
+      ]
+    },
+    {
+      "id": "41-birthday-month",
+      "url": "/birthday",
+      "settle": 3000,
+      "marks": [
+        {
+          "css": "button[aria-label='다음 달']",
+          "label": "①"
+        },
+        {
+          "text": "오전반",
+          "up": 1,
+          "label": "②"
+        }
+      ]
+    },
+    {
+      "id": "42-birthday-lunar",
+      "url": "/birthday",
+      "settle": 3000,
+      "actions": [
+        {
+          "click": {
+            "css": "button[aria-label='다음 달']"
+          }
+        },
+        {
+          "wait": 1500
+        },
+        {
+          "scrollTo": {
+            "contains": "(음력)"
+          }
+        },
+        {
+          "wait": 900
+        }
+      ],
+      "marks": [
+        {
+          "contains": "(음력)",
+          "up": 1,
+          "label": "①"
+        }
+      ]
+    },
+    {
+      "id": "50-members-menu",
+      "url": "/",
+      "actions": [
+        {
+          "click": {
+            "css": "button[aria-label='메뉴']"
+          }
+        },
+        {
+          "wait": 700
+        }
+      ],
+      "marks": [
+        {
+          "text": "학생 관리",
+          "label": "①"
+        }
+      ]
+    },
+    {
+      "id": "51-members-password",
+      "url": "/members",
+      "noAuth": true,
+      "actions": [
+        {
+          "fill": [
+            {
+              "css": "input[type=password]"
+            },
+            "guide-dummy"
+          ]
+        },
+        {
+          "wait": 300
+        }
+      ],
+      "marks": [
+        {
+          "css": "input[type=password]",
+          "label": "①"
+        },
+        {
+          "text": "입장",
+          "label": "②"
+        }
+      ]
+    },
+    {
+      "id": "52-members-buttons",
+      "url": "/members",
+      "marks": [
+        {
+          "contains": "학생 등록",
+          "tag": "button",
+          "label": "①"
+        },
+        {
+          "contains": "교사 등록",
+          "tag": "button",
+          "label": "②"
+        },
+        {
+          "contains": "새친구 등록",
+          "tag": "button",
+          "label": "③"
+        }
+      ]
+    },
+    {
+      "id": "53-members-student-form",
+      "url": "/members",
+      "actions": [
+        {
+          "click": {
+            "contains": "학생 등록",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 900
+        },
+        {
+          "fill": [
+            {
+              "contains": "이름",
+              "tag": "label"
+            },
+            "홍길동"
+          ]
+        },
+        {
+          "wait": 300
+        }
+      ],
+      "marks": [
+        {
+          "contains": "소속",
+          "tag": "label",
+          "label": "①"
+        },
+        {
+          "contains": "이름",
+          "tag": "label",
+          "label": "②"
+        },
+        {
+          "contains": "학년",
+          "tag": "label",
+          "label": "③"
+        },
+        {
+          "css": "label",
+          "nth": 3,
+          "label": "④"
+        }
+      ]
+    },
+    {
+      "id": "54-members-student-save",
+      "url": "/members",
+      "actions": [
+        {
+          "click": {
+            "contains": "학생 등록",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 900
+        },
+        {
+          "fill": [
+            {
+              "contains": "이름",
+              "tag": "label"
+            },
+            "홍길동"
+          ]
+        },
+        {
+          "scrollTo": {
+            "text": "등록",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 700
+        }
+      ],
+      "marks": [
+        {
+          "text": "등록",
+          "tag": "button",
+          "label": "①"
+        }
+      ]
+    },
+    {
+      "id": "55-members-newfriend",
+      "url": "/members",
+      "actions": [
+        {
+          "click": {
+            "contains": "새친구 등록",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 900
+        }
+      ],
+      "marks": [
+        {
+          "contains": "학년",
+          "tag": "label",
+          "label": "①"
+        },
+        {
+          "css": "label",
+          "nth": 3,
+          "label": "②",
+          "soft": true
+        }
+      ]
+    },
+    {
+      "id": "56-members-teacher",
+      "url": "/members",
+      "actions": [
+        {
+          "click": {
+            "contains": "교사 등록",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 900
+        }
+      ],
+      "marks": [
+        {
+          "contains": "소속",
+          "tag": "label",
+          "label": "①"
+        },
+        {
+          "contains": "이름",
+          "tag": "label",
+          "label": "②"
+        },
+        {
+          "contains": "팀",
+          "tag": "label",
+          "label": "③"
+        }
+      ]
+    },
+    {
+      "id": "57-members-registered",
+      "url": "/members",
+      "actions": [
+        {
+          "click": {
+            "contains": "학생 등록",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 900
+        },
+        {
+          "fill": [
+            {
+              "contains": "이름",
+              "tag": "label"
+            },
+            "홍길동"
+          ]
+        },
+        {
+          "click": {
+            "text": "등록",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 1500
+        },
+        {
+          "open": "/"
+        },
+        {
+          "wait": 2000
+        },
+        {
+          "click": {
+            "contains": "1-1반"
+          }
+        },
+        {
+          "wait": 1500
+        }
+      ],
+      "marks": [
+        {
+          "text": "홍길동",
+          "label": "①"
+        }
+      ]
+    },
+    {
+      "id": "60-edit-open",
+      "url": "/members",
+      "marks": [
+        {
+          "contains": "김하늘",
+          "tag": "button",
+          "label": "①"
+        }
+      ]
+    },
+    {
+      "id": "61-edit-form",
+      "url": "/members",
+      "actions": [
+        {
+          "scrollTo": {
+            "contains": "류해솔",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 400
+        },
+        {
+          "click": {
+            "contains": "류해솔",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 1200
+        },
+        {
+          "select": [
+            {
+              "contains": "학년",
+              "tag": "label"
+            },
+            "1"
+          ]
+        },
+        {
+          "wait": 300
+        },
+        {
+          "fill": [
+            {
+              "css": "label",
+              "nth": 3
+            },
+            "2"
+          ]
+        },
+        {
+          "wait": 400
+        }
+      ],
+      "marks": [
+        {
+          "contains": "학년",
+          "tag": "label",
+          "label": "①"
+        },
+        {
+          "css": "label",
+          "nth": 3,
+          "label": "②"
+        }
+      ]
+    },
+    {
+      "id": "62-edit-save",
+      "url": "/members",
+      "actions": [
+        {
+          "scrollTo": {
+            "contains": "류해솔",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 400
+        },
+        {
+          "click": {
+            "contains": "류해솔",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 1200
+        },
+        {
+          "select": [
+            {
+              "contains": "학년",
+              "tag": "label"
+            },
+            "1"
+          ]
+        },
+        {
+          "fill": [
+            {
+              "css": "label",
+              "nth": 3
+            },
+            "2"
+          ]
+        },
+        {
+          "scrollTo": {
+            "text": "수정 완료",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 600
+        }
+      ],
+      "marks": [
+        {
+          "text": "수정 완료",
+          "tag": "button",
+          "label": "①"
+        }
+      ]
+    },
+    {
+      "id": "63-attend-form",
+      "url": "/members",
+      "actions": [
+        {
+          "eval": "(() => { const t = window.__GUIDE_MOCK.today; const d = new Date(t + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - 7); const lw = d.toISOString().slice(0,10); window.__GUIDE_LW = lw; return fetch('/api/attendance', { method: 'POST', body: JSON.stringify({ date: lw, studentId: '2026-1-1-001', status: '결석' }) }).then(() => true); })()"
+        },
+        {
+          "wait": 500
+        },
+        {
+          "click": {
+            "contains": "김하늘",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 1200
+        },
+        {
+          "wait": 800
+        },
+        {
+          "eval": "(() => { const s = [...document.querySelectorAll('label')].find(l => l.textContent.includes('예배일')).querySelector('select'); Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, s.options[1].value); s.dispatchEvent(new Event('change', { bubbles: true })); return s.value; })()"
+        },
+        {
+          "scrollTo": {
+            "contains": "출석 수정",
+            "tag": "div"
+          }
+        },
+        {
+          "wait": 600
+        }
+      ],
+      "marks": [
+        {
+          "contains": "예배일",
+          "tag": "label",
+          "label": "①"
+        },
+        {
+          "contains": "출석 추가",
+          "tag": "button",
+          "label": "②"
+        },
+        {
+          "contains": "출석 취소",
+          "tag": "button",
+          "label": "③"
+        }
+      ]
+    },
+    {
+      "id": "64-attend-added",
+      "url": "/members",
+      "actions": [
+        {
+          "eval": "(() => { const t = window.__GUIDE_MOCK.today; const d = new Date(t + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - 7); const lw = d.toISOString().slice(0,10); window.__GUIDE_LW = lw; return fetch('/api/attendance', { method: 'POST', body: JSON.stringify({ date: lw, studentId: '2026-1-1-001', status: '결석' }) }).then(() => true); })()"
+        },
+        {
+          "wait": 500
+        },
+        {
+          "click": {
+            "contains": "김하늘",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 1200
+        },
+        {
+          "wait": 800
+        },
+        {
+          "eval": "(() => { const s = [...document.querySelectorAll('label')].find(l => l.textContent.includes('예배일')).querySelector('select'); Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, s.options[1].value); s.dispatchEvent(new Event('change', { bubbles: true })); return s.value; })()"
+        },
+        {
+          "scrollTo": {
+            "contains": "출석 수정",
+            "tag": "div"
+          }
+        },
+        {
+          "wait": 600
+        },
+        {
+          "eval": "(() => { const st = window.setTimeout; window.setTimeout = (f, ms, ...a) => (ms === 1500 ? 0 : st(f, ms, ...a)); return true; })() // '추가됨 ✓'가 1.5초 뒤 사라지지 않게 촬영 브라우저에서만 고정"
+        },
+        {
+          "click": {
+            "contains": "출석 추가",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 1200
+        }
+      ],
+      "marks": [
+        {
+          "contains": "추가됨",
+          "tag": "button",
+          "label": "①"
+        }
+      ]
+    },
+    {
+      "id": "65-delete",
+      "url": "/members",
+      "actions": [
+        {
+          "click": {
+            "contains": "김하늘",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 1200
+        },
+        {
+          "scrollTo": {
+            "text": "삭제",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 600
+        }
+      ],
+      "marks": [
+        {
+          "text": "삭제",
+          "tag": "button",
+          "label": "①"
+        }
+      ]
+    },
+    {
+      "id": "66-delete-confirm",
+      "url": "/members",
+      "actions": [
+        {
+          "click": {
+            "contains": "김하늘",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 1200
+        },
+        {
+          "scrollTo": {
+            "text": "삭제",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 400
+        },
+        {
+          "click": {
+            "text": "삭제",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 700
+        }
+      ],
+      "marks": [
+        {
+          "text": "삭제",
+          "tag": "button",
+          "label": "①"
+        }
+      ]
+    },
+    {
+      "id": "67-deleted",
+      "url": "/members",
+      "actions": [
+        {
+          "click": {
+            "contains": "김하늘",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 1200
+        },
+        {
+          "scrollTo": {
+            "text": "삭제",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 400
+        },
+        {
+          "click": {
+            "text": "삭제",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 600
+        },
+        {
+          "click": {
+            "text": "삭제",
+            "tag": "button"
+          }
+        },
+        {
+          "wait": 1800
+        },
+        {
+          "eval": "window.scrollTo(0,0); true"
+        },
+        {
+          "wait": 500
+        }
+      ],
+      "marks": [
+        {
+          "contains": "1-1반",
+          "tag": "button",
+          "label": "①"
+        }
+      ]
+    },
+    {
+      "id": "70-teachers-entry",
+      "url": "/members",
+      "marks": [
+        {
+          "contains": "교사 현황",
+          "tag": "a",
+          "label": "①"
+        }
+      ]
+    },
+    {
+      "id": "71-teachers-top",
+      "url": "/teachers",
+      "marks": [
+        {
+          "text": "오전반",
+          "up": 1,
+          "label": "①"
+        },
+        {
+          "text": "총무팀",
+          "up": 1,
+          "label": "②"
+        },
+        {
+          "css": "input[placeholder='이름 검색']",
+          "label": "③"
+        }
+      ]
+    },
+    {
+      "id": "72-teachers-phone",
+      "url": "/teachers",
+      "actions": [
+        {
+          "fill": [
+            {
+              "css": "input[placeholder='이름 검색']"
+            },
+            "김철수"
+          ]
+        },
+        {
+          "wait": 800
+        }
+      ],
+      "marks": [
+        {
+          "css": "input[placeholder='이름 검색']",
+          "label": "①"
+        },
+        {
+          "css": "a[href^='tel:']",
+          "label": "②"
+        }
+      ]
+    },
+    {
+      "id": "73-teachers-rate",
+      "url": "/teachers",
+      "actions": [
+        {
+          "wait": 800
+        },
+        {
+          "eval": "(() => { const s = document.querySelector('table').closest('.overflow-auto'); s.scrollLeft = s.scrollWidth; return s.scrollLeft; })()"
+        },
+        {
+          "wait": 800
+        }
+      ],
+      "marks": [
+        {
+          "contains": "출석률(1년기준)",
+          "tag": "th",
+          "label": "①"
+        }
+      ]
+    }
+  ]
+}
