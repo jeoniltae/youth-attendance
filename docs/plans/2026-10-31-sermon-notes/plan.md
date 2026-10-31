@@ -1,0 +1,204 @@
+# 구현 계획: 말씀노트 기록 관리 (sermon-notes)
+
+- 상태: 계획 확정 (2026-10-31)
+
+## 개요
+학생들이 말씀노트를 썼는지(내용 길이 무관) 날짜별로 기록하고, 4개월 단위로 12회 이상 작성자를 총무팀이 바로 확인해 시상할 수 있게 한다.
+반별 보관함 칸에 붙인 QR을 찍으면 그 반 명단 체크 화면이 비밀번호 없이 열리고(반별 비밀 토큰 링크), 종합 화면은 admin 게이트 뒤에서 작성 횟수순으로 보여 준다.
+학생 정보(세션·학년·반·이름·전화번호)는 기존 출석부 시트(Students)에서 가져온다.
+
+## 확정 사항
+| 항목 | 결정 |
+|------|------|
+| 데이터 저장 | 기존 출석부 스프레드시트에 `SermonNotes` 탭 추가 |
+| QR | 반마다 1개, 반별 보관함 칸에 부착 |
+| 체크 화면 인증 | 비밀번호 없음 — **반별 비밀 토큰 링크** (`/notes/c/[token]`) |
+| 종합 화면 인증 | admin 게이트 |
+| 기간 | 1기 1~4월 / 2기 5~8월 / 3기 9~12월 (연도 안 고정) |
+| 대상 | 학생만 (교사 제외) |
+
+## 설계 결정
+- **토큰 = `HMAC-SHA256(NOTES_QR_SECRET, "오전-1-2")` 앞 16자(base64url)**
+  - 저장소가 public이라 `?session=&grade=&class=` 주소는 숫자만 바꿔 다른 반 명단 열람·기록 조작이 가능 → 추측 불가능한 토큰으로 대체
+  - 비밀값은 `.env.local`·Vercel에만 → 토큰 목록을 어디에도 저장할 필요 없음. 서버는 존재하는 반 목록(Students의 세션·학년·반 조합)에 대해 HMAC을 계산해 일치하는 반을 찾는다
+  - 유출 시: 비밀값 교체 후 QR 전체 재인쇄
+  - 비교는 `crypto.timingSafeEqual`
+- **토큰 API는 서버가 범위를 강제한다** — 토큰 → 반을 서버가 결정, 그 반 학생의 `id`·`name`만 반환. POST도 대상 학생이 토큰의 반 소속인지 확인 후 저장. 기존 `/api/roster`(전화·주소 포함)는 이 화면에서 호출하지 않는다
+- **SermonNotes 구조는 Attendance를 따른다** — `Date, Session, Grade, Class, StudentID, Name, Timestamp`. 행이 있으면 작성, 없으면 미작성. POST는 `/api/attendance`의 멱등 패턴(status 지정 시 이미 그 상태면 no-op) — 교사 둘이 같은 반을 동시에 체크해도 중복 행이 생기지 않음
+- **학생 삭제 시 SermonNotes도 함께 삭제(cascade)** — Attendance와 같은 이유(같은 해 안 ID 재사용 시 남의 기록이 붙는 오염 방지). 기존 `deleteRowsWhere`를 학생 DELETE 라우트에 한 줄 추가
+- **연도별 시트 운영과 맞춘다** — 기간이 연도 안에서 끝나므로 새해 시트로 넘어가도 집계가 끊기지 않음. `docs/yearly-sheet-operation.md`의 탭 목록·헤더와 `scripts/verify-sheets.mjs` 검증 대상에 `SermonNotes` 추가
+- **기본 날짜 = 가장 최근 일요일(KST)**, 일요일만 선택 가능, 과거 날짜 가능 (미래 불가)
+- **분모 = 그 기간 일요일 수** (`countSundays()` 재사용). 진행 중 기간이면 오늘까지의 일요일 수
+- 체크 화면은 모바일 1열 카드, PC는 가운데 정렬 + 최대 폭 제한만 (반응형 분기 없음). `noindex` 메타
+- 종합 화면은 교적부 계열 TanStack Table 그리드 재사용 (sticky·정렬)
+- **화면 UI는 아티팩트 시안을 먼저 보고 결정한다** — 아래 "화면" 절의 구성은 기능 범위이고, 배치·스타일은 2.5단계에서 확정한 시안을 따른다
+
+## 검증 도구 분담
+검증은 세 가지 방법으로 나눈다. 각 체크포인트 항목 끝의 `[스크립트]`·`[agent-browser]`·`[Playwright]`·`[사람]` 표시가 이 분담을 따른다.
+
+| 도구 | 맡는 것 | 이유 |
+|------|---------|------|
+| node 스크립트 (`scripts/verify-*.mjs` 방식) | 토큰·404/403·멱등·응답 필드·cascade 등 **API 수준** 검사 | 응답만 보면 되는 검사라 브라우저가 필요 없고, 이쪽이 빠르고 정확하다 |
+| **agent-browser** (주력) | 375px·1024px 화면 확인, 동시 체크, 필터·복사 결과 대조, 기존 화면 회귀 둘러보기, 사용 안내 캡처 | "어색하지 않은지"처럼 코드로 판정할 수 없는 확인과 한 번만 하면 되는 탐색형 점검. 캡처는 `guide/capture/capture.mjs`가 이미 agent-browser로 동작한다 |
+| **Playwright** (최소 범위) | ① 다른 화면을 거쳐 들어와도 게이트 뒤 렌더 차단 ② POST 실패 시 롤백 ③ 잘못된 토큰 안내 화면 — **이 3개만** | 코드를 고칠 때마다 조용히 깨질 수 있는 지점이다. ①은 CLAUDE.md에 경고로 남은, 이미 한 번 겪은 함정이고 깨지면 개인정보가 노출된다. ②는 `page.route`로 실패를 일부러 만들어야 해서 스크립트형 테스트가 맞다 |
+| 사람 | 시안 선택, 실제 QR 휴대폰 촬영 | 판단과 실제 기기가 필요하다 |
+
+### 주의할 점
+- **Playwright 테스트는 실시트를 절대 건드리지 않는다.** `/api/*`는 모두 `page.route`로 가짜 응답을 준다. 가짜 명단은 `guide/mock/data.json`의 더미 데이터를 재사용한다. 테스트 서버는 사용 안내 촬영 서버와 같은 방식으로 띄운다. 구글 환경변수 3개를 무효값으로 덮고 별도 포트로 띄우면, 가로채지 못한 요청은 실시트에 닿는 대신 오류로 실패한다
+- **테스트 코드·픽스처에도 실명·실제 연락처·실제 토큰을 쓰지 않는다** (public 저장소). 토큰은 테스트용 비밀값으로 만든 값만 쓴다
+- **agent-browser로 하는 체크포인트 C 확인은 실시트에 기록이 남는다.** 의미 없는 과거 일요일 날짜를 골라 확인하고, 끝나면 체크를 해제해 행을 지운다. 확인 후 SermonNotes 탭에 테스트 행이 남지 않았는지 본다
+- **같은 항목을 두 도구로 이중 검사하지 않는다.** Playwright가 맡은 3개는 agent-browser 점검 목록에서 뺀다. 두 도구는 같은 Playwright 엔진 위에서 돌아 서로 충돌하지 않지만, 중복 검사는 유지비만 늘린다
+- **브라우저는 미리 받아 두었다 (2026-10-31).** `npx playwright install chromium`으로 `%LOCALAPPDATA%\ms-playwright`에 `chromium-1248`·`chromium_headless_shell-1248`이 설치되어 있다. 이 폴더는 PC 전체가 공유하는 Playwright 전용 브라우저라 프로젝트 파일은 바뀌지 않았다. 테스트 도구 `@playwright/test`는 작업 11-1에서 설치한다. 그 사이 Playwright 새 버전이 나와 브라우저 빌드 번호가 달라지면, 설치 후 `npx playwright install chromium`을 한 번 더 실행한다. 설정은 기본값(전용 Chromium)을 쓰고 `channel: "msedge"`·`"chrome"`은 쓰지 않는다 — 자동 업데이트되는 브라우저와 버전이 어긋나지 않게 하고, CI로 옮길 때도 설정을 바꾸지 않기 위해서다
+- **Playwright는 새 의존성이다.** `@playwright/test`(devDependency)·`playwright.config.ts`·브라우저 다운로드가 추가되므로 "영향 범위" 표와 16-1 변경 범위 대조에 포함한다. 테스트 결과물(`test-results/`·`playwright-report/`)은 `.gitignore`에 추가한다. 실패 시 저장되는 스크린샷에도 가짜 데이터만 찍히는지 확인한다
+
+## 화면
+### A. 기록 체크 `/notes/c/[token]` (인증 없음)
+- 상단: 반 표시(`오전 · 1학년 2반`), 날짜 선택, 진행 요약 `12명 중 7명 체크`
+- 카드 전체 탭으로 토글(44px↑), Optimistic Update + 실패 시 롤백, 30초 polling
+- 그날 결석한 학생은 카드를 흐리게 + `결석` 표시 (체크는 가능)
+- 잘못된 토큰 → 안내 화면(404)
+
+### B. 종합 `/notes/summary` (admin 게이트)
+- 진입: `/members` 헤더 `말씀노트` 버튼 (`교사 현황` 버튼과 같은 스타일)
+- 상단: 기간 드롭다운(`2026년 3기 (9~12월)`), 세션 탭(전체/오전/오후), `12회 이상만` 토글, `명단 복사` 버튼
+- 컬럼: 순위 · 세션 · 학년 · 반 · 이름 · 전화번호 · 횟수(막대 + `12 / 17`)
+- 정렬 기본: 횟수 내림차순 → 학년 → 반 → 이름
+- 명단 복사: 현재 필터 결과를 탭 구분 텍스트로 클립보드 (카톡·엑셀 붙여넣기)
+- ⚠️ 게이트 통과 전 **렌더 자체를 막는다** (React Query 캐시 노출 주의 — CLAUDE.md)
+
+## API
+| 메서드 | 경로 | 인증 | 용도 |
+|--------|------|------|------|
+| GET | `/api/notes/class?token=&date=` | 토큰 | `{ session, grade, class, students: [{ id, name, written, present }] }` |
+| POST | `/api/notes/class` `{ token, date, studentId, status }` | 토큰 | 멱등 저장, 같은 반 소속 검증 |
+| GET | `/api/notes/summary?period=2026-3` | 없음(기존 API와 같은 수준) | 시트 1회 읽기로 기간 집계 + Students 정보 결합 + `sundays` 분모 |
+
+## 디렉토리 구조
+루트 `guide/`처럼 별도 폴더로 떼지 않는다. `guide/`는 배포되지 않는 촬영 도구라 밖에 있는 것이고, 말씀노트는 같은 시트 클라이언트·환경변수·인증 훅·색 토큰을 쓰는 **배포되는 앱 기능**이다.
+기존 프로젝트의 "층(app·components·hooks·api·lib)별로 나누고 그 안에서 기능 이름으로 나누는" 방식(`components/registry`·`components/guide` 등)을 그대로 따르며, 모든 층에 `notes` 이름을 붙여 검색 한 번으로 모이게 한다. (`src/features/notes/` 같은 기능별 묶음은 이 프로젝트에서 혼자 규칙이 다른 섬이 되어 쓰지 않는다)
+
+```
+src/
+├── app/
+│   ├── notes/
+│   │   ├── c/[token]/page.tsx        화면 A (QR 체크, 인증 없음)
+│   │   └── summary/page.tsx          화면 B (종합, admin 게이트)
+│   └── api/notes/
+│       ├── class/route.ts            토큰 API (GET/POST)
+│       └── summary/route.ts          기간 집계 (GET)
+├── components/notes/                 NoteCheckCard, NotesSummaryTable(+Skeleton)
+├── hooks/                            useClassNotes.ts, useNotesSummary.ts
+├── api/notes.ts                      클라이언트 fetch 함수
+└── lib/                              notes-token.ts, notes-period.ts
+scripts/                              add-sermon-notes-sheet.mjs, print-notes-qr-urls.mjs
+tests/e2e/                            notes.spec.ts(롤백·잘못된 토큰), gates.spec.ts(게이트 렌더 차단), mock.ts(page.route 가짜 응답)
+playwright.config.ts                  webServer = 무효 구글 환경변수 + 별도 포트
+```
+
+### 학생 정보를 가져오는 방식
+- **Students 시트는 출석부 소유가 아니라 앱 전체의 공유 데이터**다. roster·birthdays·stats·students 라우트가 이미 각자 서버에서 `readSheet(SHEET.STUDENTS)`를 직접 읽는다 → 말씀노트 API도 같은 방식으로 직접 읽는다
+- **출석부 API·훅(`/api/roster`, `useRoster`)을 거치지 않는다** — 전화·주소까지 내려주는 출석부 화면 전용이라 토큰 화면에 쓰면 보안 설계가 깨진다
+- **의존 방향은 한쪽**: 말씀노트 → Students·Attendance 시트(읽기 전용). 출석부 코드는 말씀노트를 모른다
+- `toStudent` 공용화(라우트 3곳에 중복)는 **이번 범위에서 제외** — 말씀노트는 이름·학년·반·전화번호만 필요해 엮지 않는다
+
+## 영향 범위 (기존 코드)
+말씀노트 때문에 손대는 기존 파일과 깨질 수 있는 지점. 6단계 회귀 점검의 기준 목록이다.
+
+| 기존 파일 | 변경 | 깨질 수 있는 지점 |
+|-----------|------|-------------------|
+| `src/lib/sheets.ts` | `SHEET.SERMON_NOTES` 상수 추가 | 상수 추가만 — 기존 읽기·쓰기 동작 불변이어야 함 |
+| `src/app/api/students/[id]/route.ts` | DELETE에 SermonNotes cascade 삭제 한 줄 | ⚠️ **SermonNotes 탭이 없는 시트(새해 시트·탭 추가 전 배포)에서 학생 삭제가 500으로 실패**할 수 있음 → 배포 전 탭 생성 필수, `verify-sheets.mjs`로 확인. 출석 cascade는 그대로 동작해야 함 |
+| `src/app/members/page.tsx` (+ 공용 `Header.tsx`) | `말씀노트` 진입 버튼 | 헤더 줄 넘침(640·1024px) — 같은 Header를 쓰는 `/`도 함께 확인 |
+| `scripts/verify-sheets.mjs` | 검증 대상 탭에 SermonNotes 추가 | 기존 3개 탭 검증 결과 불변 |
+| `guide/mock/intercept.js`·`data.json`·`shots.json` | `/api/notes/*` 가짜 응답·장면 추가 | 기존 36장 촬영 장면이 그대로 다시 찍혀야 함 |
+| `src/app/guide/page.tsx` | 절·대상별 카드 항목 추가 | 고정 내비·주소 앵커·접힘 상태 동작 |
+| `package.json`·`package-lock.json` | `@playwright/test` devDependency, `test:e2e` 스크립트 | 기존 `dev`·`build` 스크립트 불변. devDependency라 Vercel 배포 번들에는 영향 없어야 함 |
+| `.gitignore` | `test-results/`·`playwright-report/` 추가 | 기존 제외 항목(`.env.local`·`docs/legacy-gas.json`·`guide/capture/raw/` 등) 유지 |
+| `CLAUDE.md`·`docs/*` | 문서 갱신 | — |
+
+## 작업 목록
+
+### 1단계: 기반 (시트·토큰·기간 유틸)
+- [ ] 작업 1: `SermonNotes` 탭 헤더 추가 스크립트 `scripts/add-sermon-notes-sheet.mjs` (`add-teacher-lunar-header.mjs` 방식) + `src/lib/sheets.ts` `SHEET.SERMON_NOTES` 상수
+- [ ] 작업 2: 환경변수 `NOTES_QR_SECRET` — `.env.local`(값), `.env.example`·CLAUDE.md 환경변수 목록(이름만)
+- [ ] 작업 3: `src/lib/notes-token.ts` — `makeClassToken(session, grade, class)` / `resolveClassToken(token, classes)` (HMAC + timingSafeEqual)
+- [ ] 작업 4: `src/lib/notes-period.ts` — 기간 키(`2026-3`) ↔ 날짜 구간, 오늘이 속한 기간, 기간 목록, 최근 일요일 (기존 `lib/date.ts`·`countSundays()` 재사용)
+- [ ] 작업 5: QR URL 출력 스크립트 `scripts/print-notes-qr-urls.mjs` — Students의 모든 반에 대해 `반 → URL` 목록 출력 (출력은 커밋 금지)
+
+### 체크포인트 A: 기반
+- [ ] 스크립트로 `SermonNotes` 탭 생성, `verify-sheets.mjs` 통과 `[스크립트]`
+- [ ] 같은 반 → 같은 토큰, 다른 반 → 다른 토큰, 변조 토큰 → null `[스크립트]`
+- [ ] 기간 경계(4/30·5/1·8/31·9/1·12/31) 변환 정확 `[스크립트]`
+
+### 2단계: API
+- [ ] 작업 6: `GET/POST /api/notes/class` — 토큰 검증 → 반 명단(id·name) + 그날 작성/출석 여부, 멱등 저장 + 소속 검증
+- [ ] 작업 7: `GET /api/notes/summary` — 기간 집계 (SermonNotes·Students 1회씩 읽기)
+- [ ] 작업 8: 학생 DELETE 라우트에 SermonNotes cascade 삭제 추가 (`src/app/api/students/[id]/route.ts`)
+- [ ] 작업 9: 클라이언트 fetch 함수 `src/api/notes.ts` + 훅 `src/hooks/useClassNotes.ts`(polling·Optimistic) / `src/hooks/useNotesSummary.ts`
+
+### 체크포인트 B: API
+- [ ] 잘못된 토큰 404, 다른 반 학생 POST 거부(403), 같은 요청 2회 → 행 1개 `[스크립트]`
+- [ ] 응답에 전화·주소 등 이름 외 개인정보 없음 `[스크립트]`
+- [ ] 학생 삭제 시 Attendance·SermonNotes 기록이 모두 지워지고, 다른 학생 기록은 남음 `[스크립트]`
+- [ ] `npx tsc --noEmit` 통과
+
+### 2.5단계: UI 시안 (아티팩트로 먼저 보고 결정)
+- [ ] 작업 9-1: 화면 A(기록 체크) 시안을 아티팩트로 2~3안 제작 — 더미 데이터(`홍길동` 등)만 사용, 기존 색 토큰(paper/ink/stamp/teal/gold)·티켓 카드 스타일 기준, 모바일 375px 프레임 + PC 폭 미리보기
+- [ ] 작업 9-2: 화면 B(종합) 시안을 아티팩트로 2~3안 제작 — 기간 드롭다운·세션 탭·12회 필터·복사 버튼·횟수 막대 배치 비교
+- [ ] 작업 9-3: 사용자 검토 → 시안 선택·수정 반복 → 확정안을 이 문서 "설계 결정"에 기록 (선택 안·변경 사항·확정 아티팩트 링크)
+
+### 체크포인트 B2: 디자인 확정
+- [ ] 화면 A·B 확정안 사용자 승인 — **승인 전에는 3·4단계 화면 구현을 시작하지 않는다**
+
+### 3단계: 화면 A — 기록 체크 (확정 시안 반영)
+- [ ] 작업 10: `src/app/notes/c/[token]/page.tsx` — 반 표시·날짜 선택(최근 일요일 기본, 일요일만, 미래 불가)·진행 요약(`SummaryBar` 재사용)·카드 토글·결석 흐림·noindex·잘못된 토큰 안내
+- [ ] 작업 11: 체크 카드 컴포넌트 `src/components/notes/NoteCheckCard.tsx` (MemberCard 스타일 참고, 44px↑)
+- [ ] 작업 11-1: Playwright 도입 — `@playwright/test` 설치(이 시점에 처음 설치, 미리 `dev`에 넣지 않음), `playwright.config.ts`(webServer는 무효 구글 환경변수 + 별도 포트), `tests/e2e/mock.ts`(`page.route` 가짜 응답, `guide/mock/data.json` 더미 재사용), `package.json` `test:e2e` 스크립트, `.gitignore`에 결과물 폴더 추가
+- [ ] 작업 11-2: `tests/e2e/notes.spec.ts` — POST 500 → 카드가 원래 상태로 롤백 / 잘못된 토큰 → 안내 화면
+
+### 체크포인트 C: 화면 A
+- [ ] 휴대폰(375px)에서 체크/해제 → 시트 행 추가·삭제 확인 `[agent-browser]` — 의미 없는 과거 일요일로 확인 후 해제, 테스트 행 잔존 여부 확인
+- [ ] 실패 시 롤백, 잘못된 토큰 안내 화면 `[Playwright]`
+- [ ] 두 브라우저 동시 체크 → 30초 내 상호 반영 `[agent-browser]` (세션 2개)
+- [ ] PC 폭에서 크게 어색하지 않음 `[agent-browser]`
+
+### 4단계: 화면 B — 종합 (확정 시안 반영)
+- [ ] 작업 12: `src/components/notes/NotesSummaryTable.tsx` (+ 스켈레톤) — TanStack Table, 기간·세션·12회 필터, 정렬, 횟수 막대, 명단 복사
+- [ ] 작업 13: `src/app/notes/summary/page.tsx` — admin 게이트(`useAuthGate('admin')` + `AuthGateModal`), 통과 전 렌더 차단
+- [ ] 작업 14: `/members` 헤더에 `말씀노트` 진입 버튼
+- [ ] 작업 14-1: `tests/e2e/gates.spec.ts` — 다른 화면을 거쳐 이동한 경로로 `/notes/summary` 진입 시 게이트 통과 전 표가 렌더되지 않음 (같은 패턴으로 `/registry`·`/teachers`도 포함)
+
+### 체크포인트 D: 화면 B
+- [ ] 다른 화면(/members 등)을 거쳐 들어와도 게이트 뒤에 데이터가 안 보임 `[Playwright]`
+- [ ] 기간 전환·12회 필터·정렬·복사 결과가 시트와 일치 `[agent-browser]`
+- [ ] `npm run build` 통과
+
+### 5단계: 사용 안내
+- [ ] 작업 15: `guide/mock/intercept.js`·`data.json`에 `/api/notes/*` 가짜 응답 추가, `shots.json`에 장면 추가 후 촬영·합성 → `public/guide/`
+- [ ] 작업 16: `/guide`에 "말씀노트 체크" 절(QR 찍기 → 날짜 확인 → 학생 누르기) + 총무팀용 카드에 "말씀노트 시상 명단 보기" 항목
+
+### 6단계: 기존 기능 회귀 점검 (위 "영향 범위" 표 기준)
+- [ ] 작업 16-1: 변경 범위 확인 — `git diff --stat main...HEAD`로 손댄 기존 파일이 "영향 범위" 표에 있는 것뿐인지 대조. 표에 없는 기존 파일이 바뀌었으면 이유를 확인하고 표에 추가
+- [ ] 작업 16-2: 정적 점검 — `npx tsc --noEmit`, `npm run build`, `npm run test:e2e` 통과 (lint 스크립트는 없음). 빌드 출력에서 기존 7개 화면 라우트가 모두 그대로 생성되는지 확인
+- [ ] 작업 16-3: 데이터 점검 — `node scripts/verify-sheets.mjs`(탭 4개·헤더), `verify-read-api.mjs`·`verify-write-api.mjs`로 기존 API 응답 형태 불변 확인
+- [ ] 작업 16-4: 기존 화면 점검 `[agent-browser]` (dev 서버, 375px·1024px) — 게이트 렌더 차단은 16-2의 Playwright가 맡으므로 여기서는 진입·통과 동작만 본다
+  - `/` 출석 토글·30초 polling·헤더 한 줄 유지
+  - `/members` 학생 추가·수정·**삭제**(출석 cascade 정상) · 교사 현황 진입 · 새 `말씀노트` 버튼 배치
+  - `/history`·`/birthday`·`/registry`·`/teachers`·`/guide` 진입과 게이트 동작 (세 게이트 독립 유지, 말씀노트 admin 통과가 다른 게이트에 영향 없음)
+- [ ] 작업 16-5: 사용 안내 캡처 회귀 `[agent-browser]` — 촬영 스크립트로 기존 장면 전체 재촬영 → `public/guide/` 기존 이미지와 비교해 의도하지 않은 변화 없음
+- [ ] 작업 16-6: 결과를 이 문서 하단 "회귀 점검 결과"에 기록 (통과 항목·발견 문제·조치)
+
+### 체크포인트 E0: 회귀
+- [ ] 16-1~16-6 모두 통과, 발견 문제는 수정 또는 사유와 함께 보류 기록
+
+### 7단계: 문서·마무리
+- [ ] 작업 17: CLAUDE.md 갱신 — 화면 표·SermonNotes 시트 구조·API·폴더 구조·환경변수·인증 구조(토큰 링크 설명)
+- [ ] 작업 18: `docs/yearly-sheet-operation.md`(탭 4개·헤더), `docs/migration-progress.md` 항목, `docs/context-notes.md`(토큰 방식·cascade·고정 기간을 고른 이유)
+- [ ] 작업 19: `docs/security-checklist.md` 기준 점검 — 비밀값·실제 토큰·QR URL·실명 미커밋 (`tests/e2e/` 픽스처·`test-results/` 미커밋 포함)
+
+### 체크포인트 E: 완료
+- [ ] 실제 반 QR 1장으로 휴대폰 촬영 → 체크 → 종합 화면 반영까지 end-to-end `[사람]`
+- [ ] 배포 순서 확인: 실시트에 `SermonNotes` 탭 생성 → Vercel 환경변수 `NOTES_QR_SECRET` 등록 → 배포 (탭 없이 배포하면 학생 삭제가 실패함)
+
+## 회귀 점검 결과
+(6단계에서 기록)
