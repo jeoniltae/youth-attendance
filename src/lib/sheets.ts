@@ -23,6 +23,7 @@ export const SHEET = {
   STUDENTS: 'Students',
   TEACHERS: 'Teachers',
   ATTENDANCE: 'Attendance',
+  SERMON_NOTES: 'SermonNotes',
 } as const;
 
 // 시트 이름 → sheetId(숫자) 매핑 (deleteRow의 batchUpdate에 필요)

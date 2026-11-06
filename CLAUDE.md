@@ -424,6 +424,9 @@ SESSION_PASSWORD=
 # 교역자용 비밀번호 (/registry 교적부 게이트 — 교역자·부장집사 전용)
 # 누락 시 /api/auth가 500을 반환해 교적부가 열리지 않는다
 REGISTRY_PASSWORD=
+
+# 말씀노트 QR 토큰 비밀값 (유출 시 교체 후 QR 전체 재인쇄)
+NOTES_QR_SECRET=
 ```
 
 실제 값은 `.env.local`에만 작성하고, `docs/context-notes.md`나 코드 주석에도 평문으로 남기지 않습니다.

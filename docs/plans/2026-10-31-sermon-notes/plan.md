@@ -122,11 +122,11 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 ## 작업 목록
 
 ### 1단계: 기반 (시트·토큰·기간 유틸)
-- [ ] 작업 1: `SermonNotes` 탭 헤더 추가 스크립트 `scripts/add-sermon-notes-sheet.mjs` (`add-teacher-lunar-header.mjs` 방식) + `src/lib/sheets.ts` `SHEET.SERMON_NOTES` 상수
-- [ ] 작업 2: 환경변수 `NOTES_QR_SECRET` — `.env.local`(값), `.env.local.example`·CLAUDE.md 환경변수 목록·`docs/security-checklist.md` Vercel 등록 목록(이름만)
-- [ ] 작업 3: `src/lib/notes-token.ts` — `makeClassToken(session, grade, class)` / `resolveClassToken(token, classes)` (HMAC + timingSafeEqual)
-- [ ] 작업 4: `src/lib/notes-period.ts` — 기간 키(`2026-3`) ↔ 날짜 구간, 오늘이 속한 기간, 올해 기간 목록, 최근 일요일 — `countSundays()`를 `stats/rates` 라우트에서 `lib/date.ts`로 옮겨 재사용
-- [ ] 작업 5: QR URL 출력 스크립트 `scripts/print-notes-qr-urls.mjs` — Students의 모든 반(새친구·반 빈칸 제외)에 대해 `반 → URL` 목록 출력 (출력은 커밋 금지)
+- [x] 작업 1: `SermonNotes` 탭 헤더 추가 스크립트 `scripts/add-sermon-notes-sheet.mjs` (`add-teacher-lunar-header.mjs` 방식) + `src/lib/sheets.ts` `SHEET.SERMON_NOTES` 상수
+- [x] 작업 2: 환경변수 `NOTES_QR_SECRET` — `.env.local`(값), `.env.local.example`·CLAUDE.md 환경변수 목록·`docs/security-checklist.md` Vercel 등록 목록(이름만)
+- [x] 작업 3: `src/lib/notes-token.ts` — `makeClassToken(session, grade, class)` / `resolveClassToken(token, classes)` (HMAC + timingSafeEqual)
+- [x] 작업 4: `src/lib/notes-period.ts` — 기간 키(`2026-3`) ↔ 날짜 구간, 오늘이 속한 기간, 올해 기간 목록, 최근 일요일 — `countSundays()`를 `stats/rates` 라우트에서 `lib/date.ts`로 옮겨 재사용
+- [x] 작업 5: QR URL 출력 스크립트 `scripts/print-notes-qr-urls.mjs` — Students의 모든 반(새친구·반 빈칸 제외)에 대해 `반 → URL` 목록 출력 (출력은 커밋 금지)
 
 ### 체크포인트 A: 기반
 - [ ] 스크립트로 `SermonNotes` 탭 생성, `verify-sheets.mjs` 통과 `[스크립트]`
