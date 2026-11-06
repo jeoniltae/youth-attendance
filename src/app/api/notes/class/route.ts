@@ -2,7 +2,7 @@
 // 이름 외 개인정보는 내려주지 않으며, 날짜도 화면을 믿지 않고 서버에서 검증한다.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { appendRow, deleteRowsWhere, findRowNumber, readSheet, SHEET } from '@/lib/sheets';
+import { appendRow, deleteRowsWhere, findRowNumber, readSheet, readSheets, SHEET } from '@/lib/sheets';
 import { isNoteTarget, resolveClassToken } from '@/lib/notes-token';
 import type { ClassKey } from '@/lib/notes-token';
 import { sundaysThisYear } from '@/lib/date';
@@ -48,10 +48,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const [students, notes, attendance] = await Promise.all([
-      readSheet(SHEET.STUDENTS),
-      readSheet(SHEET.SERMON_NOTES),
-      readSheet(SHEET.ATTENDANCE),
+    const [students, notes, attendance] = await readSheets([
+      SHEET.STUDENTS,
+      SHEET.SERMON_NOTES,
+      SHEET.ATTENDANCE,
     ]);
 
     const klass = resolveClass(token, students);

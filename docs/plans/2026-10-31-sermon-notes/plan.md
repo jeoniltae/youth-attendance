@@ -110,7 +110,7 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 
 | 기존 파일 | 변경 | 깨질 수 있는 지점 |
 |-----------|------|-------------------|
-| `src/lib/sheets.ts` | `SHEET.SERMON_NOTES` 상수 추가 | 상수 추가만 — 기존 읽기·쓰기 동작 불변이어야 함 |
+| `src/lib/sheets.ts` | `SHEET.SERMON_NOTES` 상수 + `readSheets`(batchGet) 추가, 행→객체 변환을 공유 함수로 분리 | 기존 `readSheet` 결과 불변이어야 함 — 모든 API가 거치는 함수 (`verify-read-api.mjs`로 확인) |
 | `src/app/api/stats/rates/route.ts` | `countSundays()`를 `src/lib/date.ts`로 옮기고 import | 교적부 상/하반기 분모 값 불변이어야 함 (`/api/stats/rates` 응답 이동 전후 비교) |
 | `src/app/api/students/[id]/route.ts` | DELETE에 SermonNotes cascade 삭제 한 줄 | ⚠️ **SermonNotes 탭이 없는 시트(새해 시트·탭 추가 전 배포)에서 학생 삭제가 500으로 실패**할 수 있음 → 배포 전 탭 생성 필수, `verify-sheets.mjs`로 확인. 출석 cascade는 그대로 동작해야 함 |
 | `src/app/members/page.tsx` (+ 공용 `Header.tsx`) | `말씀노트` 진입 버튼 | 헤더 줄 넘침(640·1024px) — 같은 Header를 쓰는 `/`도 함께 확인 |
@@ -165,18 +165,19 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 - [x] 작업 11: 체크 카드 컴포넌트 `src/components/notes/NoteCheckCard.tsx` (시안 A2의 세로 카드 + 원형 체크, 56px)
 - [x] 작업 11-1: Playwright 도입 — `@playwright/test` 설치(이 시점에 처음 설치, 미리 `dev`에 넣지 않음), `playwright.config.ts`(webServer는 무효 구글 환경변수 + 별도 포트), `tests/e2e/mock.ts`(`page.route` 가짜 응답, `guide/mock/data.json` 더미 재사용), `package.json` `test:e2e` 스크립트, `.gitignore`에 결과물 폴더 추가
 - [x] 작업 11-2: `tests/e2e/notes.spec.ts` — POST 500 → 카드가 원래 상태로 롤백 / 잘못된 토큰 → 안내 화면
+- [x] 작업 11-3: `src/lib/sheets.ts`에 `readSheets(이름 목록)` 추가(`values.batchGet`) → `GET /api/notes/class`가 탭 3개를 요청 1번으로 읽게 변경. 30초 polling이라 휴대폰 1대당 분당 읽기가 6회에서 2회로 준다 (2026-11-06 사용자 결정)
 
 ### 체크포인트 C: 화면 A
 - [ ] 휴대폰(375px)에서 체크/해제 → 시트 행 추가·삭제 확인 `[agent-browser]` — 의미 없는 과거 일요일로 확인 후 해제, 테스트 행 잔존 여부 확인
 - [ ] 실패 시 롤백, 잘못된 토큰 안내 화면 `[Playwright]`
-- [ ] 두 브라우저 동시 체크 → 30초 내 상호 반영 `[agent-browser]` (세션 2개)
+- [ ] 두 브라우저 동시 체크 → 다음 polling 안에 상호 반영 `[agent-browser]` (세션 2개, 30초 + 저장·조회 시간)
 - [ ] PC 폭에서 크게 어색하지 않음 `[agent-browser]`
 
 ### 4단계: 화면 B — 종합 (확정 시안 반영)
-- [ ] 작업 12: `src/components/notes/NotesSummaryList.tsx` (+ 스켈레톤) — 시안 B2의 기간 드롭다운·점수판·세션 탭·카드 행·12회 구분선·횟수 막대·시상 명단 복사
-- [ ] 작업 13: `src/app/notes/summary/page.tsx` — admin 게이트(`useAuthGate('admin')` + `AuthGateModal`), 통과 전 렌더 차단
-- [ ] 작업 14: `/members` 헤더에 `말씀노트` 진입 버튼
-- [ ] 작업 14-1: `tests/e2e/gates.spec.ts` — 다른 화면을 거쳐 이동한 경로로 `/notes/summary` 진입 시 게이트 통과 전 표가 렌더되지 않음 (같은 패턴으로 `/registry`·`/teachers`도 포함)
+- [x] 작업 12: `src/components/notes/NotesSummaryList.tsx` (+ 스켈레톤) — 시안 B2의 기간 드롭다운·점수판·세션 탭·카드 행·12회 구분선·횟수 막대·시상 명단 복사
+- [x] 작업 13: `src/app/notes/summary/page.tsx` — admin 게이트(`useAuthGate('admin')` + `AuthGateModal`), 통과 전 렌더 차단
+- [x] 작업 14: `/members` 헤더에 `말씀노트` 진입 버튼
+- [x] 작업 14-1: `tests/e2e/gates.spec.ts` — 다른 화면을 거쳐 이동한 경로로 `/notes/summary` 진입 시 게이트 통과 전 표가 렌더되지 않음 (같은 패턴으로 `/registry`·`/teachers`도 포함)
 
 ### 체크포인트 D: 화면 B
 - [ ] 다른 화면(/members 등)을 거쳐 들어와도 게이트 뒤에 데이터가 안 보임 `[Playwright]`
@@ -184,13 +185,13 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 - [ ] `npm run build` 통과
 
 ### 5단계: 사용 안내
-- [ ] 작업 15: `guide/mock/intercept.js`·`data.json`에 `/api/notes/*` 가짜 응답 추가, `shots.json`에 장면 추가 후 촬영·합성 → `public/guide/`
-- [ ] 작업 16: `/guide`에 "말씀노트 체크" 절(QR 찍기 → 날짜 확인 → 학생 누르기) + 총무팀용 카드에 "말씀노트 시상 명단 보기" 항목
+- [x] 작업 15: `guide/mock/intercept.js`·`data.json`에 `/api/notes/*` 가짜 응답 추가, `shots.json`에 장면 추가 후 촬영·합성 → `public/guide/`
+- [x] 작업 16: `/guide`에 "말씀노트 체크" 절(QR 찍기 → 날짜 확인 → 학생 누르기) + 총무팀용 카드에 "말씀노트 시상 명단 보기" 항목
 
 ### 6단계: 기존 기능 회귀 점검 (위 "영향 범위" 표 기준)
 - [ ] 작업 16-1: 변경 범위 확인 — `git diff --stat main...HEAD`로 손댄 기존 파일이 "영향 범위" 표에 있는 것뿐인지 대조. 표에 없는 기존 파일이 바뀌었으면 이유를 확인하고 표에 추가
 - [ ] 작업 16-2: 정적 점검 — `npx tsc --noEmit`, `npm run build`, `npm run test:e2e` 통과 (lint 스크립트는 없음). 빌드 출력에서 기존 7개 화면 라우트가 모두 그대로 생성되는지 확인
-- [ ] 작업 16-3: 데이터 점검 — `node scripts/verify-sheets.mjs`(탭 4개·헤더), `verify-read-api.mjs`·`verify-write-api.mjs`로 기존 API 응답 형태 불변 확인
+- [ ] 작업 16-3: 데이터 점검 — `node scripts/verify-sheets.mjs`(탭 4개·헤더), `verify-read-api.mjs`·`verify-write-api.mjs`로 기존 API 응답 형태 불변 확인 (`verify-read-api.mjs`의 attendance 2건 불일치는 기존 현상 — API가 커밋 255f4ce부터 세션 필터를 쓰지 않는데 스크립트는 세션별로 센다. 스크립트 연속 실행은 분당 읽기 한도 429를 부르므로 1분 띄운다)
 - [ ] 작업 16-4: 기존 화면 점검 `[agent-browser]` (dev 서버, 375px·1024px) — 게이트 렌더 차단은 16-2의 Playwright가 맡으므로 여기서는 진입·통과 동작만 본다
   - `/` 출석 토글·30초 polling·헤더 한 줄 유지
   - `/members` 학생 추가·수정·**삭제**(출석 cascade 정상) · 교사 현황 진입 · 새 `말씀노트` 버튼 배치
@@ -265,21 +266,22 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 - [x] QR 링크로 그 반 명단이 열리고 체크·해제가 즉시 반영되며 실패 시 롤백된다
 - [x] 날짜는 기본 최근 일요일이고 올해 일요일만 고를 수 있으며 결석 학생이 흐리게 표시된다
 - [x] Playwright가 실시트 없이 돌고 롤백·잘못된 토큰 테스트가 통과한다
+- [x] `GET /api/notes/class`가 시트 읽기 요청 1번으로 같은 응답을 준다
 
 **검증:**
 - [ ] 체크포인트 C 전체
 
 **의존:** 2단계, 체크포인트 B2
 
-**예상 파일:** `src/app/notes/c/[token]/page.tsx`, `src/components/notes/ClassNotesScreen.tsx`, `src/components/notes/NoteCheckCard.tsx`, `src/hooks/useClassNotes.ts`, `playwright.config.ts`, `tests/e2e/mock.ts`, `tests/e2e/notes.spec.ts`, `package.json`, `package-lock.json`, `.gitignore`
+**예상 파일:** `src/app/notes/c/[token]/page.tsx`, `src/components/notes/ClassNotesScreen.tsx`, `src/components/notes/NoteCheckCard.tsx`, `src/hooks/useClassNotes.ts`, `src/lib/sheets.ts`, `src/app/api/notes/class/route.ts`, `playwright.config.ts`, `tests/e2e/mock.ts`, `tests/e2e/notes.spec.ts`, `package.json`, `package-lock.json`, `.gitignore`
 
 **규모:** 작업별 S~M
 
 #### 4단계: 화면 B (작업 12~14-1)
 **완료 기준:**
-- [ ] 종합 목록이 횟수순으로 나오고 12회 구분선과 올해 기간·세션 탭·시상 명단 복사가 동작한다
-- [ ] admin 통과 전에는 다른 화면을 거쳐 와도 데이터가 렌더되지 않는다
-- [ ] `/members` 버튼을 넣어도 헤더가 640·1024px에서 넘치지 않는다
+- [x] 종합 목록이 횟수순으로 나오고 12회 구분선과 올해 기간·세션 탭·시상 명단 복사가 동작한다
+- [x] admin 통과 전에는 다른 화면을 거쳐 와도 데이터가 렌더되지 않는다
+- [x] `/members` 버튼을 넣어도 헤더가 640·1024px에서 넘치지 않는다
 
 **검증:**
 - [ ] 체크포인트 D 전체
@@ -292,8 +294,8 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 
 #### 5단계: 사용 안내 (작업 15~16)
 **완료 기준:**
-- [ ] 새 캡처가 가짜 데이터로만 찍혀 `public/guide/`에 있다
-- [ ] `/guide`에 말씀노트 절과 총무팀 카드 항목이 있고 접힘·앵커가 동작한다
+- [x] 새 캡처가 가짜 데이터로만 찍혀 `public/guide/`에 있다
+- [x] `/guide`에 말씀노트 절과 총무팀 카드 항목이 있고 접힘·앵커가 동작한다
 
 **검증:**
 - [ ] 16-5 캡처 회귀 결과 확인

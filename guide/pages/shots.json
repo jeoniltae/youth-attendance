@@ -1089,6 +1089,12 @@
           "label": "①"
         }
       ]
-    }
+    },
+    {"id":"80-notes-open","url":"/notes/c/guide-dummy","actions":[{"eval":"(() => { const r = document.documentElement.style; r.scrollbarGutter = 'auto'; r.scrollbarWidth = 'none'; return true; })()"},{"wait":300}],"marks":[{"css":"main h1","self":true,"label":"①"},{"css":"main .overflow-x-auto button[aria-pressed='true']","label":"②"}]},
+    {"id":"81-notes-check","url":"/notes/c/guide-dummy","actions":[{"eval":"(() => { const r = document.documentElement.style; r.scrollbarGutter = 'auto'; r.scrollbarWidth = 'none'; return true; })()"},{"click":{"contains":"김하늘","tag":"button"}},{"wait":700},{"wait":300}],"marks":[{"contains":"김하늘","tag":"button","label":"①"},{"contains":"명 체크","tag":"p","self":true,"label":"②"}]},
+    {"id":"82-notes-date","url":"/notes/c/guide-dummy","actions":[{"eval":"(() => { const r = document.documentElement.style; r.scrollbarGutter = 'auto'; r.scrollbarWidth = 'none'; return true; })()"},{"eval":"(() => { const s = window.__GUIDE_MOCK.state; const d = Object.keys(s.attendance).sort().at(-2); s.attendance[d] = s.attendance[d].filter((id) => id !== '2026-1-1-003'); return d; })()"},{"click":{"css":"main .overflow-x-auto button","nth":1}},{"wait":1200},{"wait":300}],"marks":[{"css":"main .overflow-x-auto button[aria-pressed='true']","label":"①"},{"contains":"박구름","tag":"button","label":"②"}]},
+    {"id":"83-notes-entry","url":"/members","marks":[{"text":"말씀노트","tag":"a","label":"①"}]},
+    {"id":"84-notes-summary","url":"/notes/summary","actions":[{"eval":"(() => { const el = document.querySelector('select'); Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(el, window.__GUIDE_MOCK.today.slice(0, 4) + '-2'); el.dispatchEvent(new Event('change', { bubbles: true })); return el.value; })()"},{"wait":1000}],"marks":[{"css":"select","label":"①"},{"contains":"시상 대상","self":true,"up":2,"label":"②"},{"contains":"시상 명단 복사","tag":"button","label":"③"}]},
+    {"id":"85-notes-line","url":"/notes/summary","actions":[{"eval":"(() => { const el = document.querySelector('select'); Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(el, window.__GUIDE_MOCK.today.slice(0, 4) + '-2'); el.dispatchEvent(new Event('change', { bubbles: true })); return el.value; })()"},{"wait":1000},{"scrollTo":{"contains":"시상 기준 12회","self":true}},{"wait":400}],"marks":[{"contains":"시상 기준 12회","self":true,"label":"①"}]}
   ]
 }

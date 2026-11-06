@@ -14,6 +14,36 @@ const CLASS_STUDENTS = data.students.slice(0, 3).map((student) => ({
 
 export const FIRST_STUDENT = CLASS_STUDENTS[0].name;
 
+// 게이트 검사용 — 메인(/)과 시상 화면이 쓰는 API를 같은 더미 학생으로 채운다
+export async function mockGateApis(page: Page) {
+  const students = data.students.slice(0, 3).map((student) => ({
+    ...data.defaults.student,
+    ...student,
+    session: "오전",
+  }));
+
+  await page.route("**/api/roster?*", (route) =>
+    route.fulfill({ json: { students, teachers: [] } }),
+  );
+  await page.route("**/api/attendance?*", (route) => route.fulfill({ json: { studentIds: [] } }));
+  await page.route("**/api/notes/summary?*", (route) =>
+    route.fulfill({
+      json: {
+        sundays: 17,
+        students: students.map((s) => ({
+          id: s.id,
+          session: s.session,
+          grade: s.grade,
+          class: s.class,
+          name: s.name,
+          phone: s.phone,
+          count: 12,
+        })),
+      },
+    }),
+  );
+}
+
 export async function mockClassNotes(page: Page) {
   await page.route("**/api/notes/class?*", (route) =>
     route.fulfill({

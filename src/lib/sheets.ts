@@ -45,6 +45,18 @@ async function getSheetTitleToIdMap(): Promise<Record<string, number>> {
   return map;
 }
 
+function rowsToObjects(rows: unknown[][]): Record<string, string>[] {
+  if (rows.length === 0) return [];
+
+  const [header, ...dataRows] = rows;
+  return dataRows.map((row) =>
+    header.reduce<Record<string, string>>((acc, key, i) => {
+      acc[String(key)] = String(row[i] ?? '');
+      return acc;
+    }, {}),
+  );
+}
+
 // 헤더 행(1행)을 키로 사용해 시트 데이터를 객체 배열로 읽기
 export async function readSheet(sheetName: string): Promise<Record<string, string>[]> {
   const sheets = getSheetsClient();
@@ -54,15 +66,20 @@ export async function readSheet(sheetName: string): Promise<Record<string, strin
     valueRenderOption: 'FORMATTED_VALUE',
   });
 
-  const rows = (res.data.values ?? []) as unknown[][];
-  if (rows.length === 0) return [];
+  return rowsToObjects((res.data.values ?? []) as unknown[][]);
+}
 
-  const [header, ...dataRows] = rows;
-  return dataRows.map((row) =>
-    header.reduce<Record<string, string>>((acc, key, i) => {
-      acc[String(key)] = String(row[i] ?? '');
-      return acc;
-    }, {}),
+// 여러 탭을 요청 1번으로 읽기 — polling 화면이 분당 읽기 한도를 덜 쓰게 한다. 결과 순서는 sheetNames와 같다
+export async function readSheets(sheetNames: string[]): Promise<Record<string, string>[][]> {
+  const sheets = getSheetsClient();
+  const res = await sheets.spreadsheets.values.batchGet({
+    spreadsheetId: SPREADSHEET_ID,
+    ranges: sheetNames,
+    valueRenderOption: 'FORMATTED_VALUE',
+  });
+
+  return (res.data.valueRanges ?? []).map((range) =>
+    rowsToObjects((range.values ?? []) as unknown[][]),
   );
 }
 

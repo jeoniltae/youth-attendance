@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, PieChart, Plus, UserPlus, Users } from "lucide-react";
+import { ArrowLeft, BookOpen, PieChart, Plus, UserPlus, Users } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { FilterChips, type FilterState } from "@/components/attendance/FilterChips";
 import { GradeSectionSkeleton } from "@/components/attendance/GradeSectionSkeleton";
@@ -277,7 +277,7 @@ export default function MembersPage() {
             setFilter({ level: "all" });
           }}
           actions={
-            <div className="flex w-full items-center justify-center gap-2 sm:w-auto sm:justify-start">
+            <div className="flex w-full flex-wrap items-center justify-center gap-2 sm:w-auto sm:flex-nowrap sm:justify-start">
               <button
                 type="button"
                 onClick={() => setStudentModal({ open: true, student: null })}
@@ -310,6 +310,13 @@ export default function MembersPage() {
               >
                 <Users className="size-3.5" />
                 교사 현황
+              </Link>
+              <Link
+                href="/notes/summary"
+                className="flex items-center gap-1.5 whitespace-nowrap rounded-full border border-ink/25 px-3 py-1.5 text-sm font-semibold text-ink/70 hover:border-ink/45 hover:text-ink"
+              >
+                <BookOpen className="size-3.5" />
+                말씀노트
               </Link>
             </div>
           }

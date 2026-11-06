@@ -1,10 +1,10 @@
 "use client";
-// 사용 안내 페이지 — 출석 체크·확인, 출석현황, 생일자, 학생 관리(등록·교사 현황) 사용법을 캡처와 함께 안내
+// 사용 안내 페이지 — 출석 체크·확인, 출석현황, 생일자, 말씀노트, 학생 관리(등록·교사 현황) 사용법을 캡처와 함께 안내
 //
 // 캡처는 guide/ 작업 폴더에서 가짜 데이터로 만들어 public/guide/로 복사한 완성본만 쓴다(guide/README.md).
 // 교사용(session) 게이트 뒤에 두고, 게이트 통과 전에는 본문을 아예 그리지 않는다(CLAUDE.md 인증 구조 ⚠️).
 //
-// 단계가 36개라 모두 펼치면 스크롤이 지나치게 길다 → 절·작은 주제를 접힌 채로 시작하고, 대상별 카드·고정 내비·
+// 단계가 40개가 넘어 모두 펼치면 스크롤이 지나치게 길다 → 절·작은 주제를 접힌 채로 시작하고, 대상별 카드·고정 내비·
 // 주소 앵커(#id)가 필요한 절만 펼쳐 그 위치로 이동한다(docs/context-notes.md "사용 안내" 섹션).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -23,6 +23,7 @@ const NAV: GuideNavItem[] = [
   { id: "confirm", label: "출석 확인" },
   { id: "history", label: "출석현황" },
   { id: "birthday", label: "생일자" },
+  { id: "notes", label: "말씀노트 체크" },
   {
     id: "members",
     label: "학생 관리",
@@ -33,6 +34,7 @@ const NAV: GuideNavItem[] = [
       { id: "members-attendance", label: "지난 출석 고치기" },
       { id: "members-delete", label: "지우기" },
       { id: "members-teachers", label: "교사 현황 보기" },
+      { id: "members-notes", label: "말씀노트 시상 명단" },
     ],
   },
   { id: "faq", label: "자주 묻는 것" },
@@ -52,8 +54,8 @@ const FIRST_CHILD: Record<string, string> = Object.fromEntries(
 // 맨 위 대상별 카드 — 누르면 해당 절들을 펼치고 첫 절로 이동
 const AUDIENCES = [
   { tag: "학생용", title: "출석 체크", desc: "주일에 내 이름 카드 누르기", open: ["check"] },
-  { tag: "교사용", title: "출석 확인·현황", desc: "우리 반 확인 · 출석현황 · 생일자", open: ["confirm", "history", "birthday"] },
-  { tag: "총무팀용", title: "학생 관리", desc: "등록 · 고치기 · 지난 출석 · 교사 현황", open: ["members"] },
+  { tag: "교사용", title: "출석 확인·현황", desc: "우리 반 확인 · 출석현황 · 생일자 · 말씀노트", open: ["confirm", "history", "birthday", "notes"] },
+  { tag: "총무팀용", title: "학생 관리", desc: "등록 · 고치기 · 지난 출석 · 교사 현황 · 말씀노트 시상", open: ["members"] },
 ];
 
 const FAQ: FaqItem[] = [
@@ -76,6 +78,10 @@ const FAQ: FaqItem[] = [
   {
     q: "누른 출석이 다른 선생님 휴대폰에는 안 보여요",
     a: "다른 휴대폰에는 30초쯤 뒤에 바뀐 내용이 보여요. 바로 보고 싶으면 화면을 새로고침하세요.",
+  },
+  {
+    q: "말씀노트 QR을 찍었는데 잘못된 주소라고 나와요",
+    a: "QR이 찢어졌거나 예전 것일 수 있어요. 해당 반 보관함의 QR을 다시 찍어 보고, 그래도 안 되면 총무팀 선생님에게 문의하세요.",
   },
   {
     q: "등록이나 수정 완료를 눌렀는데 창이 안 닫혀요",
@@ -388,6 +394,38 @@ function GuideContent() {
             </GuideSteps>
           </GuideSection>
 
+          <GuideSection id="notes" tag="교사용" title="말씀노트 체크하기" description="반 보관함의 QR을 찍고, 노트를 쓴 학생을 눌러요. 비밀번호는 필요 없어요.">
+            <GuideSteps>
+              <GuideStep
+                n={1}
+                shot="80-notes-open"
+                alt="말씀노트 체크 화면. 위쪽의 반 이름과 선택된 날짜에 빨간 네모가 있다."
+                title={<>QR을 찍고 <em>우리 반</em>과 <em>날짜</em>를 확인하세요</>}
+              >
+                <p>① 보관함 칸의 QR을 휴대폰 카메라로 찍으면 그 반 명단이 바로 열려요.</p>
+                <p>② 진한 색 날짜가 지금 체크하는 날이에요. 가장 최근 일요일로 잡혀 있어요.</p>
+              </GuideStep>
+              <GuideStep
+                n={2}
+                shot="81-notes-check"
+                alt="김하늘 카드가 빨갛게 바뀌고 체크 표시가 붙었다. 위쪽 체크 인원이 1명으로 늘었다."
+                title={<>노트를 쓴 학생의 <em>이름 줄</em>을 누르세요</>}
+              >
+                <p>① 줄 아무 곳이나 누르면 ✓가 붙고, ② 위쪽 숫자가 늘어요. 내용이 짧아도 썼다면 체크해요.</p>
+                <p className="hint">잘못 눌렀다면 같은 줄을 <b>한 번 더</b> 누르세요. 다른 선생님 휴대폰에는 30초쯤 뒤에 보여요.</p>
+              </GuideStep>
+              <GuideStep
+                n={3}
+                shot="82-notes-date"
+                alt="지난 일요일 날짜를 고른 화면. 날짜 버튼과 결석 표시가 있는 박구름 줄에 빨간 네모가 있다."
+                title={<>지난주 것은 <em>날짜</em>를 바꿔서 체크하세요</>}
+              >
+                <p>① 날짜 버튼을 옆으로 밀면 올해 지난 일요일을 모두 고를 수 있어요.</p>
+                <p>② 그날 결석한 학생은 흐리게 <b>결석</b>이라고 보여요. 노트를 냈다면 그대로 체크할 수 있어요.</p>
+              </GuideStep>
+            </GuideSteps>
+          </GuideSection>
+
           <GuideSection id="members" tag="총무팀용" title="학생 관리" description="학생·교사·새친구를 등록하고 고치고 지워요. 관리자 비밀번호가 필요해요.">
             <GuideSubSection id="members-enter" title="들어가기">
               <GuideSteps>
@@ -594,6 +632,39 @@ function GuideContent() {
                   title={<>표를 옆으로 밀면 <em>출석률(1년 기준)</em>이 보여요</>}
                 >
                   <p>최근 1년 동안 예배가 있었던 날 중 몇 번 왔는지예요. 막대 색은 초록(80% 이상)·노랑(50% 이상)·빨강(그 아래)이에요.</p>
+                </GuideStep>
+              </GuideSteps>
+            </GuideSubSection>
+
+            <GuideSubSection id="members-notes" title="말씀노트 시상 명단">
+              <GuideSteps>
+                <GuideStep
+                  n={1}
+                  shot="83-notes-entry"
+                  alt="학생·교사 관리 화면 위쪽. 말씀노트 버튼에 빨간 네모가 있다."
+                  title={<>학생 관리 화면에서 <em>말씀노트</em>를 누르세요</>}
+                >
+                  <p className="hint">학생 관리에 들어갈 때 넣은 관리자 비밀번호로 그대로 열려요.</p>
+                </GuideStep>
+                <GuideStep
+                  n={2}
+                  shot="84-notes-summary"
+                  alt="말씀노트 시상 화면 위쪽. 기간 선택 칸, 시상 대상·전체·일요일 숫자판, 시상 명단 복사 버튼에 빨간 네모가 있다."
+                  title={<><em>기간</em>을 고르면 시상 대상이 바로 보여요</>}
+                >
+                  <p>① 1기(1~4월)·2기(5~8월)·3기(9~12월) 중에서 골라요. 처음에는 지금 기간이 열려요.</p>
+                  <p>② 시상 대상 수, 전체 학생 수, 그 기간의 일요일 수예요.</p>
+                  <p>③ <b>시상 명단 복사</b>를 누르면 12회 이상 학생만 복사돼요. 카카오톡이나 엑셀에 붙여 넣으세요.</p>
+                  <p className="hint">올해 기간만 볼 수 있어요. 3기 명단은 새해 시트로 바꾸기 전에 복사해 두세요. 12회 이상이 없으면 복사 버튼이 꺼져 있어요.</p>
+                </GuideStep>
+                <GuideStep
+                  n={3}
+                  shot="85-notes-line"
+                  alt="시상 기준 12회 구분선에 빨간 네모가 있다. 선 위는 12회 이상 학생이 초록색으로, 선 아래는 흰색으로 보인다."
+                  title={<><em>시상 기준 12회</em> 선 위가 수상자예요</>}
+                >
+                  <p>① 많이 쓴 순서로 나오고, 선 아래는 아직 12회가 안 된 학생이에요.</p>
+                  <p className="hint">오전·오후 버튼을 누르면 그 예배 학생만 보고 복사할 수 있어요.</p>
                 </GuideStep>
               </GuideSteps>
             </GuideSubSection>

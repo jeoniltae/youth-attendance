@@ -69,7 +69,15 @@
           ? [...SEED.todayPresent]
           : Object.keys(rateOf).filter((id) => hash01(id + date) < rateOf[id]);
     }
-    return { students, teachers, attendance };
+    // 말씀노트도 지난 일요일마다 같은 방식으로 만든다. 오늘은 비워 둬서 체크 전/후 장면을 찍을 수 있게 한다
+    const notes = {};
+    for (let ms = sunday11 - 7 * DAY; ms > sunday11 - 400 * DAY; ms -= 7 * DAY) {
+      const date = ymd(ms);
+      // 출석률 그대로 쓰면 거의 다 12회를 넘어 시상 기준선이 화면 밖으로 밀린다
+      notes[date] = SEED.students.filter((s) => hash01("note" + s.id + date) < s.rate * 0.75).map((s) => s.id);
+    }
+    notes[TODAY] = [];
+    return { students, teachers, attendance, notes };
   }
 
   let state;
@@ -188,6 +196,47 @@
         firstHalf: half(`${year}-01-01`, `${year}-06-30`),
         secondHalf: half(`${year}-07-01`, `${year}-12-31`),
       }];
+    }
+
+    // 말씀노트 — QR 화면은 토큰과 상관없이 오전 1학년 1반을 보여 준다
+    if (method === "GET" && path === "/api/notes/class") {
+      const date = q.get("date");
+      const students = state.students
+        .filter((s) => s.session === "오전" && s.grade === "1" && s.class === "1")
+        .map((s) => ({
+          id: s.id,
+          name: s.name,
+          written: (state.notes[date] || []).includes(s.id),
+          present: date === TODAY || (state.attendance[date] || []).includes(s.id), // 오늘은 결석 표시 없이 찍는다
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name, "ko"));
+      return [200, { session: "오전", grade: "1", class: "1", students }];
+    }
+    if (method === "POST" && path === "/api/notes/class") {
+      const list = (state.notes[body.date] ||= []);
+      const has = list.includes(body.studentId);
+      if (body.status === "작성" && !has) list.push(body.studentId);
+      if (body.status === "미작성" && has) list.splice(list.indexOf(body.studentId), 1);
+      save();
+      return [200, { status: body.status }];
+    }
+    if (method === "GET" && path === "/api/notes/summary") {
+      const [periodYear, index] = q.get("period").split("-");
+      const [from, to] = [["01-01", "04-30"], ["05-01", "08-31"], ["09-01", "12-31"]][index - 1].map((d) => `${periodYear}-${d}`);
+      const dates = Object.keys(state.notes).filter((d) => d >= from && d <= to);
+      const students = state.students
+        .filter((s) => s.class && s.grade !== "새친구")
+        .map((s) => ({
+          id: s.id,
+          session: s.session,
+          grade: s.grade,
+          class: s.class,
+          name: s.name,
+          phone: s.phone,
+          count: dates.filter((d) => state.notes[d].includes(s.id)).length,
+        }))
+        .sort((a, b) => b.count - a.count || a.grade - b.grade || a.class - b.class || a.name.localeCompare(b.name, "ko"));
+      return [200, { sundays: sundaysBetween(from, to).length, students }];
     }
 
     // 학생·교사 CRUD
