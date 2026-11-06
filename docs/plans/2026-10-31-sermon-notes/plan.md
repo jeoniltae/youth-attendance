@@ -134,10 +134,10 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 - [ ] 기간 경계(4/30·5/1·8/31·9/1·12/31) 변환 정확 `[스크립트]`
 
 ### 2단계: API
-- [ ] 작업 6: `GET/POST /api/notes/class` — 토큰 검증 → 반 명단(id·name, 새친구 제외) + 그날 작성/출석 여부, 멱등 저장 + 소속·날짜 검증, 해제는 `deleteRowsWhere`
-- [ ] 작업 7: `GET /api/notes/summary` — 기간 집계 (SermonNotes·Students 1회씩 읽기, 새친구 제외, 날짜 Set으로 인당 하루 1회)
-- [ ] 작업 8: 학생 DELETE 라우트에 SermonNotes cascade 삭제 추가 (`src/app/api/students/[id]/route.ts`)
-- [ ] 작업 9: 클라이언트 fetch 함수 `src/api/notes.ts` + 훅 `src/hooks/useClassNotes.ts`(polling·Optimistic) / `src/hooks/useNotesSummary.ts`
+- [x] 작업 6: `GET/POST /api/notes/class` — 토큰 검증 → 반 명단(id·name, 새친구 제외) + 그날 작성/출석 여부, 멱등 저장 + 소속·날짜 검증, 해제는 `deleteRowsWhere`
+- [x] 작업 7: `GET /api/notes/summary` — 기간 집계 (SermonNotes·Students 1회씩 읽기, 새친구 제외, 날짜 Set으로 인당 하루 1회)
+- [x] 작업 8: 학생 DELETE 라우트에 SermonNotes cascade 삭제 추가 (`src/app/api/students/[id]/route.ts`)
+- [x] 작업 9: 클라이언트 fetch 함수 `src/api/notes.ts` + 훅 `src/hooks/useClassNotes.ts`(polling·Optimistic) / `src/hooks/useNotesSummary.ts`
 
 ### 체크포인트 B: API
 - [ ] 잘못된 토큰 404, 다른 반 학생 POST 거부(403), 같은 요청 2회 → 행 1개 `[스크립트]`
@@ -150,8 +150,8 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 - [ ] `npx tsc --noEmit` 통과
 
 ### 2.5단계: UI 시안 (아티팩트로 먼저 보고 결정)
-- [ ] 작업 9-1: 화면 A(기록 체크) 시안을 아티팩트로 2~3안 제작 — 더미 데이터(`홍길동` 등)만 사용, 기존 색 토큰(paper/ink/stamp/teal/gold)·티켓 카드 스타일 기준, 모바일 375px 프레임 + PC 폭 미리보기
-- [ ] 작업 9-2: 화면 B(종합) 시안을 아티팩트로 2~3안 제작 — 기간 드롭다운·세션 탭·12회 필터·복사 버튼·횟수 막대 배치 비교
+- [x] 작업 9-1: 화면 A(기록 체크) 시안을 아티팩트로 2~3안 제작 — 더미 데이터(`홍길동` 등)만 사용, 기존 색 토큰(paper/ink/stamp/teal/gold)·티켓 카드 스타일 기준, 모바일 375px 프레임 + PC 폭 미리보기
+- [x] 작업 9-2: 화면 B(종합) 시안을 아티팩트로 2~3안 제작 — 기간 드롭다운·세션 탭·12회 필터·복사 버튼·횟수 막대 배치 비교
 - [ ] 작업 9-3: 사용자 검토 → 시안 선택·수정 반복 → 확정안을 이 문서 "설계 결정"에 기록 (선택 안·변경 사항·확정 아티팩트 링크)
 
 ### 체크포인트 B2: 디자인 확정

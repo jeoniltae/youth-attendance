@@ -73,6 +73,7 @@ export async function DELETE(
     // 삭제된 학생의 출석 기록도 정리 — 남겨두면 ID가 재사용될 때 새 학생이
     // 옛 출석 기록을 물려받아 출석률이 잘못 계산된다
     await deleteRowsWhere(SHEET.ATTENDANCE, (r) => r.StudentID === id);
+    await deleteRowsWhere(SHEET.SERMON_NOTES, (r) => r.StudentID === id);
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('[api/students/[id]][DELETE]', error);
