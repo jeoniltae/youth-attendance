@@ -1,6 +1,7 @@
 # 구현 계획: 말씀노트 기록 관리 (sermon-notes)
 
-- 상태: 계획 확정 (2026-10-31)
+- spec: ./spec.md
+- 상태: 진행 중 (계획 확정 2026-10-31, spec 승인 후 보정 2026-11-06)
 
 ## 개요
 학생들이 말씀노트를 썼는지(내용 길이 무관) 날짜별로 기록하고, 4개월 단위로 12회 이상 작성자를 총무팀이 바로 확인해 시상할 수 있게 한다.
@@ -15,7 +16,7 @@
 | 체크 화면 인증 | 비밀번호 없음 — **반별 비밀 토큰 링크** (`/notes/c/[token]`) |
 | 종합 화면 인증 | admin 게이트 |
 | 기간 | 1기 1~4월 / 2기 5~8월 / 3기 9~12월 (연도 안 고정) |
-| 대상 | 학생만 (교사 제외) |
+| 대상 | 학생만 — 교사·새친구(학년 `새친구`, 반 없음) 제외 |
 
 ## 설계 결정
 - **토큰 = `HMAC-SHA256(NOTES_QR_SECRET, "오전-1-2")` 앞 16자(base64url)**
@@ -23,12 +24,12 @@
   - 비밀값은 `.env.local`·Vercel에만 → 토큰 목록을 어디에도 저장할 필요 없음. 서버는 존재하는 반 목록(Students의 세션·학년·반 조합)에 대해 HMAC을 계산해 일치하는 반을 찾는다
   - 유출 시: 비밀값 교체 후 QR 전체 재인쇄
   - 비교는 `crypto.timingSafeEqual`
-- **토큰 API는 서버가 범위를 강제한다** — 토큰 → 반을 서버가 결정, 그 반 학생의 `id`·`name`만 반환. POST도 대상 학생이 토큰의 반 소속인지 확인 후 저장. 기존 `/api/roster`(전화·주소 포함)는 이 화면에서 호출하지 않는다
-- **SermonNotes 구조는 Attendance를 따른다** — `Date, Session, Grade, Class, StudentID, Name, Timestamp`. 행이 있으면 작성, 없으면 미작성. POST는 `/api/attendance`의 멱등 패턴(status 지정 시 이미 그 상태면 no-op) — 교사 둘이 같은 반을 동시에 체크해도 중복 행이 생기지 않음
+- **토큰 API는 서버가 범위를 강제한다** — 토큰 → 반을 서버가 결정, 그 반 학생의 `id`·`name`만 반환. POST도 대상 학생이 토큰의 반 소속인지, 날짜가 형식에 맞는 올해 일요일이고 미래가 아닌지 확인 후 저장 (화면 제한만으로는 토큰 보유자의 평일 행을 막지 못해 횟수가 분모를 넘을 수 있다). 기존 `/api/roster`(전화·주소 포함)는 이 화면에서 호출하지 않는다
+- **SermonNotes 구조는 Attendance를 따른다** — `Date, Session, Grade, Class, StudentID, Name, Timestamp`. 행이 있으면 작성, 없으면 미작성. POST는 `/api/attendance`의 멱등 패턴(status 지정 시 이미 그 상태면 no-op) — 순차 재요청은 중복이 안 생긴다. 다만 조회 후 추가라 원자적이지 않아 **거의 같은 순간의 저장은 중복 행이 생길 수 있다** → 집계는 날짜 Set으로 1회만 세고, 해제는 `findRowNumber`+`deleteRow`가 아니라 `deleteRowsWhere`로 그 학생·그날 행을 모두 지운다 (한 행만 지우면 체크가 되살아남)
 - **학생 삭제 시 SermonNotes도 함께 삭제(cascade)** — Attendance와 같은 이유(같은 해 안 ID 재사용 시 남의 기록이 붙는 오염 방지). 기존 `deleteRowsWhere`를 학생 DELETE 라우트에 한 줄 추가
-- **연도별 시트 운영과 맞춘다** — 기간이 연도 안에서 끝나므로 새해 시트로 넘어가도 집계가 끊기지 않음. `docs/yearly-sheet-operation.md`의 탭 목록·헤더와 `scripts/verify-sheets.mjs` 검증 대상에 `SermonNotes` 추가
-- **기본 날짜 = 가장 최근 일요일(KST)**, 일요일만 선택 가능, 과거 날짜 가능 (미래 불가)
-- **분모 = 그 기간 일요일 수** (`countSundays()` 재사용). 진행 중 기간이면 오늘까지의 일요일 수
+- **연도별 시트 운영과 맞춘다** — 기간이 연도 안에서 끝나므로 집계가 시트를 넘지 않는다. 앱은 현재 시트만 읽으므로 기간 드롭다운은 올해 3개 기간만 보여 주고, 3기 명단은 시트 전환 전에 복사해 둔다(2026-11-06 사용자 결정). `docs/yearly-sheet-operation.md`의 탭 목록·헤더와 `scripts/verify-sheets.mjs` 검증 대상에 `SermonNotes` 추가
+- **기본 날짜 = 가장 최근 일요일(KST)**, 일요일만 선택 가능, 올해 안의 과거 날짜 가능 (미래·지난해 불가). 새해 첫 일요일 전이면 체크할 날짜가 없다는 안내를 보여 준다
+- **분모 = 그 기간 전체 일요일 수(고정)** (`countSundays()` — 지금 `stats/rates` 라우트 안 비공개 함수라 `lib/date.ts`로 옮겨 공유). 진행 중 기간도 같다 — 교적부 반기 컬럼과 같은 규칙(2026-11-06 사용자 결정)
 - 체크 화면은 모바일 1열 카드, PC는 가운데 정렬 + 최대 폭 제한만 (반응형 분기 없음). `noindex` 메타
 - 종합 화면은 교적부 계열 TanStack Table 그리드 재사용 (sticky·정렬)
 - **화면 UI는 아티팩트 시안을 먼저 보고 결정한다** — 아래 "화면" 절의 구성은 기능 범위이고, 배치·스타일은 2.5단계에서 확정한 시안을 따른다
@@ -107,9 +108,11 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 | 기존 파일 | 변경 | 깨질 수 있는 지점 |
 |-----------|------|-------------------|
 | `src/lib/sheets.ts` | `SHEET.SERMON_NOTES` 상수 추가 | 상수 추가만 — 기존 읽기·쓰기 동작 불변이어야 함 |
+| `src/app/api/stats/rates/route.ts` | `countSundays()`를 `src/lib/date.ts`로 옮기고 import | 교적부 상/하반기 분모 값 불변이어야 함 (`/api/stats/rates` 응답 이동 전후 비교) |
 | `src/app/api/students/[id]/route.ts` | DELETE에 SermonNotes cascade 삭제 한 줄 | ⚠️ **SermonNotes 탭이 없는 시트(새해 시트·탭 추가 전 배포)에서 학생 삭제가 500으로 실패**할 수 있음 → 배포 전 탭 생성 필수, `verify-sheets.mjs`로 확인. 출석 cascade는 그대로 동작해야 함 |
 | `src/app/members/page.tsx` (+ 공용 `Header.tsx`) | `말씀노트` 진입 버튼 | 헤더 줄 넘침(640·1024px) — 같은 Header를 쓰는 `/`도 함께 확인 |
 | `scripts/verify-sheets.mjs` | 검증 대상 탭에 SermonNotes 추가 | 기존 3개 탭 검증 결과 불변 |
+| `.claude/feature-workflow.md` | 설정 `test:` 값을 `npm run test:e2e`로, VERIFY의 "테스트·린트 스크립트 없음" 문구를 함께 갱신 | 문서만 변경 |
 | `guide/mock/intercept.js`·`data.json`·`shots.json` | `/api/notes/*` 가짜 응답·장면 추가 | 기존 36장 촬영 장면이 그대로 다시 찍혀야 함 |
 | `src/app/guide/page.tsx` | 절·대상별 카드 항목 추가 | 고정 내비·주소 앵커·접힘 상태 동작 |
 | `package.json`·`package-lock.json` | `@playwright/test` devDependency, `test:e2e` 스크립트 | 기존 `dev`·`build` 스크립트 불변. devDependency라 Vercel 배포 번들에는 영향 없어야 함 |
@@ -120,10 +123,10 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 
 ### 1단계: 기반 (시트·토큰·기간 유틸)
 - [ ] 작업 1: `SermonNotes` 탭 헤더 추가 스크립트 `scripts/add-sermon-notes-sheet.mjs` (`add-teacher-lunar-header.mjs` 방식) + `src/lib/sheets.ts` `SHEET.SERMON_NOTES` 상수
-- [ ] 작업 2: 환경변수 `NOTES_QR_SECRET` — `.env.local`(값), `.env.example`·CLAUDE.md 환경변수 목록(이름만)
+- [ ] 작업 2: 환경변수 `NOTES_QR_SECRET` — `.env.local`(값), `.env.local.example`·CLAUDE.md 환경변수 목록·`docs/security-checklist.md` Vercel 등록 목록(이름만)
 - [ ] 작업 3: `src/lib/notes-token.ts` — `makeClassToken(session, grade, class)` / `resolveClassToken(token, classes)` (HMAC + timingSafeEqual)
-- [ ] 작업 4: `src/lib/notes-period.ts` — 기간 키(`2026-3`) ↔ 날짜 구간, 오늘이 속한 기간, 기간 목록, 최근 일요일 (기존 `lib/date.ts`·`countSundays()` 재사용)
-- [ ] 작업 5: QR URL 출력 스크립트 `scripts/print-notes-qr-urls.mjs` — Students의 모든 반에 대해 `반 → URL` 목록 출력 (출력은 커밋 금지)
+- [ ] 작업 4: `src/lib/notes-period.ts` — 기간 키(`2026-3`) ↔ 날짜 구간, 오늘이 속한 기간, 올해 기간 목록, 최근 일요일 — `countSundays()`를 `stats/rates` 라우트에서 `lib/date.ts`로 옮겨 재사용
+- [ ] 작업 5: QR URL 출력 스크립트 `scripts/print-notes-qr-urls.mjs` — Students의 모든 반(새친구·반 빈칸 제외)에 대해 `반 → URL` 목록 출력 (출력은 커밋 금지)
 
 ### 체크포인트 A: 기반
 - [ ] 스크립트로 `SermonNotes` 탭 생성, `verify-sheets.mjs` 통과 `[스크립트]`
@@ -131,14 +134,18 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 - [ ] 기간 경계(4/30·5/1·8/31·9/1·12/31) 변환 정확 `[스크립트]`
 
 ### 2단계: API
-- [ ] 작업 6: `GET/POST /api/notes/class` — 토큰 검증 → 반 명단(id·name) + 그날 작성/출석 여부, 멱등 저장 + 소속 검증
-- [ ] 작업 7: `GET /api/notes/summary` — 기간 집계 (SermonNotes·Students 1회씩 읽기)
+- [ ] 작업 6: `GET/POST /api/notes/class` — 토큰 검증 → 반 명단(id·name, 새친구 제외) + 그날 작성/출석 여부, 멱등 저장 + 소속·날짜 검증, 해제는 `deleteRowsWhere`
+- [ ] 작업 7: `GET /api/notes/summary` — 기간 집계 (SermonNotes·Students 1회씩 읽기, 새친구 제외, 날짜 Set으로 인당 하루 1회)
 - [ ] 작업 8: 학생 DELETE 라우트에 SermonNotes cascade 삭제 추가 (`src/app/api/students/[id]/route.ts`)
 - [ ] 작업 9: 클라이언트 fetch 함수 `src/api/notes.ts` + 훅 `src/hooks/useClassNotes.ts`(polling·Optimistic) / `src/hooks/useNotesSummary.ts`
 
 ### 체크포인트 B: API
 - [ ] 잘못된 토큰 404, 다른 반 학생 POST 거부(403), 같은 요청 2회 → 행 1개 `[스크립트]`
 - [ ] 응답에 전화·주소 등 이름 외 개인정보 없음 `[스크립트]`
+- [ ] 평일·미래·지난해·잘못된 형식 날짜 POST 400 `[스크립트]`
+- [ ] 같은 날 중복 행을 만들어 두면 횟수 1회, 해제 시 모두 삭제 `[스크립트]`
+- [ ] 새친구가 명단·집계·QR URL 목록 어디에도 없음 `[스크립트]`
+- [ ] `print-notes-qr-urls.mjs`가 출력한 토큰으로 GET 200 (스크립트와 `notes-token.ts`의 HMAC 일치) `[스크립트]`
 - [ ] 학생 삭제 시 Attendance·SermonNotes 기록이 모두 지워지고, 다른 학생 기록은 남음 `[스크립트]`
 - [ ] `npx tsc --noEmit` 통과
 
@@ -193,12 +200,137 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 
 ### 7단계: 문서·마무리
 - [ ] 작업 17: CLAUDE.md 갱신 — 화면 표·SermonNotes 시트 구조·API·폴더 구조·환경변수·인증 구조(토큰 링크 설명)
-- [ ] 작업 18: `docs/yearly-sheet-operation.md`(탭 4개·헤더), `docs/migration-progress.md` 항목, `docs/context-notes.md`(토큰 방식·cascade·고정 기간을 고른 이유)
+- [ ] 작업 18: `docs/yearly-sheet-operation.md`(탭 4개·헤더, 전환 절차에 3기 명단 복사 단계 추가), `docs/migration-progress.md` 항목, `docs/context-notes.md`(토큰 방식·cascade·고정 기간을 고른 이유)
+- [ ] 작업 18-1: `.claude/feature-workflow.md` 갱신 — 설정 `test: npm run test:e2e`로 변경(`test: auto`는 `test` 스크립트만 찾아 `test:e2e`를 놓친다), VERIFY 검증 명령에 추가, "테스트 러너 없음" 문구 정리
 - [ ] 작업 19: `docs/security-checklist.md` 기준 점검 — 비밀값·실제 토큰·QR URL·실명 미커밋 (`tests/e2e/` 픽스처·`test-results/` 미커밋 포함)
 
 ### 체크포인트 E: 완료
 - [ ] 실제 반 QR 1장으로 휴대폰 촬영 → 체크 → 종합 화면 반영까지 end-to-end `[사람]`
 - [ ] 배포 순서 확인: 실시트에 `SermonNotes` 탭 생성 → Vercel 환경변수 `NOTES_QR_SECRET` 등록 → 배포 (탭 없이 배포하면 학생 삭제가 실패함)
+
+## 작업 상세
+단계 단위로 묶어 적는다. 작업별 내용은 "작업 목록"의 설명이 대신하고, 검증 절차는 각 체크포인트 항목이 맡는다.
+완료 기준은 그 단계의 작업을 모두 체크할 때 함께 체크하고, 검증은 VERIFY에서 실제로 확인한 것만 체크한다.
+
+#### 1단계: 기반 (작업 1~5)
+**완료 기준:**
+- [ ] 실시트에 `SermonNotes` 탭과 헤더 7개가 있고 `verify-sheets.mjs`가 탭 4개를 확인한다
+- [ ] 토큰 생성·해석이 반 단위로 맞고 비밀값은 저장소에 없다
+- [ ] 기간 유틸이 올해 3개 기간과 경계 날짜를 맞게 돌려주고, `/api/stats/rates`의 반기 분모는 이동 전과 같다
+
+**검증:**
+- [ ] 체크포인트 A 전체
+- [ ] `npx tsc --noEmit`
+
+**의존:** 없음 (작업 2가 작업 3의 선행, `NOTES_QR_SECRET` 값은 사용자가 `.env.local`·Vercel에 등록)
+
+**예상 파일:** `scripts/add-sermon-notes-sheet.mjs`, `scripts/print-notes-qr-urls.mjs`, `scripts/verify-sheets.mjs`, `src/lib/sheets.ts`, `src/lib/notes-token.ts`, `src/lib/notes-period.ts`, `src/lib/date.ts`, `src/app/api/stats/rates/route.ts`, `.env.local.example`, `docs/security-checklist.md`
+
+**규모:** 작업별 S
+
+#### 2단계: API (작업 6~9)
+**완료 기준:**
+- [ ] 토큰 API가 반 범위·날짜를 서버에서 강제하고 응답에 이름 외 개인정보가 없다
+- [ ] 집계가 새친구를 빼고 인당 하루 1회로 세며, 분모는 기간 전체 일요일 수다
+- [ ] 학생 삭제가 SermonNotes 기록까지 지운다
+
+**검증:**
+- [ ] 체크포인트 B 전체
+
+**의존:** 1단계
+
+**예상 파일:** `src/app/api/notes/class/route.ts`, `src/app/api/notes/summary/route.ts`, `src/app/api/students/[id]/route.ts`, `src/api/notes.ts`, `src/hooks/useClassNotes.ts`, `src/hooks/useNotesSummary.ts`
+
+**규모:** 작업별 S~M
+
+#### 2.5단계: UI 시안 (작업 9-1~9-3)
+**완료 기준:**
+- [ ] 화면 A·B 시안이 각 2~3안 있고 더미 데이터만 쓴다
+- [ ] 확정안이 "설계 결정"에 기록되어 있다
+
+**검증:**
+- [ ] 체크포인트 B2 (사용자 승인)
+
+**의존:** 2단계 응답 형태
+
+**예상 파일:** 저장소 파일 없음(아티팩트), `plan.md`
+
+**규모:** 작업별 S
+
+#### 3단계: 화면 A (작업 10~11-2)
+**완료 기준:**
+- [ ] QR 링크로 그 반 명단이 열리고 체크·해제가 즉시 반영되며 실패 시 롤백된다
+- [ ] 날짜는 기본 최근 일요일이고 올해 일요일만 고를 수 있으며 결석 학생이 흐리게 표시된다
+- [ ] Playwright가 실시트 없이 돌고 롤백·잘못된 토큰 테스트가 통과한다
+
+**검증:**
+- [ ] 체크포인트 C 전체
+
+**의존:** 2단계, 체크포인트 B2
+
+**예상 파일:** `src/app/notes/c/[token]/page.tsx`, `src/components/notes/NoteCheckCard.tsx`, `playwright.config.ts`, `tests/e2e/mock.ts`, `tests/e2e/notes.spec.ts`, `package.json`, `package-lock.json`, `.gitignore`
+
+**규모:** 작업별 S~M
+
+#### 4단계: 화면 B (작업 12~14-1)
+**완료 기준:**
+- [ ] 종합 표가 횟수순으로 나오고 올해 기간·세션·12회 필터와 명단 복사가 동작한다
+- [ ] admin 통과 전에는 다른 화면을 거쳐 와도 데이터가 렌더되지 않는다
+- [ ] `/members` 버튼을 넣어도 헤더가 640·1024px에서 넘치지 않는다
+
+**검증:**
+- [ ] 체크포인트 D 전체
+
+**의존:** 2단계, 체크포인트 B2, 작업 11-1(Playwright)
+
+**예상 파일:** `src/components/notes/NotesSummaryTable.tsx`(+ 스켈레톤), `src/app/notes/summary/page.tsx`, `src/app/members/page.tsx`, `src/components/layout/Header.tsx`, `tests/e2e/gates.spec.ts`
+
+**규모:** 작업별 S~M
+
+#### 5단계: 사용 안내 (작업 15~16)
+**완료 기준:**
+- [ ] 새 캡처가 가짜 데이터로만 찍혀 `public/guide/`에 있다
+- [ ] `/guide`에 말씀노트 절과 총무팀 카드 항목이 있고 접힘·앵커가 동작한다
+
+**검증:**
+- [ ] 16-5 캡처 회귀 결과 확인
+- [ ] `/guide` 새 절 펼침·앵커 이동 수동 확인 `[agent-browser]`
+
+**의존:** 3·4단계
+
+**예상 파일:** `guide/mock/intercept.js`, `guide/mock/data.json`, `guide/pages/shots.json`, `public/guide/*.png`, `src/app/guide/page.tsx`
+
+**규모:** 작업별 M
+
+#### 6단계: 회귀 점검 (작업 16-1~16-6)
+**완료 기준:**
+- [ ] 손댄 기존 파일이 "영향 범위" 표와 일치한다
+- [ ] 기존 7개 화면·API 동작이 그대로다
+- [ ] 결과가 "회귀 점검 결과"에 기록되어 있다
+
+**검증:**
+- [ ] 체크포인트 E0 전체
+
+**의존:** 1~5단계
+
+**예상 파일:** `plan.md`, 발견 문제에 따른 수정 파일
+
+**규모:** 작업별 S
+
+#### 7단계: 문서·마무리 (작업 17~19)
+**완료 기준:**
+- [ ] CLAUDE.md·`docs/`·`.claude/feature-workflow.md`가 이번 변경과 맞다
+- [ ] 연간 운영 문서에 탭 4개와 3기 명단 복사 단계가 있다
+- [ ] 보안 체크리스트 대조에서 비밀값·실제 토큰·QR URL·실명이 없다
+
+**검증:**
+- [ ] 체크포인트 E 전체
+
+**의존:** 6단계
+
+**예상 파일:** `CLAUDE.md`, `docs/yearly-sheet-operation.md`, `docs/migration-progress.md`, `docs/context-notes.md`, `docs/security-checklist.md`, `.claude/feature-workflow.md`
+
+**규모:** 작업별 S
 
 ## 회귀 점검 결과
 (6단계에서 기록)
