@@ -30,9 +30,12 @@
 - **연도별 시트 운영과 맞춘다** — 기간이 연도 안에서 끝나므로 집계가 시트를 넘지 않는다. 앱은 현재 시트만 읽으므로 기간 드롭다운은 올해 3개 기간만 보여 주고, 3기 명단은 시트 전환 전에 복사해 둔다(2026-11-06 사용자 결정). `docs/yearly-sheet-operation.md`의 탭 목록·헤더와 `scripts/verify-sheets.mjs` 검증 대상에 `SermonNotes` 추가
 - **기본 날짜 = 가장 최근 일요일(KST)**, 일요일만 선택 가능, 올해 안의 과거 날짜 가능 (미래·지난해 불가). 새해 첫 일요일 전이면 체크할 날짜가 없다는 안내를 보여 준다
 - **분모 = 그 기간 전체 일요일 수(고정)** (`countSundays()` — 지금 `stats/rates` 라우트 안 비공개 함수라 `lib/date.ts`로 옮겨 공유). 진행 중 기간도 같다 — 교적부 반기 컬럼과 같은 규칙(2026-11-06 사용자 결정)
-- 체크 화면은 모바일 1열 카드, PC는 가운데 정렬 + 최대 폭 제한만 (반응형 분기 없음). `noindex` 메타
-- 종합 화면은 교적부 계열 TanStack Table 그리드 재사용 (sticky·정렬)
+- 체크 화면은 세로 명단(시안 A2), PC는 가운데 정렬 + 최대 폭 560px만 (반응형 분기 없음). `noindex` 메타는 서버 컴포넌트인 `page.tsx`에서 내보내고 화면 본체는 클라이언트 컴포넌트로 나눈다
+- 종합 화면은 카드 행 목록 + "시상 기준 12회" 구분선(시안 B2). 순서는 횟수 내림차순 고정이라 TanStack Table·컬럼 정렬을 쓰지 않는다
 - **화면 UI는 아티팩트 시안을 먼저 보고 결정한다** — 아래 "화면" 절의 구성은 기능 범위이고, 배치·스타일은 2.5단계에서 확정한 시안을 따른다
+- **확정 시안 (2026-11-06 사용자 결정)** — [말씀노트 시안](https://claude.ai/artifact/4qbVd2yn9s9ovXLHA7zfSm)의 **A2 세로 명단 + B2 시상 기준선**
+  - 화면 A: `SummaryBar` 대신 상단 고정 영역(반 표시·진행 막대·날짜 칩)을 쓴다. 시안의 칩은 5개지만 "올해 안의 과거 일요일 전부 선택 가능"을 지키기 위해 올해 지난 일요일 전체를 가로 스크롤 칩으로 둔다
+  - 화면 B: `12회 이상만` 토글을 없애고 목록 중간의 기준선으로 대신한다. 복사 버튼은 `시상 명단 복사`로, 세션 탭 안의 12회 이상 학생만 복사한다. 12회 도달자가 없으면 복사 버튼을 끈다
 
 ## 검증 도구 분담
 검증은 세 가지 방법으로 나눈다. 각 체크포인트 항목 끝의 `[스크립트]`·`[agent-browser]`·`[Playwright]`·`[사람]` 표시가 이 분담을 따른다.
@@ -49,22 +52,22 @@
 - **테스트 코드·픽스처에도 실명·실제 연락처·실제 토큰을 쓰지 않는다** (public 저장소). 토큰은 테스트용 비밀값으로 만든 값만 쓴다
 - **agent-browser로 하는 체크포인트 C 확인은 실시트에 기록이 남는다.** 의미 없는 과거 일요일 날짜를 골라 확인하고, 끝나면 체크를 해제해 행을 지운다. 확인 후 SermonNotes 탭에 테스트 행이 남지 않았는지 본다
 - **같은 항목을 두 도구로 이중 검사하지 않는다.** Playwright가 맡은 3개는 agent-browser 점검 목록에서 뺀다. 두 도구는 같은 Playwright 엔진 위에서 돌아 서로 충돌하지 않지만, 중복 검사는 유지비만 늘린다
-- **브라우저는 미리 받아 두었다 (2026-10-31).** `npx playwright install chromium`으로 `%LOCALAPPDATA%\ms-playwright`에 `chromium-1248`·`chromium_headless_shell-1248`이 설치되어 있다. 이 폴더는 PC 전체가 공유하는 Playwright 전용 브라우저라 프로젝트 파일은 바뀌지 않았다. 테스트 도구 `@playwright/test`는 작업 11-1에서 설치한다. 그 사이 Playwright 새 버전이 나와 브라우저 빌드 번호가 달라지면, 설치 후 `npx playwright install chromium`을 한 번 더 실행한다. 설정은 기본값(전용 Chromium)을 쓰고 `channel: "msedge"`·`"chrome"`은 쓰지 않는다 — 자동 업데이트되는 브라우저와 버전이 어긋나지 않게 하고, CI로 옮길 때도 설정을 바꾸지 않기 위해서다
+- **브라우저는 미리 받아 두었다 (2026-10-31).** `npx playwright install chromium`으로 `%LOCALAPPDATA%\ms-playwright`에 `chromium-1248`·`chromium_headless_shell-1248`이 설치되어 있다. 이 폴더는 PC 전체가 공유하는 Playwright 전용 브라우저라 프로젝트 파일은 바뀌지 않았다. 작업 11-1에서 설치한 1.65.0에 맞춰 `chromium-1254`를 추가로 받았다(2026-11-06). 테스트 도구 `@playwright/test`는 작업 11-1에서 설치한다. 그 사이 Playwright 새 버전이 나와 브라우저 빌드 번호가 달라지면, 설치 후 `npx playwright install chromium`을 한 번 더 실행한다. 설정은 기본값(전용 Chromium)을 쓰고 `channel: "msedge"`·`"chrome"`은 쓰지 않는다 — 자동 업데이트되는 브라우저와 버전이 어긋나지 않게 하고, CI로 옮길 때도 설정을 바꾸지 않기 위해서다
 - **Playwright는 새 의존성이다.** `@playwright/test`(devDependency)·`playwright.config.ts`·브라우저 다운로드가 추가되므로 "영향 범위" 표와 16-1 변경 범위 대조에 포함한다. 테스트 결과물(`test-results/`·`playwright-report/`)은 `.gitignore`에 추가한다. 실패 시 저장되는 스크린샷에도 가짜 데이터만 찍히는지 확인한다
 
 ## 화면
 ### A. 기록 체크 `/notes/c/[token]` (인증 없음)
-- 상단: 반 표시(`오전 · 1학년 2반`), 날짜 선택, 진행 요약 `12명 중 7명 체크`
+- 상단 고정: 반 표시(`오전 · 1학년 2반`), 진행 요약 `12명 중 7명 체크` + 진행 막대, 날짜 칩(가로 스크롤)
 - 카드 전체 탭으로 토글(44px↑), Optimistic Update + 실패 시 롤백, 30초 polling
 - 그날 결석한 학생은 카드를 흐리게 + `결석` 표시 (체크는 가능)
 - 잘못된 토큰 → 안내 화면(404)
 
 ### B. 종합 `/notes/summary` (admin 게이트)
 - 진입: `/members` 헤더 `말씀노트` 버튼 (`교사 현황` 버튼과 같은 스타일)
-- 상단: 기간 드롭다운(`2026년 3기 (9~12월)`), 세션 탭(전체/오전/오후), `12회 이상만` 토글, `명단 복사` 버튼
-- 컬럼: 순위 · 세션 · 학년 · 반 · 이름 · 전화번호 · 횟수(막대 + `12 / 17`)
-- 정렬 기본: 횟수 내림차순 → 학년 → 반 → 이름
-- 명단 복사: 현재 필터 결과를 탭 구분 텍스트로 클립보드 (카톡·엑셀 붙여넣기)
+- 상단: 기간 드롭다운(`2026년 3기 (9~12월)`), 점수판(시상 대상·전체·일요일 수), 세션 탭(전체/오전/오후), `시상 명단 복사` 버튼
+- 행: 순위 · 이름 · 세션·학년·반 · 전화번호 · 횟수(12회 눈금이 있는 막대 + `12 / 17`)
+- 순서 고정: 횟수 내림차순 → 학년 → 반 → 이름, 12회 이상과 미만 사이에 `시상 기준 12회` 구분선
+- 시상 명단 복사: 세션 탭 안의 12회 이상 학생을 탭 구분 텍스트로 클립보드 (카톡·엑셀 붙여넣기)
 - ⚠️ 게이트 통과 전 **렌더 자체를 막는다** (React Query 캐시 노출 주의 — CLAUDE.md)
 
 ## API
@@ -87,7 +90,7 @@ src/
 │   └── api/notes/
 │       ├── class/route.ts            토큰 API (GET/POST)
 │       └── summary/route.ts          기간 집계 (GET)
-├── components/notes/                 NoteCheckCard, NotesSummaryTable(+Skeleton)
+├── components/notes/                 ClassNotesScreen, NoteCheckCard, NotesSummaryList(+Skeleton)
 ├── hooks/                            useClassNotes.ts, useNotesSummary.ts
 ├── api/notes.ts                      클라이언트 fetch 함수
 └── lib/                              notes-token.ts, notes-period.ts
@@ -152,16 +155,16 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 ### 2.5단계: UI 시안 (아티팩트로 먼저 보고 결정)
 - [x] 작업 9-1: 화면 A(기록 체크) 시안을 아티팩트로 2~3안 제작 — 더미 데이터(`홍길동` 등)만 사용, 기존 색 토큰(paper/ink/stamp/teal/gold)·티켓 카드 스타일 기준, 모바일 375px 프레임 + PC 폭 미리보기
 - [x] 작업 9-2: 화면 B(종합) 시안을 아티팩트로 2~3안 제작 — 기간 드롭다운·세션 탭·12회 필터·복사 버튼·횟수 막대 배치 비교
-- [ ] 작업 9-3: 사용자 검토 → 시안 선택·수정 반복 → 확정안을 이 문서 "설계 결정"에 기록 (선택 안·변경 사항·확정 아티팩트 링크)
+- [x] 작업 9-3: 사용자 검토 → 시안 선택·수정 반복 → 확정안을 이 문서 "설계 결정"에 기록 (선택 안·변경 사항·확정 아티팩트 링크)
 
 ### 체크포인트 B2: 디자인 확정
-- [ ] 화면 A·B 확정안 사용자 승인 — **승인 전에는 3·4단계 화면 구현을 시작하지 않는다**
+- [x] 화면 A·B 확정안 사용자 승인 — **승인 전에는 3·4단계 화면 구현을 시작하지 않는다**
 
 ### 3단계: 화면 A — 기록 체크 (확정 시안 반영)
-- [ ] 작업 10: `src/app/notes/c/[token]/page.tsx` — 반 표시·날짜 선택(최근 일요일 기본, 일요일만, 미래 불가)·진행 요약(`SummaryBar` 재사용)·카드 토글·결석 흐림·noindex·잘못된 토큰 안내
-- [ ] 작업 11: 체크 카드 컴포넌트 `src/components/notes/NoteCheckCard.tsx` (MemberCard 스타일 참고, 44px↑)
-- [ ] 작업 11-1: Playwright 도입 — `@playwright/test` 설치(이 시점에 처음 설치, 미리 `dev`에 넣지 않음), `playwright.config.ts`(webServer는 무효 구글 환경변수 + 별도 포트), `tests/e2e/mock.ts`(`page.route` 가짜 응답, `guide/mock/data.json` 더미 재사용), `package.json` `test:e2e` 스크립트, `.gitignore`에 결과물 폴더 추가
-- [ ] 작업 11-2: `tests/e2e/notes.spec.ts` — POST 500 → 카드가 원래 상태로 롤백 / 잘못된 토큰 → 안내 화면
+- [x] 작업 10: `src/app/notes/c/[token]/page.tsx`(noindex) + `src/components/notes/ClassNotesScreen.tsx` — 반 표시·진행 막대·날짜 칩(최근 일요일 기본, 올해 지난 일요일만)·카드 토글·결석 흐림·잘못된 토큰 안내
+- [x] 작업 11: 체크 카드 컴포넌트 `src/components/notes/NoteCheckCard.tsx` (시안 A2의 세로 카드 + 원형 체크, 56px)
+- [x] 작업 11-1: Playwright 도입 — `@playwright/test` 설치(이 시점에 처음 설치, 미리 `dev`에 넣지 않음), `playwright.config.ts`(webServer는 무효 구글 환경변수 + 별도 포트), `tests/e2e/mock.ts`(`page.route` 가짜 응답, `guide/mock/data.json` 더미 재사용), `package.json` `test:e2e` 스크립트, `.gitignore`에 결과물 폴더 추가
+- [x] 작업 11-2: `tests/e2e/notes.spec.ts` — POST 500 → 카드가 원래 상태로 롤백 / 잘못된 토큰 → 안내 화면
 
 ### 체크포인트 C: 화면 A
 - [ ] 휴대폰(375px)에서 체크/해제 → 시트 행 추가·삭제 확인 `[agent-browser]` — 의미 없는 과거 일요일로 확인 후 해제, 테스트 행 잔존 여부 확인
@@ -170,14 +173,14 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 - [ ] PC 폭에서 크게 어색하지 않음 `[agent-browser]`
 
 ### 4단계: 화면 B — 종합 (확정 시안 반영)
-- [ ] 작업 12: `src/components/notes/NotesSummaryTable.tsx` (+ 스켈레톤) — TanStack Table, 기간·세션·12회 필터, 정렬, 횟수 막대, 명단 복사
+- [ ] 작업 12: `src/components/notes/NotesSummaryList.tsx` (+ 스켈레톤) — 시안 B2의 기간 드롭다운·점수판·세션 탭·카드 행·12회 구분선·횟수 막대·시상 명단 복사
 - [ ] 작업 13: `src/app/notes/summary/page.tsx` — admin 게이트(`useAuthGate('admin')` + `AuthGateModal`), 통과 전 렌더 차단
 - [ ] 작업 14: `/members` 헤더에 `말씀노트` 진입 버튼
 - [ ] 작업 14-1: `tests/e2e/gates.spec.ts` — 다른 화면을 거쳐 이동한 경로로 `/notes/summary` 진입 시 게이트 통과 전 표가 렌더되지 않음 (같은 패턴으로 `/registry`·`/teachers`도 포함)
 
 ### 체크포인트 D: 화면 B
 - [ ] 다른 화면(/members 등)을 거쳐 들어와도 게이트 뒤에 데이터가 안 보임 `[Playwright]`
-- [ ] 기간 전환·12회 필터·정렬·복사 결과가 시트와 일치 `[agent-browser]`
+- [ ] 기간 전환·세션 탭·구분선 위치·순서·복사 결과가 시트와 일치 `[agent-browser]`
 - [ ] `npm run build` 통과
 
 ### 5단계: 사용 안내
@@ -214,9 +217,9 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 
 #### 1단계: 기반 (작업 1~5)
 **완료 기준:**
-- [ ] 실시트에 `SermonNotes` 탭과 헤더 7개가 있고 `verify-sheets.mjs`가 탭 4개를 확인한다
-- [ ] 토큰 생성·해석이 반 단위로 맞고 비밀값은 저장소에 없다
-- [ ] 기간 유틸이 올해 3개 기간과 경계 날짜를 맞게 돌려주고, `/api/stats/rates`의 반기 분모는 이동 전과 같다
+- [x] 실시트에 `SermonNotes` 탭과 헤더 7개가 있고 `verify-sheets.mjs`가 탭 4개를 확인한다
+- [x] 토큰 생성·해석이 반 단위로 맞고 비밀값은 저장소에 없다
+- [x] 기간 유틸이 올해 3개 기간과 경계 날짜를 맞게 돌려주고, `/api/stats/rates`의 반기 분모는 이동 전과 같다
 
 **검증:**
 - [ ] 체크포인트 A 전체
@@ -230,9 +233,9 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 
 #### 2단계: API (작업 6~9)
 **완료 기준:**
-- [ ] 토큰 API가 반 범위·날짜를 서버에서 강제하고 응답에 이름 외 개인정보가 없다
-- [ ] 집계가 새친구를 빼고 인당 하루 1회로 세며, 분모는 기간 전체 일요일 수다
-- [ ] 학생 삭제가 SermonNotes 기록까지 지운다
+- [x] 토큰 API가 반 범위·날짜를 서버에서 강제하고 응답에 이름 외 개인정보가 없다
+- [x] 집계가 새친구를 빼고 인당 하루 1회로 세며, 분모는 기간 전체 일요일 수다
+- [x] 학생 삭제가 SermonNotes 기록까지 지운다
 
 **검증:**
 - [ ] 체크포인트 B 전체
@@ -245,8 +248,8 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 
 #### 2.5단계: UI 시안 (작업 9-1~9-3)
 **완료 기준:**
-- [ ] 화면 A·B 시안이 각 2~3안 있고 더미 데이터만 쓴다
-- [ ] 확정안이 "설계 결정"에 기록되어 있다
+- [x] 화면 A·B 시안이 각 2~3안 있고 더미 데이터만 쓴다
+- [x] 확정안이 "설계 결정"에 기록되어 있다
 
 **검증:**
 - [ ] 체크포인트 B2 (사용자 승인)
@@ -259,22 +262,22 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 
 #### 3단계: 화면 A (작업 10~11-2)
 **완료 기준:**
-- [ ] QR 링크로 그 반 명단이 열리고 체크·해제가 즉시 반영되며 실패 시 롤백된다
-- [ ] 날짜는 기본 최근 일요일이고 올해 일요일만 고를 수 있으며 결석 학생이 흐리게 표시된다
-- [ ] Playwright가 실시트 없이 돌고 롤백·잘못된 토큰 테스트가 통과한다
+- [x] QR 링크로 그 반 명단이 열리고 체크·해제가 즉시 반영되며 실패 시 롤백된다
+- [x] 날짜는 기본 최근 일요일이고 올해 일요일만 고를 수 있으며 결석 학생이 흐리게 표시된다
+- [x] Playwright가 실시트 없이 돌고 롤백·잘못된 토큰 테스트가 통과한다
 
 **검증:**
 - [ ] 체크포인트 C 전체
 
 **의존:** 2단계, 체크포인트 B2
 
-**예상 파일:** `src/app/notes/c/[token]/page.tsx`, `src/components/notes/NoteCheckCard.tsx`, `playwright.config.ts`, `tests/e2e/mock.ts`, `tests/e2e/notes.spec.ts`, `package.json`, `package-lock.json`, `.gitignore`
+**예상 파일:** `src/app/notes/c/[token]/page.tsx`, `src/components/notes/ClassNotesScreen.tsx`, `src/components/notes/NoteCheckCard.tsx`, `src/hooks/useClassNotes.ts`, `playwright.config.ts`, `tests/e2e/mock.ts`, `tests/e2e/notes.spec.ts`, `package.json`, `package-lock.json`, `.gitignore`
 
 **규모:** 작업별 S~M
 
 #### 4단계: 화면 B (작업 12~14-1)
 **완료 기준:**
-- [ ] 종합 표가 횟수순으로 나오고 올해 기간·세션·12회 필터와 명단 복사가 동작한다
+- [ ] 종합 목록이 횟수순으로 나오고 12회 구분선과 올해 기간·세션 탭·시상 명단 복사가 동작한다
 - [ ] admin 통과 전에는 다른 화면을 거쳐 와도 데이터가 렌더되지 않는다
 - [ ] `/members` 버튼을 넣어도 헤더가 640·1024px에서 넘치지 않는다
 
@@ -283,7 +286,7 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 
 **의존:** 2단계, 체크포인트 B2, 작업 11-1(Playwright)
 
-**예상 파일:** `src/components/notes/NotesSummaryTable.tsx`(+ 스켈레톤), `src/app/notes/summary/page.tsx`, `src/app/members/page.tsx`, `src/components/layout/Header.tsx`, `tests/e2e/gates.spec.ts`
+**예상 파일:** `src/components/notes/NotesSummaryList.tsx`(+ 스켈레톤), `src/app/notes/summary/page.tsx`, `src/app/members/page.tsx`, `src/components/layout/Header.tsx`, `tests/e2e/gates.spec.ts`
 
 **규모:** 작업별 S~M
 

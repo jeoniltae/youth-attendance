@@ -15,6 +15,10 @@ service-account*.json
 out/
 build/
 
+# Playwright 결과물
+test-results/
+playwright-report/
+
 # 의존성
 node_modules/
 

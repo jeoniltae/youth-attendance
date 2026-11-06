@@ -3,7 +3,7 @@
 // 날짜를 바꿔도 처리 중인 체크가 섞이지 않도록 델타 키에 날짜를 넣는다.
 
 import { useMemo, useReducer, useRef } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getClassNotes, saveClassNote } from "@/api/notes";
 import type { SaveClassNotePayload } from "@/api/notes";
 
@@ -38,6 +38,7 @@ export function useClassNotes(token: string, date: string) {
     refetchInterval: () =>
       queryClient.isMutating({ mutationKey: SAVE_MUTATION_KEY }) > 0 ? false : 30_000,
     enabled: date !== "",
+    placeholderData: keepPreviousData, // 날짜를 바꾸는 동안 반 제목 유지 — 명단은 화면이 isPlaceholderData로 가린다
   });
 
   const mutation = useMutation({
@@ -89,6 +90,7 @@ export function useClassNotes(token: string, date: string) {
     data: query.data,
     students,
     isLoading: query.isLoading,
+    isPlaceholderData: query.isPlaceholderData,
     isError: query.isError,
     toggle,
   };
