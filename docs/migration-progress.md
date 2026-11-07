@@ -240,3 +240,14 @@ GAS → Next.js 마이그레이션의 단계별 실행 이력입니다. `CLAUDE.
   - [x] VERIFY 2차(2026-10-07): tsc·build exit 0, 탐색 구조 23/23·시나리오 25/25 PASS, 서버 로그 `/api` 0건 — `verify.md` "2차 검증"
   - [x] REVIEW(2026-10-07): code-review 8건 중 6건 수정(현재 절 강조 오판·제목 구조·aria-controls·미사용 eager·합성 치환·도구 정리)·2건 보류, 보안 점검 이상 없음, 수정 후 tsc·build·탐색 23/23·시나리오 25/25 — `verify.md` "REVIEW"
   - 결정 근거는 `docs/context-notes.md`의 "사용 안내 페이지와 가짜 데이터 캡처" 섹션 참조
+- [x] 말씀노트 기록 관리 BUILD — 2026-11-07 (spec·plan은 `docs/plans/2026-10-31-sermon-notes/`, VERIFY·REVIEW·SHIP 전)
+  - [x] `SermonNotes` 탭(헤더 7개) 실시트 생성 + `scripts/add-sermon-notes-sheet.mjs`, `verify-sheets.mjs` 탭 4개 확인
+  - [x] 반별 비밀 토큰 링크 — `NOTES_QR_SECRET`, `src/lib/notes-token.ts`, `scripts/print-notes-qr-urls.mjs`(출력은 커밋 금지)
+  - [x] API — `/api/notes/class`(토큰 범위·날짜 서버 강제, 멱등 저장) · `/api/notes/summary`(날짜 Set 집계, 분모는 기간 전체 일요일 수) · 학생 삭제 시 SermonNotes cascade. `scripts/verify-notes-api.mjs`로 확인
+  - [x] 화면 — `/notes/c/[token]`(시안 A2 세로 명단) · `/notes/summary`(시안 B2 시상 기준선, admin 게이트) · `/members` 말씀노트 버튼
+  - [x] `readSheets`(batchGet) — 체크 화면 조회를 시트 요청 1번으로, 휴대폰 1대당 분당 읽기 6회 → 2회
+  - [x] Playwright 도입 — 롤백·잘못된 토큰·게이트 렌더 차단 5개, 실시트 미접속. 시상 화면 게이트를 일부러 빼면 실패하는 것 확인
+  - [x] 사용 안내 — 말씀노트 절·시상 명단 주제·FAQ 1개, 캡처 6장 추가, `/members` 헤더 변경으로 관련 캡처 재촬영
+  - [x] 회귀 점검(2026-11-07) — 결과는 plan.md "회귀 점검 결과". `verify-write-api.mjs`는 사본 전용이라 실행하지 않고 더미 학생 UI 흐름으로 대체, `/` 카드 토글은 토요일이라 미확인
+  - [ ] 배포 전 필수: Vercel `NOTES_QR_SECRET` 등록, 새 시트마다 `SermonNotes` 탭 확인, 반별 QR 인쇄·부착
+  - 결정 근거는 `docs/context-notes.md`의 "말씀노트 기록 관리" 섹션 참조

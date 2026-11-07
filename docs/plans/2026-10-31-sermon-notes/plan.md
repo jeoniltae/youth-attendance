@@ -111,13 +111,14 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 | 기존 파일 | 변경 | 깨질 수 있는 지점 |
 |-----------|------|-------------------|
 | `src/lib/sheets.ts` | `SHEET.SERMON_NOTES` 상수 + `readSheets`(batchGet) 추가, 행→객체 변환을 공유 함수로 분리 | 기존 `readSheet` 결과 불변이어야 함 — 모든 API가 거치는 함수 (`verify-read-api.mjs`로 확인) |
-| `src/app/api/stats/rates/route.ts` | `countSundays()`를 `src/lib/date.ts`로 옮기고 import | 교적부 상/하반기 분모 값 불변이어야 함 (`/api/stats/rates` 응답 이동 전후 비교) |
+| `src/app/api/stats/rates/route.ts`, `src/lib/date.ts` | `countSundays()`를 `src/lib/date.ts`로 옮기고 import | 교적부 상/하반기 분모 값 불변이어야 함 (`/api/stats/rates` 응답 이동 전후 비교) |
 | `src/app/api/students/[id]/route.ts` | DELETE에 SermonNotes cascade 삭제 한 줄 | ⚠️ **SermonNotes 탭이 없는 시트(새해 시트·탭 추가 전 배포)에서 학생 삭제가 500으로 실패**할 수 있음 → 배포 전 탭 생성 필수, `verify-sheets.mjs`로 확인. 출석 cascade는 그대로 동작해야 함 |
-| `src/app/members/page.tsx` (+ 공용 `Header.tsx`) | `말씀노트` 진입 버튼 | 헤더 줄 넘침(640·1024px) — 같은 Header를 쓰는 `/`도 함께 확인 |
+| `src/app/members/page.tsx` | `말씀노트` 진입 버튼, 모바일 버튼 줄바꿈 (공용 `Header.tsx`는 바꾸지 않음) | 헤더 줄 넘침(375·640·1024px) |
 | `scripts/verify-sheets.mjs` | 검증 대상 탭에 SermonNotes 추가 | 기존 3개 탭 검증 결과 불변 |
 | `.claude/feature-workflow.md` | 설정 `test:` 값을 `npm run test:e2e`로, VERIFY의 "테스트·린트 스크립트 없음" 문구를 함께 갱신 | 문서만 변경 |
-| `guide/mock/intercept.js`·`data.json`·`shots.json` | `/api/notes/*` 가짜 응답·장면 추가 | 기존 36장 촬영 장면이 그대로 다시 찍혀야 함 |
+| `guide/mock/intercept.js`·`shots.json`·`README.md` | `/api/notes/*` 가짜 응답·장면 추가 (`data.json`은 바꾸지 않음) | 기존 36장 촬영 장면이 그대로 다시 찍혀야 함 |
 | `src/app/guide/page.tsx` | 절·대상별 카드 항목 추가 | 고정 내비·주소 앵커·접힘 상태 동작 |
+| `.env.local.example` | `NOTES_QR_SECRET` 추가 | 이름만 추가, 값 없음 |
 | `package.json`·`package-lock.json` | `@playwright/test` devDependency, `test:e2e` 스크립트 | 기존 `dev`·`build` 스크립트 불변. devDependency라 Vercel 배포 번들에는 영향 없어야 함 |
 | `.gitignore` | `test-results/`·`playwright-report/` 추가 | 기존 제외 항목(`.env.local`·`docs/legacy-gas.json`·`guide/capture/raw/` 등) 유지 |
 | `CLAUDE.md`·`docs/*` | 문서 갱신 | — |
@@ -189,24 +190,24 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 - [x] 작업 16: `/guide`에 "말씀노트 체크" 절(QR 찍기 → 날짜 확인 → 학생 누르기) + 총무팀용 카드에 "말씀노트 시상 명단 보기" 항목
 
 ### 6단계: 기존 기능 회귀 점검 (위 "영향 범위" 표 기준)
-- [ ] 작업 16-1: 변경 범위 확인 — `git diff --stat main...HEAD`로 손댄 기존 파일이 "영향 범위" 표에 있는 것뿐인지 대조. 표에 없는 기존 파일이 바뀌었으면 이유를 확인하고 표에 추가
-- [ ] 작업 16-2: 정적 점검 — `npx tsc --noEmit`, `npm run build`, `npm run test:e2e` 통과 (lint 스크립트는 없음). 빌드 출력에서 기존 7개 화면 라우트가 모두 그대로 생성되는지 확인
-- [ ] 작업 16-3: 데이터 점검 — `node scripts/verify-sheets.mjs`(탭 4개·헤더), `verify-read-api.mjs`·`verify-write-api.mjs`로 기존 API 응답 형태 불변 확인 (`verify-read-api.mjs`의 attendance 2건 불일치는 기존 현상 — API가 커밋 255f4ce부터 세션 필터를 쓰지 않는데 스크립트는 세션별로 센다. 스크립트 연속 실행은 분당 읽기 한도 429를 부르므로 1분 띄운다)
-- [ ] 작업 16-4: 기존 화면 점검 `[agent-browser]` (dev 서버, 375px·1024px) — 게이트 렌더 차단은 16-2의 Playwright가 맡으므로 여기서는 진입·통과 동작만 본다
+- [x] 작업 16-1: 변경 범위 확인 — `git diff --stat main...HEAD`로 손댄 기존 파일이 "영향 범위" 표에 있는 것뿐인지 대조. 표에 없는 기존 파일이 바뀌었으면 이유를 확인하고 표에 추가
+- [x] 작업 16-2: 정적 점검 — `npx tsc --noEmit`, `npm run build`, `npm run test:e2e` 통과 (lint 스크립트는 없음). 빌드 출력에서 기존 7개 화면 라우트가 모두 그대로 생성되는지 확인
+- [x] 작업 16-3: 데이터 점검 — `node scripts/verify-sheets.mjs`(탭 4개·헤더), `verify-read-api.mjs`·`verify-write-api.mjs`로 기존 API 응답 형태 불변 확인 (`verify-read-api.mjs`의 attendance 2건 불일치는 기존 현상 — API가 커밋 255f4ce부터 세션 필터를 쓰지 않는데 스크립트는 세션별로 센다. 스크립트 연속 실행은 분당 읽기 한도 429를 부르므로 1분 띄운다)
+- [x] 작업 16-4: 기존 화면 점검 `[agent-browser]` (dev 서버, 375px·1024px) — 게이트 렌더 차단은 16-2의 Playwright가 맡으므로 여기서는 진입·통과 동작만 본다
   - `/` 출석 토글·30초 polling·헤더 한 줄 유지
   - `/members` 학생 추가·수정·**삭제**(출석 cascade 정상) · 교사 현황 진입 · 새 `말씀노트` 버튼 배치
   - `/history`·`/birthday`·`/registry`·`/teachers`·`/guide` 진입과 게이트 동작 (세 게이트 독립 유지, 말씀노트 admin 통과가 다른 게이트에 영향 없음)
-- [ ] 작업 16-5: 사용 안내 캡처 회귀 `[agent-browser]` — 촬영 스크립트로 기존 장면 전체 재촬영 → `public/guide/` 기존 이미지와 비교해 의도하지 않은 변화 없음
-- [ ] 작업 16-6: 결과를 이 문서 하단 "회귀 점검 결과"에 기록 (통과 항목·발견 문제·조치)
+- [x] 작업 16-5: 사용 안내 캡처 회귀 `[agent-browser]` — 촬영 스크립트로 기존 장면 전체 재촬영 → `public/guide/` 기존 이미지와 비교해 의도하지 않은 변화 없음
+- [x] 작업 16-6: 결과를 이 문서 하단 "회귀 점검 결과"에 기록 (통과 항목·발견 문제·조치)
 
 ### 체크포인트 E0: 회귀
 - [ ] 16-1~16-6 모두 통과, 발견 문제는 수정 또는 사유와 함께 보류 기록
 
 ### 7단계: 문서·마무리
-- [ ] 작업 17: CLAUDE.md 갱신 — 화면 표·SermonNotes 시트 구조·API·폴더 구조·환경변수·인증 구조(토큰 링크 설명)
-- [ ] 작업 18: `docs/yearly-sheet-operation.md`(탭 4개·헤더, 전환 절차에 3기 명단 복사 단계 추가), `docs/migration-progress.md` 항목, `docs/context-notes.md`(토큰 방식·cascade·고정 기간을 고른 이유)
-- [ ] 작업 18-1: `.claude/feature-workflow.md` 갱신 — 설정 `test: npm run test:e2e`로 변경(`test: auto`는 `test` 스크립트만 찾아 `test:e2e`를 놓친다), VERIFY 검증 명령에 추가, "테스트 러너 없음" 문구 정리
-- [ ] 작업 19: `docs/security-checklist.md` 기준 점검 — 비밀값·실제 토큰·QR URL·실명 미커밋 (`tests/e2e/` 픽스처·`test-results/` 미커밋 포함)
+- [x] 작업 17: CLAUDE.md 갱신 — 화면 표·SermonNotes 시트 구조·API·폴더 구조·환경변수·인증 구조(토큰 링크 설명)
+- [x] 작업 18: `docs/yearly-sheet-operation.md`(탭 4개·헤더, 전환 절차에 3기 명단 복사 단계 추가), `docs/migration-progress.md` 항목, `docs/context-notes.md`(토큰 방식·cascade·고정 기간을 고른 이유)
+- [x] 작업 18-1: `.claude/feature-workflow.md` 갱신 — 설정 `test: npm run test:e2e`로 변경(`test: auto`는 `test` 스크립트만 찾아 `test:e2e`를 놓친다), VERIFY 검증 명령에 추가, "테스트 러너 없음" 문구 정리
+- [x] 작업 19: `docs/security-checklist.md` 기준 점검 — 비밀값·실제 토큰·QR URL·실명 미커밋 (`tests/e2e/` 픽스처·`test-results/` 미커밋 포함)
 
 ### 체크포인트 E: 완료
 - [ ] 실제 반 QR 1장으로 휴대폰 촬영 → 체크 → 종합 화면 반영까지 end-to-end `[사람]`
@@ -309,9 +310,9 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 
 #### 6단계: 회귀 점검 (작업 16-1~16-6)
 **완료 기준:**
-- [ ] 손댄 기존 파일이 "영향 범위" 표와 일치한다
-- [ ] 기존 7개 화면·API 동작이 그대로다
-- [ ] 결과가 "회귀 점검 결과"에 기록되어 있다
+- [x] 손댄 기존 파일이 "영향 범위" 표와 일치한다
+- [x] 기존 7개 화면·API 동작이 그대로다
+- [x] 결과가 "회귀 점검 결과"에 기록되어 있다
 
 **검증:**
 - [ ] 체크포인트 E0 전체
@@ -324,8 +325,8 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 
 #### 7단계: 문서·마무리 (작업 17~19)
 **완료 기준:**
-- [ ] CLAUDE.md·`docs/`·`.claude/feature-workflow.md`가 이번 변경과 맞다
-- [ ] 연간 운영 문서에 탭 4개와 3기 명단 복사 단계가 있다
+- [x] CLAUDE.md·`docs/`·`.claude/feature-workflow.md`가 이번 변경과 맞다
+- [x] 연간 운영 문서에 탭 4개와 3기 명단 복사 단계가 있다
 - [ ] 보안 체크리스트 대조에서 비밀값·실제 토큰·QR URL·실명이 없다
 
 **검증:**
@@ -338,4 +339,24 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 **규모:** 작업별 S
 
 ## 회귀 점검 결과
-(6단계에서 기록)
+2026-11-07, 커밋 `d89c30c` 기준 (작업 트리 깨끗한 상태에서 시작).
+
+| 작업 | 결과 | 비고 |
+|------|------|------|
+| 16-1 변경 범위 | 통과 | `main...HEAD`는 111개 파일로 `dev`의 미배포 작업까지 섞여 말씀노트 범위(`b67605a..HEAD`, 36개 파일)로 대조했다. 표에 없던 `.env.local.example`·`src/lib/date.ts`·`guide/README.md`를 표에 추가하고 `Header.tsx`·`data.json`은 바뀌지 않아 고쳤다 |
+| 16-2 정적 점검 | 통과 | `npx tsc --noEmit`, `npm run build`, `npm run test:e2e` 5개. 기존 7개 화면 라우트 생성 |
+| 16-3 데이터 점검 | 통과 (쓰기는 대체) | `verify-sheets.mjs` 탭 4개 통과. `verify-read-api.mjs`는 attendance 2건 외 통과 — API가 커밋 `255f4ce`부터 세션 필터를 쓰지 않는데 스크립트만 세션별로 세는 기존 불일치(147 = 93 + 54). **`verify-write-api.mjs`는 실행하지 않았다** — 파일에 "사본 시트 전용"으로 표시돼 있고 실제 행을 지웠다 다시 넣는다. 대신 16-4 쓰기 흐름으로 확인했다 |
+| 16-4 기존 화면 | 통과 | 375·1024px에서 `/`·`/history`·`/birthday`·`/guide`·`/registry`·`/members`·`/teachers`·`/notes/summary` 진입, 가로 넘침·오류 문구·페이지 오류 없음. 세 게이트 독립 유지, 틀린 비밀번호 차단. `/` polling 33초에 2회. 더미 학생으로 `/members` 등록·수정·출석 추가·삭제 → Students·Attendance·SermonNotes 잔존 0. `agent-browser` 대신 Playwright 스크립트로 실행(이름·비밀번호 미출력) |
+| 16-5 캡처 회귀 | 통과 | 42장 전체 재촬영 후 커밋본과 픽셀 비교. 29장 0%, 13장(`10`·`11`·`22`·`30~35`·`40~42`·`73`)은 차이 있음 — 기존 캡처가 2026-10-07 촬영이라 날짜·생일 달·가짜 출석이 달라진 결과다(최대 `42` 34.8%, `35` 10.0%, 둘은 직접 보고 빨간 네모·내용 정상 확인, 나머지 11장은 차이 범위만 확인). 이번 변경과 무관한 15장은 커밋본을 유지했다 |
+
+**확인하지 못한 것**
+- `/` 화면의 출석 카드 토글은 UI로 누르지 못했다. 점검일이 토요일이라 카드가 잠겨 있다. 같은 `POST /api/attendance`는 `/members`의 출석 추가로 확인했다. 다음 주일 또는 VERIFY에서 시계를 옮겨 확인한다.
+- `verify-write-api.mjs`의 레거시 행(Type 빈 값) 토글 시나리오는 이번 변경과 무관해 재현하지 않았다.
+
+## 보안 점검 결과
+2026-11-07, 추적 텍스트 파일 전체를 실제 값과 대조했다(값은 출력하지 않음). 이미지는 대조하지 않았고, 캡처는 가짜 데이터로만 만들었다.
+
+- 비밀값·실제 스프레드시트 ID·QR 토큰 35개·실제 연락처 733개: 일치 0건. `.env.local`·`docs/legacy-gas.json`·`test-results/`·`guide/capture/raw/`는 추적되지 않음
+- 실제 이름 434개: 이번 기능 파일에는 없음. plan의 일치 1건은 일반 단어다
+- **기존 문제 발견:** `docs/context-notes.md`에 실제 학생 이름 2명이 있었다(커밋 `7c14709`, 2026-07-10부터 `origin/main` 포함). 작업본은 `학생A`·`학생B`로 바꿨다
+- **남은 결정:** git 히스토리에는 이름이 남아 있다. 정리하려면 `docs/security-checklist.md`의 절차대로 히스토리를 다시 쓰고 강제 푸시해야 하므로 사용자 결정이 필요하다

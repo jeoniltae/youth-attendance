@@ -35,6 +35,7 @@
 - **Language**: TypeScript
 - **Styling**: TailwindCSS + shadcn/ui
 - **Server State**: @tanstack/react-query (polling 30초 간격 + Optimistic Update)
+- **E2E Test**: Playwright (`npm run test:e2e`, 실시트 미접속 — `/api/*`는 `page.route` 가짜 응답)
 - **API**: Next.js Route Handlers (`src/app/api/`)
 - **Database**: Google Sheets API v4 (Service Account 인증)
 - **Deploy**: Vercel
@@ -66,7 +67,7 @@ Google Sheets는 WebSocket을 지원하지 않으므로 Polling 방식을 사용
   으로 저장되며, 문구가 교사용과 달라야 해서 `PublicGate`를 쓰지 않고 `/teachers`처럼
   `AuthGateModal`을 직접 띄웁니다(취소 버튼 → `/`).
 - **관리자용 게이트**(`admin` role): `/members`(학생·교사 데이터 수정)·`/teachers`(교사 명단
-  열람) 진입 시 별도 비밀번호(`ADMIN_PASSWORD`)를 요구합니다. `admin_token`으로 별도 저장되어
+  열람)·`/notes/summary`(말씀노트 시상 명단) 진입 시 별도 비밀번호(`ADMIN_PASSWORD`)를 요구합니다. `admin_token`으로 별도 저장되어
   교사용 인증과 섞이지 않습니다.
 - **세 게이트는 서로 독립입니다.** 관리자라고 교적부가 자동으로 열리지 않고, 교사용을 통과해도
   교적부는 다시 물어봅니다(의도된 동작). 메인 화면의 교적부 버튼은 진입로 확보를 위해 모두에게
@@ -74,6 +75,11 @@ Google Sheets는 WebSocket을 지원하지 않으므로 Polling 방식을 사용
 - 세 게이트 모두 `POST /api/auth { password, role }`로 검증하고, `useAuthGate(role)` 훅 +
   `AuthGateModal` 컴포넌트를 공유합니다 (`src/hooks/useAuthGate.ts`,
   `src/components/common/AuthGateModal.tsx`, `src/components/common/PublicGate.tsx`).
+- **말씀노트 체크 화면은 게이트 없이 반별 비밀 토큰 링크로 엽니다**(`/notes/c/[token]`). 토큰은
+  `HMAC-SHA256(NOTES_QR_SECRET, "오전-1-2")` 앞 16자라 저장하지 않고, 서버가 Students의 반 목록으로
+  계산해 찾습니다. 토큰 API만 예외적으로 서버가 범위를 강제합니다 — 그 반 학생의 id·이름만 내려주고,
+  저장 시 같은 반 소속과 날짜(올해 지난 일요일)를 검증합니다. 비밀값이 유출되면 교체 후 QR을 전부
+  다시 인쇄합니다. 주소가 곧 권한이므로 토큰·QR URL을 저장소에 남기지 않습니다.
 - **보호 수준은 화면(UI) 레벨입니다.** 데이터 API(`/api/students` 등)에는 서버사이드
   인증 체크가 없어 URL을 알면 직접 호출은 가능합니다 — "외부인이 화면 URL로 못 들어오게"가
   목표이며, API 자체를 잠그는 건 별도 작업 범위입니다.
@@ -135,6 +141,24 @@ Google Sheets는 WebSocket을 지원하지 않으므로 Polling 방식을 사용
 | ect | string | 기타 비고(자유 텍스트, 예: `타교회 선교(OO목사님 확인)`) — `student`/`teacher` 구분과 무관한 별개 컬럼. 실제 운영 시트 헤더가 소문자 `ect` (코드는 이 컬럼을 이름으로 읽지 않으므로 영향 없음) |
 | Type | string | `student` \| `teacher` — 실제 운영 시트에는 존재하지 않아 Phase 3에서 신규 추가할 컬럼 |
 
+### SermonNotes 시트
+말씀노트 작성 기록. 행이 있으면 작성, 없으면 미작성(Attendance와 같은 규칙). 학생 삭제 시 함께 지운다.
+실시트 반영은 `scripts/add-sermon-notes-sheet.mjs`. **탭이 없으면 학생 삭제가 실패하므로 배포 전에 만들어야 한다.**
+
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| Date | string | `YYYY-MM-DD` (일요일) |
+| Session | string | `오전` \| `오후` |
+| Grade | string | 학년 |
+| Class | string | 반 |
+| StudentID | string | Students.ID 참조 |
+| Name | string | 이름 |
+| Timestamp | string | 저장 시각 |
+
+- 대상은 학생만 — 교사·새친구(학년 `새친구`, 반 없음)는 제외 (`isNoteTarget`)
+- 시트에 원자적 쓰기가 없어 동시 저장 시 중복 행이 생길 수 있다 → **집계는 날짜 Set으로 1회만 세고, 해제는 `deleteRowsWhere`로 그 학생·그날 행을 모두 지운다**
+- 기간은 1기 1~4월 / 2기 5~8월 / 3기 9~12월, 분모는 그 기간 전체 일요일 수(고정), 시상 기준은 12회
+
 ### 출석 상태 처리 규칙
 - Attendance 시트에 해당 날짜 + StudentID 레코드가 **존재하면** → 출석
 - 레코드가 **없으면** → 결석 (별도 저장 없음)
@@ -191,7 +215,7 @@ interface AttendanceRecord {
 }
 ```
 
-## 화면 구성 (7개 페이지)
+## 화면 구성 (9개 페이지)
 
 | 경로 | 파일 | 설명 |
 |------|------|------|
@@ -201,7 +225,9 @@ interface AttendanceRecord {
 | `/birthday` | `app/birthday/page.tsx` | 생일자 조회 |
 | `/registry` | `app/registry/page.tsx` | 교적부 — 교사용(session) 열람 전용 학생 명단 데이터 그리드 (TanStack Table: 세션/학년 탭 필터·이름 검색·컬럼 정렬, sticky 헤더/좌측 열, 반별 담당교사 칩) |
 | `/teachers` | `app/teachers/page.tsx` | 교사 현황 — 관리자(admin) 전용 교사 명단 데이터 그리드 (교적부의 교사판: 세션/팀 탭 필터·이름 검색·정렬·sticky, 컬럼 번호·이름·팀·연락처·생년월일·주소·출석률(1년기준)·비고). `/members`에서 "교사 현황" 버튼으로 진입 |
-| `/guide` | `app/guide/page.tsx` | 사용 안내 — 교사용(session) 게이트. 출석 체크(학생)·출석 확인(교사)·출석현황·생일자·학생 관리(등록·고치기·지난 출석·지우기·교사 현황)·자주 묻는 것을 휴대폰 캡처와 함께 안내 (교적부는 제외). 단계가 36개라 **절을 모두 접은 채 시작**하고, 맨 위 대상별 카드(학생용·교사용·총무팀용)·상단 고정 칩 줄(PC는 왼쪽 목차)·주소 앵커로 필요한 절만 펼친다. 메인 화면의 PC 헤더 `사용 안내` 버튼(768px 미만은 `?` 아이콘만)·모바일 메뉴 맨 아래 항목으로 진입. 캡처는 저장소 루트 `guide/`에서 가짜 데이터로 만들어 `public/guide/`에 복사한 완성본만 사용 |
+| `/guide` | `app/guide/page.tsx` | 사용 안내 — 교사용(session) 게이트. 출석 체크(학생)·출석 확인(교사)·출석현황·생일자·말씀노트 체크·학생 관리(등록·고치기·지난 출석·지우기·교사 현황·말씀노트 시상 명단)·자주 묻는 것을 휴대폰 캡처와 함께 안내 (교적부는 제외). 단계가 42개라 **절을 모두 접은 채 시작**하고, 맨 위 대상별 카드(학생용·교사용·총무팀용)·상단 고정 칩 줄(PC는 왼쪽 목차)·주소 앵커로 필요한 절만 펼친다. 메인 화면의 PC 헤더 `사용 안내` 버튼(768px 미만은 `?` 아이콘만)·모바일 메뉴 맨 아래 항목으로 진입. 캡처는 저장소 루트 `guide/`에서 가짜 데이터로 만들어 `public/guide/`에 복사한 완성본만 사용 |
+| `/notes/c/[token]` | `app/notes/c/[token]/page.tsx` | 말씀노트 체크 — 인증 없음(반별 비밀 토큰 링크, QR로 진입), `noindex`. 상단 고정 영역(반·진행 막대·날짜 칩) + 세로 명단. 기본 날짜는 최근 일요일이고 올해 지난 일요일을 가로 스크롤 칩으로 고른다. 그날 결석한 학생은 흐리게 `결석` 표시(체크는 가능). 카드 토글은 Optimistic + 롤백, 30초 polling |
+| `/notes/summary` | `app/notes/summary/page.tsx` | 말씀노트 시상 — 관리자(admin) 게이트. `/members`의 `말씀노트` 버튼으로 진입. 기간 드롭다운(올해 3개)·점수판·세션 탭·횟수순 카드 행 + `시상 기준 12회` 구분선. `시상 명단 복사`는 세션 탭 안의 12회 이상만 탭 구분 텍스트로 복사. 표·컬럼 정렬 없음(순서 고정) |
 
 ### 관리자 모드 진입 플로우
 1. 메인 화면에 "학생 관리" 버튼 존재
@@ -269,6 +295,11 @@ GET  /api/stats/rates                                → { total1y, rates, first
                                                         읽기로 세 집계를 한 번에 계산. 분모는 서로 달라서
                                                         1년은 실제 기록이 있는 날 수, 반기는 일요일 수다)
 
+GET  /api/notes/class?token=&date=YYYY-MM-DD         → 토큰이 가리키는 반 명단 { session, grade, class, students: [{ id, name, written, present }] }
+                                                       (시트 3개 탭을 readSheets 요청 1번으로 읽음. 잘못된 토큰 404, 잘못된 날짜 400)
+POST /api/notes/class { token, date, studentId, status } → 말씀노트 작성/미작성 저장 (멱등. 다른 반 학생 403)
+GET  /api/notes/summary?period=2026-3                → 기간 집계 { sundays, students: [{ id, session, grade, class, name, phone, count }] } (횟수순)
+
 GET  /api/summary?date=YYYY-MM-DD&session=오전       → 요약 통계 (현재 미사용 — roster+attendance로 클라이언트에서 직접 계산, 엔드포인트는 보류 상태로 유지)
 POST /api/auth { password, role }                    → role별(session/admin) 비밀번호 검증
 ```
@@ -285,6 +316,9 @@ src/
 │   ├── birthday/page.tsx               ✅ 생일자 조회
 │   ├── registry/page.tsx               ✅ 교적부 (열람 전용 학생 명단 그리드) — **registry 게이트**(교역자·부장집사 전용, 공개 3화면과 다른 비밀번호)
 │   ├── teachers/page.tsx               ✅ 교사 현황 (관리자 열람 전용 교사 명단 그리드) — admin 게이트
+│   ├── notes/
+│   │   ├── c/[token]/page.tsx          ✅ 말씀노트 체크 — 인증 없음(토큰 링크). noindex 때문에 서버 컴포넌트, 본체는 ClassNotesScreen
+│   │   └── summary/page.tsx            ✅ 말씀노트 시상 — admin 게이트. 인증 전에는 NotesSummaryList를 마운트하지 않아 데이터 훅도 돌지 않는다
 │   ├── providers.tsx                   ✅ React Query QueryClientProvider + 전역 ScrollToTopButton
 │   ├── layout.tsx                      ✅ 루트 레이아웃
 │   ├── template.tsx                    ✅ 페이지 전환 크로스페이드 (라우트 이동마다 리마운트). **opacity만 사용** — transform을 쓰면 이 래퍼가 containing block이 되어 내부 position:fixed(모달·플로팅 바)가 깨짐
@@ -295,6 +329,9 @@ src/
 │       │   ├── route.ts                ✅ 출석 조회(GET) / 토글(POST)
 │       │   └── range/route.ts          ✅ 기간 출석 조회(GET) — 시트 1회 읽기로 날짜→ID 맵 반환
 │       ├── roster/route.ts             ✅ 세션별 학생·교사 명단 조회(GET)
+│       ├── notes/
+│       │   ├── class/route.ts          ✅ 토큰 API(GET/POST) — 서버가 반 범위·날짜를 강제, 이름 외 개인정보 없음
+│       │   └── summary/route.ts        ✅ 기간 집계(GET) — 날짜 Set으로 인당 하루 1회, 분모는 기간 전체 일요일 수
 │       ├── birthdays/route.ts          ✅ 월별 생일자 조회(GET)
 │       ├── summary/route.ts            ✅ 요약 통계(GET) — 미사용 보류
 │       ├── stats/
@@ -333,6 +370,10 @@ src/
 │   │   ├── GuideStep.tsx               ✅ 단계(번호·제목·설명 + 완성 캡처 next/image) / GuideSteps 래퍼. 모바일 세로, md 이상 좌우
 │   │   ├── GuideWarning.tsx            ✅ 되돌릴 수 없는 작업 앞 경고 상자
 │   │   └── GuideFaq.tsx                ✅ 자주 묻는 것 — 네이티브 <details> 접기
+│   ├── notes/                          # 말씀노트 전용
+│   │   ├── ClassNotesScreen.tsx        ✅ 체크 화면 본체 — 상단 고정 영역 + 명단. 잘못된 토큰·날짜 없음·조회 실패 안내 포함
+│   │   ├── NoteCheckCard.tsx           ✅ 세로 명단 한 줄 토글 카드 (56px, 결석 흐림)
+│   │   └── NotesSummaryList.tsx        ✅ 시상 목록 — 기간·점수판·세션 탭·12회 구분선·복사. AWARD_COUNT 상수
 │   ├── stats/
 │   │   └── YearlyStats.tsx             ✅ 1년 통계 플로팅 오버레이 (도넛 차트)
 │   ├── students/
@@ -362,6 +403,8 @@ src/
 ├── hooks/
 │   ├── useAttendance.ts                ✅ 출석 데이터 + 30초 polling + Optimistic Update (토글 전용 — 기간 조회는 아래 훅)
 │   ├── useAttendanceRange.ts           ✅ 기간 출석 데이터 (읽기 전용) — 진행 중인 주를 볼 때만 30초 polling
+│   ├── useClassNotes.ts                ✅ 말씀노트 체크 + 30초 polling + Optimistic(요청 직렬화·델타 키에 날짜 포함). 날짜 전환 중에는 keepPreviousData로 반 제목만 유지하고 명단은 화면이 가린다
+│   ├── useNotesSummary.ts              ✅ 말씀노트 기간 집계 (polling 없음)
 │   ├── useRoster.ts                    ✅ 학생/교사 명단 + 30초 polling
 │   ├── useBirthdays.ts                 ✅ 생일자 데이터 (polling 없음)
 │   ├── useStudents.ts                  ✅ 학생 CRUD (useQuery + useMutation)
@@ -369,16 +412,19 @@ src/
 │   └── useAuthGate.ts                  ✅ 인증 상태 (admin/session role별 sessionStorage 분리)
 ├── api/                                # fetch 함수 모음 (클라이언트 → Route Handler)
 │   ├── attendance.ts                   ✅ getAttendance(날짜) / getAttendanceRange(기간) / toggleAttendance
+│   ├── notes.ts                        ✅ getClassNotes(404면 null) / saveClassNote / getNotesSummary
 │   ├── roster.ts                       ✅ getRoster — 세션별 학생·교사 명단
 │   ├── birthdays.ts                    ✅ getBirthdayRoster — 생일자 조회용 세션별 전체 명단
 │   ├── stats.ts                        ✅ getStats(학년·교사 집계) / getMemberStats(개인) / getAttendanceRates(전 인원 %)
 │   ├── students.ts                     ✅ getStudents / createStudent / updateStudent / deleteStudent
 │   └── teachers.ts                     ✅ getTeachers / createTeacher / updateTeacher / deleteTeacher
 ├── lib/
-│   ├── sheets.ts                       ✅ Google Sheets API v4 클라이언트 (readSheet / appendRow / findRowNumber / updateRow / deleteRow)
+│   ├── sheets.ts                       ✅ Google Sheets API v4 클라이언트 (readSheet / readSheets(batchGet, 여러 탭을 요청 1번으로) / appendRow / findRowNumber / updateRow / deleteRow)
 │   ├── group-members.ts                ✅ 학생·교사 그룹핑 유틸 (학년→반→이름 정렬) + MemberItem 타입(선택 필드 `type`으로 학생/교사 구분)
 │   ├── attendance-range.ts             ✅ 기간 조회 유틸 — resolveRange(기준일+기간→구간, 올해 밖으로 안 나감) / buildRangeStats(집계)
-│   ├── date.ts                         ✅ 한국 시간 기준 날짜 유틸 (formatDateLabel 전체 표기 / formatDateLabelShort 연도 생략 — 폭이 빠듯한 조회 컨트롤 전용)
+│   ├── date.ts                         ✅ 한국 시간 기준 날짜 유틸 (formatDateLabel 전체 표기 / formatDateLabelShort 연도 생략 — 폭이 빠듯한 조회 컨트롤 전용 / countSundays 구간의 일요일 수)
+│   ├── notes-period.ts                 ✅ 말씀노트 기간 — 키(2026-3) ↔ 날짜 구간, 올해 기간 목록
+│   ├── notes-token.ts                  ✅ 반별 토큰 생성·해석(HMAC + timingSafeEqual), isNoteTarget(새친구 제외)
 │   ├── birthdays.ts                    ✅ 생일 계산 유틸
 │   ├── lunar.ts                        ✅ 음력→해당 연도 양력 변환 (korean-lunar-calendar) — 교사 Lunar 생일자 처리
 │   ├── phone.ts                        ✅ 연락처 하이픈 표기 — formatPhoneInput(타이핑 중) / formatPhoneDisplay(표시) / splitPhones(복수 번호 분리). **번호로 보일 때만** 손댄다 — 관계 표기·`휴대폰없음` 같은 값은 원본 유지
@@ -387,6 +433,9 @@ src/
     └── index.ts                        ✅ 전역 타입 정의 (Session / MemberType / Student / Teacher / AttendanceRecord)
 
 public/guide/*.png                      ✅ 사용 안내 완성 캡처(배포됨) — guide/output/과 같은 파일. 직접 고치지 말고 guide/에서 다시 만든다
+
+tests/e2e/                              ✅ Playwright — notes.spec.ts(롤백·잘못된 토큰) · gates.spec.ts(게이트 렌더 차단) · mock.ts(가짜 응답, guide/mock/data.json 더미 재사용)
+playwright.config.ts                    ✅ webServer = 구글 환경변수 무효값 + 포트 3200. **평소 dev 서버를 끄고 실행한다**
 
 guide/                                  ✅ 사용 안내 캡처 작업 폴더(배포·앱 참조 없음) — 실행 방법은 guide/README.md
 ├── mock/                               가짜 시트: data.json(더미 명단) + intercept.js(촬영 브라우저 fetch 가로채기, 시계를 최근 일요일 11:00으로 고정)
