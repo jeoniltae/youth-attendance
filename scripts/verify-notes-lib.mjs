@@ -3,6 +3,7 @@
 
 import assert from 'node:assert/strict';
 import { makeClassToken, resolveClassToken } from '../src/lib/notes-token.ts';
+import { redactNoteToken } from '../src/lib/analytics.ts';
 import { periodFromKey, periodOfDate, periodsOfYear } from '../src/lib/notes-period.ts';
 import { countSundays } from '../src/lib/date.ts';
 
@@ -52,4 +53,10 @@ for (const year of [2025, 2026, 2027, 2028]) {
 }
 assert.equal(countSundays('2026-05-01', '2026-08-31'), 18);
 
-console.log('통과: 토큰·기간 경계·일요일 수');
+// 분석 전송 주소에서 토큰 가리기
+const noteUrl = 'https://example.com/notes/c/abc_DEF-123';
+assert.equal(redactNoteToken(noteUrl), 'https://example.com/notes/c/[token]');
+assert.equal(redactNoteToken(`${noteUrl}?a=1#b`), 'https://example.com/notes/c/[token]?a=1#b');
+assert.equal(redactNoteToken('https://example.com/notes/summary'), 'https://example.com/notes/summary');
+
+console.log('통과: 토큰·기간 경계·일요일 수·분석 주소');

@@ -10,6 +10,7 @@ process.loadEnvFile(new URL('../.env.local', import.meta.url));
 
 const BASE = process.argv[2] ?? 'http://localhost:3000';
 const DATE = '2026-03-01'; // 지나간 일요일
+const DATE2 = '2026-03-08';
 const PERIOD = '2026-1';
 
 const auth = new google.auth.GoogleAuth({
@@ -110,6 +111,18 @@ async function main() {
   assert.equal((await noteRows(idA)).length, 0);
   assert.equal((await save({ status: '미작성' })).status, 200);
   console.log('✅ 중복 행도 1회 집계, 해제 시 모두 삭제, 분모 17, 집계에 새친구 없음');
+
+  // 동시 해제 — 행 번호가 밀리면 남의 기록이 지워진다. B의 다른 날짜 기록은 남아야 한다
+  const saveB = (over) => post('/api/notes/class', { token: makeClassToken('오전', '1', '98'), date: DATE, studentId: idB, status: '작성', ...over });
+  assert.equal((await save()).status, 200);
+  assert.equal((await saveB()).status, 200);
+  assert.equal((await saveB({ date: DATE2 })).status, 200);
+  const results = await Promise.all([save({ status: '미작성' }), saveB({ status: '미작성' })]);
+  assert.deepEqual(results.map((r) => r.status), [200, 200]);
+  assert.equal((await noteRows(idA)).length, 0);
+  assert.deepEqual((await noteRows(idB)).map((r) => r.Date), [DATE2]);
+  assert.equal((await saveB({ date: DATE2, status: '미작성' })).status, 200);
+  console.log('✅ 동시 해제해도 다른 기록 유지');
 
   // 삭제 cascade — A만 지우고 B의 기록은 남아야 한다
   const tokenB = makeClassToken('오전', '1', '98');

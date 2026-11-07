@@ -2,7 +2,7 @@
 // 연타·polling 경합 대책은 useAttendance와 같다(요청 직렬화, 펜딩 델타 오버레이, 목표 상태 전송).
 // 날짜를 바꿔도 처리 중인 체크가 섞이지 않도록 델타 키에 날짜를 넣는다.
 
-import { useMemo, useReducer, useRef } from "react";
+import { useMemo, useReducer, useRef, useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getClassNotes, saveClassNote } from "@/api/notes";
 import type { SaveClassNotePayload } from "@/api/notes";
@@ -31,6 +31,8 @@ export function useClassNotes(token: string, date: string) {
   const deltasRef = useRef(new Map<string, boolean>());
   const genRef = useRef(0);
   const [version, bump] = useReducer((x: number) => x + 1, 0);
+  // 저장에 실패한 체크 — 다시 눌러 성공할 때까지 화면에 남긴다
+  const [failedKeys, setFailedKeys] = useState<ReadonlySet<string>>(() => new Set());
 
   const query = useQuery({
     queryKey: ["notes-class", token, date],
@@ -46,7 +48,13 @@ export function useClassNotes(token: string, date: string) {
     mutationFn: (payload: SaveClassNotePayload) => enqueueSave(() => saveClassNote(payload)),
     onMutate: async (payload) => {
       genRef.current++;
-      deltasRef.current.set(deltaKey(payload.date, payload.studentId), payload.status === "작성");
+      const key = deltaKey(payload.date, payload.studentId);
+      deltasRef.current.set(key, payload.status === "작성");
+      setFailedKeys((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
       bump();
       await queryClient.cancelQueries({ queryKey: ["notes-class", token, payload.date] });
     },
@@ -55,13 +63,15 @@ export function useClassNotes(token: string, date: string) {
       const key = deltaKey(payload.date, payload.studentId);
       if (deltasRef.current.get(key) === (payload.status === "작성")) {
         deltasRef.current.delete(key);
+        setFailedKeys((prev) => new Set(prev).add(key));
         bump();
       }
     },
     onSettled: async () => {
       if (queryClient.isMutating({ mutationKey: SAVE_MUTATION_KEY }) === 1) {
         const gen = genRef.current;
-        await queryClient.invalidateQueries({ queryKey: ["notes-class", token] });
+        // 델타를 날짜 구분 없이 비우므로, 저장 중에 벗어난 날짜의 캐시도 함께 새로 받는다
+        await queryClient.invalidateQueries({ queryKey: ["notes-class", token], refetchType: "all" });
         if (genRef.current === gen) {
           deltasRef.current.clear();
           bump();
@@ -75,10 +85,11 @@ export function useClassNotes(token: string, date: string) {
       query.data?.students.map((s) => ({
         ...s,
         written: deltasRef.current.get(deltaKey(date, s.id)) ?? s.written,
+        saveFailed: failedKeys.has(deltaKey(date, s.id)),
       })),
     // version: deltasRef 변경(bump) 시 재계산 트리거
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [query.data, date, version],
+    [query.data, date, version, failedKeys],
   );
 
   function toggle(studentId: string) {

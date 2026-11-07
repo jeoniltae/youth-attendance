@@ -2,7 +2,7 @@
 // 분모는 그 기간 전체 일요일 수로 고정한다(교적부 반기 컬럼과 같은 규칙, 진행 중인 기간도 같다).
 
 import { NextRequest, NextResponse } from 'next/server';
-import { readSheet, SHEET } from '@/lib/sheets';
+import { readSheets, SHEET } from '@/lib/sheets';
 import { countSundays } from '@/lib/date';
 import { periodFromKey } from '@/lib/notes-period';
 import { isNoteTarget } from '@/lib/notes-token';
@@ -14,10 +14,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const [students, notes] = await Promise.all([
-      readSheet(SHEET.STUDENTS),
-      readSheet(SHEET.SERMON_NOTES),
-    ]);
+    const [students, notes] = await readSheets([SHEET.STUDENTS, SHEET.SERMON_NOTES]);
 
     // 날짜 Set으로 세어 같은 날 중복 행이 있어도 1회만 인정한다
     const datesById = new Map<string, Set<string>>();

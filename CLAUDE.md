@@ -78,7 +78,7 @@ Google Sheets는 WebSocket을 지원하지 않으므로 Polling 방식을 사용
 - **말씀노트 체크 화면은 게이트 없이 반별 비밀 토큰 링크로 엽니다**(`/notes/c/[token]`). 토큰은
   `HMAC-SHA256(NOTES_QR_SECRET, "오전-1-2")` 앞 16자라 저장하지 않고, 서버가 Students의 반 목록으로
   계산해 찾습니다. 토큰 API만 예외적으로 서버가 범위를 강제합니다 — 그 반 학생의 id·이름만 내려주고,
-  저장 시 같은 반 소속과 날짜(올해 지난 일요일)를 검증합니다. 비밀값이 유출되면 교체 후 QR을 전부
+  저장 시 같은 반 소속과 날짜(올해 지난 일요일)를 검증합니다. 주소가 분석 도구로 나가지 않도록 `SiteAnalytics`가 토큰을 가립니다. 비밀값이 유출되면 교체 후 QR을 전부
   다시 인쇄합니다. 주소가 곧 권한이므로 토큰·QR URL을 저장소에 남기지 않습니다.
 - **보호 수준은 화면(UI) 레벨입니다.** 데이터 API(`/api/students` 등)에는 서버사이드
   인증 체크가 없어 URL을 알면 직접 호출은 가능합니다 — "외부인이 화면 URL로 못 들어오게"가
@@ -142,7 +142,7 @@ Google Sheets는 WebSocket을 지원하지 않으므로 Polling 방식을 사용
 | Type | string | `student` \| `teacher` — 실제 운영 시트에는 존재하지 않아 Phase 3에서 신규 추가할 컬럼 |
 
 ### SermonNotes 시트
-말씀노트 작성 기록. 행이 있으면 작성, 없으면 미작성(Attendance와 같은 규칙). 학생 삭제 시 함께 지운다.
+말씀노트 작성 기록. 행이 있으면 작성, 없으면 미작성(Attendance와 같은 규칙). 해제·학생 삭제 시 행을 지우지 않고 첫 칸에 `해제`만 남겨 비운다(`retireRowsWhere`) — 행 번호가 밀리면 동시에 해제한 다른 반의 행이 지워지기 때문이다.
 실시트 반영은 `scripts/add-sermon-notes-sheet.mjs`. **탭이 없으면 학생 삭제가 실패하므로 배포 전에 만들어야 한다.**
 
 | 컬럼 | 타입 | 설명 |
@@ -156,7 +156,7 @@ Google Sheets는 WebSocket을 지원하지 않으므로 Polling 방식을 사용
 | Timestamp | string | 저장 시각 |
 
 - 대상은 학생만 — 교사·새친구(학년 `새친구`, 반 없음)는 제외 (`isNoteTarget`)
-- 시트에 원자적 쓰기가 없어 동시 저장 시 중복 행이 생길 수 있다 → **집계는 날짜 Set으로 1회만 세고, 해제는 `deleteRowsWhere`로 그 학생·그날 행을 모두 지운다**
+- 시트에 원자적 쓰기가 없어 동시 저장 시 중복 행이 생길 수 있다 → **집계는 날짜 Set으로 1회만 세고, 해제는 그 학생·그날 행을 모두 `해제` 처리한다**
 - 기간은 1기 1~4월 / 2기 5~8월 / 3기 9~12월, 분모는 그 기간 전체 일요일 수(고정), 시상 기준은 12회
 
 ### 출석 상태 처리 규칙
@@ -393,6 +393,7 @@ src/
 │   └── common/
 │       ├── AuthGateModal.tsx           ✅ 비밀번호 입력 모달 (admin/session 공용, 오류 시 shake)
 │       ├── AlertDialog.tsx             ✅ 경고 알림 모달 (네이티브 alert() 대체 — 제목 + 라벨/값 상세 + 확인 버튼)
+│       ├── SiteAnalytics.tsx           ✅ Vercel Analytics 래퍼 — beforeSend로 말씀노트 토큰 주소를 가린다(서버 컴포넌트인 레이아웃에서 함수를 넘길 수 없어 분리)
 │       ├── PublicGate.tsx              ✅ 공개 3화면(/, /history, /birthday)·사용 안내(/guide) 교사용 게이트 래퍼 — 문구가 교사용으로 고정이라 session role 전용. /registry는 거치지 않음
 │       ├── Skeleton.tsx                ✅ 로딩 스켈레톤 프리미티브 (pulse 박스 — 각 화면 스켈레톤이 공용)
 │       ├── PhoneInput.tsx              ✅ 연락처 입력칸 — 타이핑하는 대로 하이픈 삽입 (학생 폼 2칸·교사 폼 1칸 공용). 커서는 '앞쪽 숫자 개수' 기준으로 복원해 가운데를 고쳐도 끝으로 튀지 않음
@@ -419,10 +420,11 @@ src/
 │   ├── students.ts                     ✅ getStudents / createStudent / updateStudent / deleteStudent
 │   └── teachers.ts                     ✅ getTeachers / createTeacher / updateTeacher / deleteTeacher
 ├── lib/
-│   ├── sheets.ts                       ✅ Google Sheets API v4 클라이언트 (readSheet / readSheets(batchGet, 여러 탭을 요청 1번으로) / appendRow / findRowNumber / updateRow / deleteRow)
+│   ├── sheets.ts                       ✅ Google Sheets API v4 클라이언트 (readSheet / readSheets(batchGet, 여러 탭을 요청 1번으로) / retireRowsWhere(행 번호를 유지하는 해제) / appendRow / findRowNumber / updateRow / deleteRow)
 │   ├── group-members.ts                ✅ 학생·교사 그룹핑 유틸 (학년→반→이름 정렬) + MemberItem 타입(선택 필드 `type`으로 학생/교사 구분)
 │   ├── attendance-range.ts             ✅ 기간 조회 유틸 — resolveRange(기준일+기간→구간, 올해 밖으로 안 나감) / buildRangeStats(집계)
 │   ├── date.ts                         ✅ 한국 시간 기준 날짜 유틸 (formatDateLabel 전체 표기 / formatDateLabelShort 연도 생략 — 폭이 빠듯한 조회 컨트롤 전용 / countSundays 구간의 일요일 수)
+│   ├── analytics.ts                    ✅ redactNoteToken — 분석 전송 주소에서 말씀노트 토큰 가리기
 │   ├── notes-period.ts                 ✅ 말씀노트 기간 — 키(2026-3) ↔ 날짜 구간, 올해 기간 목록
 │   ├── notes-token.ts                  ✅ 반별 토큰 생성·해석(HMAC + timingSafeEqual), isNoteTarget(새친구 제외)
 │   ├── birthdays.ts                    ✅ 생일 계산 유틸

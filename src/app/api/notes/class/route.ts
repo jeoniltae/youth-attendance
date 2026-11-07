@@ -2,7 +2,7 @@
 // 이름 외 개인정보는 내려주지 않으며, 날짜도 화면을 믿지 않고 서버에서 검증한다.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { appendRow, deleteRowsWhere, findRowNumber, readSheet, readSheets, SHEET } from '@/lib/sheets';
+import { appendRow, readSheets, retireRowsWhere, SHEET } from '@/lib/sheets';
 import { isNoteTarget, resolveClassToken } from '@/lib/notes-token';
 import type { ClassKey } from '@/lib/notes-token';
 import { sundaysThisYear } from '@/lib/date';
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const students = await readSheet(SHEET.STUDENTS);
+    const [students, notes] = await readSheets([SHEET.STUDENTS, SHEET.SERMON_NOTES]);
     const klass = resolveClass(token, students);
     if (!klass) {
       return NextResponse.json({ error: '잘못된 주소입니다' }, { status: 404 });
@@ -124,12 +124,12 @@ export async function POST(request: NextRequest) {
     const isTarget = (r: Row) => r.Date === date && r.StudentID === studentId;
 
     if (status === '미작성') {
-      // 동시 저장으로 생긴 중복 행까지 모두 지운다 — 한 행만 지우면 체크가 되살아난다
-      await deleteRowsWhere(SHEET.SERMON_NOTES, isTarget);
+      // 동시 저장으로 생긴 중복 행까지 모두 해제한다 — 한 행만 지우면 체크가 되살아난다
+      await retireRowsWhere(SHEET.SERMON_NOTES, notes, isTarget);
       return NextResponse.json({ status });
     }
 
-    if ((await findRowNumber(SHEET.SERMON_NOTES, isTarget)) === null) {
+    if (!notes.some(isTarget)) {
       await appendRow(SHEET.SERMON_NOTES, [
         date,
         student.Session,

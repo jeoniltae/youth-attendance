@@ -116,6 +116,32 @@ export async function updateRow(sheetName: string, rowNumber: number, values: st
   });
 }
 
+// 조건에 맞는 행을 지우는 대신 첫 칸만 표시를 남기고 비운다 — 행 번호가 밀리지 않아, 서로 다른 반이
+// 동시에 해제해도 남의 행을 건드리지 않는다. 줄을 완전히 비우지 않는 건 append가 표의 끝을 찾기 때문이다.
+// rows는 readSheet·readSheets로 읽은 전체 행(번호 계산 기준). 추가는 끝에만 일어나므로 조금 전 값이어도 안전하다
+export const RETIRED_ROW_MARK = '해제';
+
+export async function retireRowsWhere(
+  sheetName: string,
+  rows: Record<string, string>[],
+  predicate: (row: Record<string, string>) => boolean,
+): Promise<void> {
+  const data = rows.flatMap((row, i) =>
+    predicate(row)
+      ? [{
+          range: `${sheetName}!A${i + 2}`, // +2: 헤더(1) + 0-based → 1-based
+          values: [[RETIRED_ROW_MARK, ...Object.keys(row).slice(1).map(() => '')]],
+        }]
+      : [],
+  );
+  if (data.length === 0) return;
+
+  await getSheetsClient().spreadsheets.values.batchUpdate({
+    spreadsheetId: SPREADSHEET_ID,
+    requestBody: { valueInputOption: 'RAW', data },
+  });
+}
+
 // 조건에 맞는 모든 행을 삭제하고 삭제된 행 수를 반환.
 // 절대 행 번호를 내림차순으로 batchUpdate에 넣어(뒤 행부터 삭제) 인덱스 밀림을 방지한다.
 export async function deleteRowsWhere(

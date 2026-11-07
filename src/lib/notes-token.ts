@@ -8,9 +8,9 @@ export interface ClassKey {
   class: string;
 }
 
-// 말씀노트 대상 학생인가 — 새친구·반이 비어 있는 학생은 반 QR이 없어 기록하지 않는다
+// 말씀노트 대상 학생인가 — 새친구·반이 비어 있는 학생은 반 QR이 없고, ID가 없으면 저장할 수 없다
 export function isNoteTarget(row: Record<string, string>): boolean {
-  return Boolean(row.Session && row.Class) && row.Grade !== '새친구';
+  return Boolean(row.ID && row.Session && row.Class) && row.Grade !== '새친구';
 }
 
 export function makeClassToken(session: string, grade: string, klass: string): string {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { findRowNumber, updateRow, deleteRow, deleteRowsWhere, SHEET } from '@/lib/sheets';
+import { findRowNumber, readSheet, retireRowsWhere, updateRow, deleteRowsWhere, SHEET } from '@/lib/sheets';
 import { studentToRow } from '@/app/api/students/route';
 import type { Session, Student } from '@/types';
 
@@ -69,11 +69,13 @@ export async function DELETE(
       return NextResponse.json({ error: '학생을 찾을 수 없습니다' }, { status: 404 });
     }
 
-    await deleteRow(SHEET.STUDENTS, rowNumber);
-    // 삭제된 학생의 출석 기록도 정리 — 남겨두면 ID가 재사용될 때 새 학생이
-    // 옛 출석 기록을 물려받아 출석률이 잘못 계산된다
-    await deleteRowsWhere(SHEET.ATTENDANCE, (r) => r.StudentID === id);
-    await deleteRowsWhere(SHEET.SERMON_NOTES, (r) => r.StudentID === id);
+    // 삭제된 학생의 출석·말씀노트 기록도 정리 — 남겨두면 ID가 재사용될 때 새 학생이
+    // 옛 기록을 물려받아 출석률과 시상 횟수가 잘못 계산된다.
+    // 학생 행을 마지막에 지워, 중간에 실패해도 다시 시도할 수 있게 한다(먼저 지우면 재시도가 404)
+    const isMine = (r: Record<string, string>) => r.StudentID === id;
+    await deleteRowsWhere(SHEET.ATTENDANCE, isMine);
+    await retireRowsWhere(SHEET.SERMON_NOTES, await readSheet(SHEET.SERMON_NOTES), isMine);
+    await deleteRowsWhere(SHEET.STUDENTS, (r) => r.ID === id);
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('[api/students/[id]][DELETE]', error);
