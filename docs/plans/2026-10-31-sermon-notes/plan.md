@@ -1,7 +1,7 @@
 # 구현 계획: 말씀노트 기록 관리 (sermon-notes)
 
 - spec: ./spec.md
-- 상태: 진행 중 (계획 확정 2026-10-31, spec 승인 후 보정 2026-11-06)
+- 상태: 검증 완료 (계획 확정 2026-10-31, spec 승인 후 보정 2026-11-06)
 
 ## 개요
 학생들이 말씀노트를 썼는지(내용 길이 무관) 날짜별로 기록하고, 4개월 단위로 12회 이상 작성자를 총무팀이 바로 확인해 시상할 수 있게 한다.
@@ -133,9 +133,9 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 - [x] 작업 5: QR URL 출력 스크립트 `scripts/print-notes-qr-urls.mjs` — Students의 모든 반(새친구·반 빈칸 제외)에 대해 `반 → URL` 목록 출력 (출력은 커밋 금지)
 
 ### 체크포인트 A: 기반
-- [ ] 스크립트로 `SermonNotes` 탭 생성, `verify-sheets.mjs` 통과 `[스크립트]`
-- [ ] 같은 반 → 같은 토큰, 다른 반 → 다른 토큰, 변조 토큰 → null `[스크립트]`
-- [ ] 기간 경계(4/30·5/1·8/31·9/1·12/31) 변환 정확 `[스크립트]`
+- [x] 스크립트로 `SermonNotes` 탭 생성, `verify-sheets.mjs` 통과 `[스크립트]`
+- [x] 같은 반 → 같은 토큰, 다른 반 → 다른 토큰, 변조 토큰 → null `[스크립트]`
+- [x] 기간 경계(4/30·5/1·8/31·9/1·12/31) 변환 정확 `[스크립트]`
 
 ### 2단계: API
 - [x] 작업 6: `GET/POST /api/notes/class` — 토큰 검증 → 반 명단(id·name, 새친구 제외) + 그날 작성/출석 여부, 멱등 저장 + 소속·날짜 검증, 해제는 `deleteRowsWhere`
@@ -144,14 +144,14 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 - [x] 작업 9: 클라이언트 fetch 함수 `src/api/notes.ts` + 훅 `src/hooks/useClassNotes.ts`(polling·Optimistic) / `src/hooks/useNotesSummary.ts`
 
 ### 체크포인트 B: API
-- [ ] 잘못된 토큰 404, 다른 반 학생 POST 거부(403), 같은 요청 2회 → 행 1개 `[스크립트]`
-- [ ] 응답에 전화·주소 등 이름 외 개인정보 없음 `[스크립트]`
-- [ ] 평일·미래·지난해·잘못된 형식 날짜 POST 400 `[스크립트]`
-- [ ] 같은 날 중복 행을 만들어 두면 횟수 1회, 해제 시 모두 삭제 `[스크립트]`
-- [ ] 새친구가 명단·집계·QR URL 목록 어디에도 없음 `[스크립트]`
-- [ ] `print-notes-qr-urls.mjs`가 출력한 토큰으로 GET 200 (스크립트와 `notes-token.ts`의 HMAC 일치) `[스크립트]`
-- [ ] 학생 삭제 시 Attendance·SermonNotes 기록이 모두 지워지고, 다른 학생 기록은 남음 `[스크립트]`
-- [ ] `npx tsc --noEmit` 통과
+- [x] 잘못된 토큰 404, 다른 반 학생 POST 거부(403), 같은 요청 2회 → 행 1개 `[스크립트]`
+- [x] 응답에 전화·주소 등 이름 외 개인정보 없음 `[스크립트]`
+- [x] 평일·미래·지난해·잘못된 형식 날짜 POST 400 `[스크립트]`
+- [x] 같은 날 중복 행을 만들어 두면 횟수 1회, 해제 시 모두 삭제 `[스크립트]`
+- [x] 새친구가 명단·집계·QR URL 목록 어디에도 없음 `[스크립트]`
+- [x] `print-notes-qr-urls.mjs`가 출력한 토큰으로 GET 200 (스크립트와 `notes-token.ts`의 HMAC 일치) `[스크립트]`
+- [x] 학생 삭제 시 Attendance·SermonNotes 기록이 모두 지워지고, 다른 학생 기록은 남음 `[스크립트]`
+- [x] `npx tsc --noEmit` 통과
 
 ### 2.5단계: UI 시안 (아티팩트로 먼저 보고 결정)
 - [x] 작업 9-1: 화면 A(기록 체크) 시안을 아티팩트로 2~3안 제작 — 더미 데이터(`홍길동` 등)만 사용, 기존 색 토큰(paper/ink/stamp/teal/gold)·티켓 카드 스타일 기준, 모바일 375px 프레임 + PC 폭 미리보기
@@ -169,10 +169,10 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 - [x] 작업 11-3: `src/lib/sheets.ts`에 `readSheets(이름 목록)` 추가(`values.batchGet`) → `GET /api/notes/class`가 탭 3개를 요청 1번으로 읽게 변경. 30초 polling이라 휴대폰 1대당 분당 읽기가 6회에서 2회로 준다 (2026-11-06 사용자 결정)
 
 ### 체크포인트 C: 화면 A
-- [ ] 휴대폰(375px)에서 체크/해제 → 시트 행 추가·삭제 확인 `[agent-browser]` — 의미 없는 과거 일요일로 확인 후 해제, 테스트 행 잔존 여부 확인
-- [ ] 실패 시 롤백, 잘못된 토큰 안내 화면 `[Playwright]`
-- [ ] 두 브라우저 동시 체크 → 다음 polling 안에 상호 반영 `[agent-browser]` (세션 2개, 30초 + 저장·조회 시간)
-- [ ] PC 폭에서 크게 어색하지 않음 `[agent-browser]`
+- [x] 휴대폰(375px)에서 체크/해제 → 시트 행 추가·삭제 확인 `[agent-browser]` — 의미 없는 과거 일요일로 확인 후 해제, 테스트 행 잔존 여부 확인 (Playwright 스크립트로 확인 — 이름·토큰 미출력)
+- [x] 실패 시 롤백, 잘못된 토큰 안내 화면 `[Playwright]`
+- [x] 두 브라우저 동시 체크 → 다음 polling 안에 상호 반영 `[agent-browser]` (세션 2개, 30초 + 저장·조회 시간 / Playwright 스크립트로 확인: 체크 30초, 해제 34초)
+- [x] PC 폭에서 크게 어색하지 않음 `[agent-browser]`
 
 ### 4단계: 화면 B — 종합 (확정 시안 반영)
 - [x] 작업 12: `src/components/notes/NotesSummaryList.tsx` (+ 스켈레톤) — 시안 B2의 기간 드롭다운·점수판·세션 탭·카드 행·12회 구분선·횟수 막대·시상 명단 복사
@@ -181,9 +181,9 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 - [x] 작업 14-1: `tests/e2e/gates.spec.ts` — 다른 화면을 거쳐 이동한 경로로 `/notes/summary` 진입 시 게이트 통과 전 표가 렌더되지 않음 (같은 패턴으로 `/registry`·`/teachers`도 포함)
 
 ### 체크포인트 D: 화면 B
-- [ ] 다른 화면(/members 등)을 거쳐 들어와도 게이트 뒤에 데이터가 안 보임 `[Playwright]`
-- [ ] 기간 전환·세션 탭·구분선 위치·순서·복사 결과가 시트와 일치 `[agent-browser]`
-- [ ] `npm run build` 통과
+- [x] 다른 화면(/members 등)을 거쳐 들어와도 게이트 뒤에 데이터가 안 보임 `[Playwright]`
+- [x] 기간 전환·세션 탭·구분선 위치·순서·복사 결과가 시트와 일치 `[agent-browser]` (실제 기록 0행이라 화면은 더미 데이터로, 인원·분모·순서는 실시트로 확인. Playwright 스크립트)
+- [x] `npm run build` 통과
 
 ### 5단계: 사용 안내
 - [x] 작업 15: `guide/mock/intercept.js`·`data.json`에 `/api/notes/*` 가짜 응답 추가, `shots.json`에 장면 추가 후 촬영·합성 → `public/guide/`
@@ -201,7 +201,7 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 - [x] 작업 16-6: 결과를 이 문서 하단 "회귀 점검 결과"에 기록 (통과 항목·발견 문제·조치)
 
 ### 체크포인트 E0: 회귀
-- [ ] 16-1~16-6 모두 통과, 발견 문제는 수정 또는 사유와 함께 보류 기록
+- [x] 16-1~16-6 모두 통과, 발견 문제는 수정 또는 사유와 함께 보류 기록
 
 ### 7단계: 문서·마무리
 - [x] 작업 17: CLAUDE.md 갱신 — 화면 표·SermonNotes 시트 구조·API·폴더 구조·환경변수·인증 구조(토큰 링크 설명)
@@ -224,8 +224,8 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 - [x] 기간 유틸이 올해 3개 기간과 경계 날짜를 맞게 돌려주고, `/api/stats/rates`의 반기 분모는 이동 전과 같다
 
 **검증:**
-- [ ] 체크포인트 A 전체
-- [ ] `npx tsc --noEmit`
+- [x] 체크포인트 A 전체
+- [x] `npx tsc --noEmit`
 
 **의존:** 없음 (작업 2가 작업 3의 선행, `NOTES_QR_SECRET` 값은 사용자가 `.env.local`·Vercel에 등록)
 
@@ -240,7 +240,7 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 - [x] 학생 삭제가 SermonNotes 기록까지 지운다
 
 **검증:**
-- [ ] 체크포인트 B 전체
+- [x] 체크포인트 B 전체
 
 **의존:** 1단계
 
@@ -254,7 +254,7 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 - [x] 확정안이 "설계 결정"에 기록되어 있다
 
 **검증:**
-- [ ] 체크포인트 B2 (사용자 승인)
+- [x] 체크포인트 B2 (사용자 승인)
 
 **의존:** 2단계 응답 형태
 
@@ -270,7 +270,7 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 - [x] `GET /api/notes/class`가 시트 읽기 요청 1번으로 같은 응답을 준다
 
 **검증:**
-- [ ] 체크포인트 C 전체
+- [x] 체크포인트 C 전체
 
 **의존:** 2단계, 체크포인트 B2
 
@@ -285,7 +285,7 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 - [x] `/members` 버튼을 넣어도 헤더가 640·1024px에서 넘치지 않는다
 
 **검증:**
-- [ ] 체크포인트 D 전체
+- [x] 체크포인트 D 전체
 
 **의존:** 2단계, 체크포인트 B2, 작업 11-1(Playwright)
 
@@ -299,8 +299,8 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 - [x] `/guide`에 말씀노트 절과 총무팀 카드 항목이 있고 접힘·앵커가 동작한다
 
 **검증:**
-- [ ] 16-5 캡처 회귀 결과 확인
-- [ ] `/guide` 새 절 펼침·앵커 이동 수동 확인 `[agent-browser]`
+- [x] 16-5 캡처 회귀 결과 확인
+- [x] `/guide` 새 절 펼침·앵커 이동 수동 확인 `[agent-browser]`
 
 **의존:** 3·4단계
 
@@ -315,7 +315,7 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 - [x] 결과가 "회귀 점검 결과"에 기록되어 있다
 
 **검증:**
-- [ ] 체크포인트 E0 전체
+- [x] 체크포인트 E0 전체
 
 **의존:** 1~5단계
 
@@ -327,7 +327,7 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 **완료 기준:**
 - [x] CLAUDE.md·`docs/`·`.claude/feature-workflow.md`가 이번 변경과 맞다
 - [x] 연간 운영 문서에 탭 4개와 3기 명단 복사 단계가 있다
-- [ ] 보안 체크리스트 대조에서 비밀값·실제 토큰·QR URL·실명이 없다
+- [x] 보안 체크리스트 대조에서 비밀값·실제 토큰·QR URL·실명이 없다 (작업본 기준, 과거 커밋의 이름 2명은 사용자 결정으로 유지)
 
 **검증:**
 - [ ] 체크포인트 E 전체
@@ -359,4 +359,4 @@ playwright.config.ts                  webServer = 무효 구글 환경변수 + �
 - 비밀값·실제 스프레드시트 ID·QR 토큰 35개·실제 연락처 733개: 일치 0건. `.env.local`·`docs/legacy-gas.json`·`test-results/`·`guide/capture/raw/`는 추적되지 않음
 - 실제 이름 434개: 이번 기능 파일에는 없음. plan의 일치 1건은 일반 단어다
 - **기존 문제 발견:** `docs/context-notes.md`에 실제 학생 이름 2명이 있었다(커밋 `7c14709`, 2026-07-10부터 `origin/main` 포함). 작업본은 `학생A`·`학생B`로 바꿨다
-- **남은 결정:** git 히스토리에는 이름이 남아 있다. 정리하려면 `docs/security-checklist.md`의 절차대로 히스토리를 다시 쓰고 강제 푸시해야 하므로 사용자 결정이 필요하다
+- **결정 (2026-11-07 사용자):** 작업본 수정만 유지한다. git 히스토리는 다시 쓰지 않으므로 과거 커밋에는 이름이 남는다
