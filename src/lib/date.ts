@@ -42,6 +42,19 @@ export function addDays(value: string, days: number): string {
   return toInputDateValue(date);
 }
 
+// from~to(양끝 포함, 'YYYY-MM-DD') 구간의 일요일 수.
+// 날짜 문자열을 UTC로 고정해 다루므로 서버 타임존에 영향받지 않는다.
+export function countSundays(from: string, to: string): number {
+  const cursor = new Date(`${from}T00:00:00Z`);
+  const end = new Date(`${to}T00:00:00Z`);
+
+  // 구간의 첫 일요일로 이동 (getUTCDay: 0=일요일)
+  cursor.setUTCDate(cursor.getUTCDate() + ((7 - cursor.getUTCDay()) % 7));
+  if (cursor > end) return 0;
+
+  return Math.floor((end.getTime() - cursor.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
+}
+
 // 기준일(미포함 아님, 당일이 일요일이면 당일 포함)로부터 가장 가까운 과거(또는 당일) 일요일
 export function mostRecentSunday(from: Date = getTodayInSeoul()): Date {
   const d = new Date(from.getFullYear(), from.getMonth(), from.getDate());

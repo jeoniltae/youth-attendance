@@ -25,15 +25,17 @@
 새 앱은 시트를 **탭 이름**과 **헤더 이름/순서**로 읽고 쓴다. 따라서 새 시트도 구조가
 기존과 완전히 동일해야 기존 코드가 그대로 동작한다.
 
-- **탭 3개 유지**: `Students`, `Teachers`, `Attendance` (이름 정확히 일치)
+- **탭 4개 유지**: `Students`, `Teachers`, `Attendance`, `SermonNotes` (이름 정확히 일치)
+  - `SermonNotes`가 없으면 **학생 삭제가 실패한다**(말씀노트 기록을 함께 지우는 단계에서 오류)
 - **헤더 구조 유지**: 각 시트 1행 헤더를 아래와 동일하게 (`docs/context-notes.md`,
   루트 `CLAUDE.md`의 DB 구조 참고)
   - Students: `ID, Session, Grade, Class, Name, Phone, ParentPhone, Address, Birthdate, School, Teacher, Notes, 출석률, 세례, gender`
   - Teachers: `ID, Session, Team, Name, Phone, Address, Birthdate, Notes`
   - Attendance: `Date, Session, Grade, Class, StudentID, Name, Status, Timestamp, ect, Type`
+  - SermonNotes: `Date, Session, Grade, Class, StudentID, Name, Timestamp`
 - **권장 생성 방법**: 올해 시트를 **사본 복제** 후 데이터 행만 비우면 구조가 자동으로 일치한다.
   - 명단(Students/Teachers)은 계속 다닐 인원을 이어가려면 유지, 새로 시작하려면 정리
-  - Attendance는 새해 출석을 새로 쌓을 것이므로 데이터 행 비움 (헤더는 유지)
+  - Attendance·SermonNotes는 새해 기록을 새로 쌓을 것이므로 데이터 행 비움 (헤더는 유지)
 - **검증**: 새 시트를 `.env.local`의 `GOOGLE_SPREADSHEET_ID`에 넣고
   `node scripts/verify-sheets.mjs` 실행 → 헤더 이름/순서 일치 확인
 - **서비스 계정 공유**: 새 시트에 `GOOGLE_SERVICE_ACCOUNT_EMAIL`을 **편집자**로 공유
@@ -45,11 +47,12 @@
 
 ## 3. 연말·연초 전환 절차 (요약)
 
-1. 새 연도 시트 생성 (위 2번 규칙대로, 사본 복제 방식)
-2. 서비스 계정 편집자 공유
-3. Vercel 환경변수 `GOOGLE_SPREADSHEET_ID`를 새 시트 ID로 교체 (배포 환경)
-4. 로컬 검증이 필요하면 `.env.local`도 교체 후 `verify-sheets.mjs` 실행
-5. 이전 연도 시트는 **삭제하지 말고 보관** — 과거 조회 기능의 데이터 원본이 된다
+1. **12월 31일 안에 말씀노트 3기 시상 명단 복사** — `/notes/summary`에서 3기를 골라 `시상 명단 복사`. 화면은 그해 기간만 보여 주므로 **1월 1일이 되면 시트를 바꾸기 전이라도 지난해 3기를 고를 수 없다.** 12월 마지막 일요일 체크도 12월 31일까지 끝낸다(새해에는 지난해 날짜를 저장할 수 없다)
+2. 새 연도 시트 생성 (위 2번 규칙대로, 사본 복제 방식)
+3. 서비스 계정 편집자 공유
+4. Vercel 환경변수 `GOOGLE_SPREADSHEET_ID`를 새 시트 ID로 교체 (배포 환경)
+5. 로컬 검증이 필요하면 `.env.local`도 교체 후 `verify-sheets.mjs` 실행
+6. 이전 연도 시트는 **삭제하지 말고 보관** — 과거 조회 기능의 데이터 원본이 된다
 
 > 전환 직후에는 새 시트에 쌓인 데이터만큼만 통계가 잡힌다(예: "최근 1년" 통계가 짧아짐).
 > 이는 정상 동작이며, 과거 조회 기능(4번)이 붙으면 이전 연도를 따로 볼 수 있다.

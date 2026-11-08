@@ -1,5 +1,5 @@
 // 스프레드시트 구조 검증 스크립트 (Phase 7 사전 검증 Step 1 / Phase 8-B 실시트 전환 시 재사용)
-// - 탭 이름 3개(Students/Teachers/Attendance) 존재 확인
+// - 탭 이름 4개(Students/Teachers/Attendance/SermonNotes) 존재 확인
 // - 각 시트 헤더를 코드 기대값과 이름·순서 모두 비교
 // - 개인정보 보호: 데이터 값은 출력하지 않고 헤더·행 수만 출력
 // 실행: node scripts/verify-sheets.mjs
@@ -49,6 +49,7 @@ const EXPECTED = {
   ],
   Teachers: ['ID', 'Session', 'Team', 'Name', 'Phone', 'Address', 'Birthdate', 'Notes', 'Lunar'],
   Attendance: ['Date', 'Session', 'Grade', 'Class', 'StudentID', 'Name', 'Status', 'Timestamp', 'ect', 'Type'],
+  SermonNotes: ['Date', 'Session', 'Grade', 'Class', 'StudentID', 'Name', 'Timestamp'],
 };
 
 // 컬럼이 없을 때 안내할 조치 방법 (전환 전 사전 점검에서 무엇을 해야 하는지 바로 보이도록)
@@ -100,7 +101,7 @@ async function main() {
   for (const sheetName of Object.keys(EXPECTED)) {
     console.log(`--- ${sheetName} ---`);
     if (!tabs.includes(sheetName)) {
-      console.log(`❌ 탭 '${sheetName}' 없음\n`);
+      console.log(`❌ 탭 '${sheetName}' 없음${sheetName === 'SermonNotes' ? ' → node scripts/add-sermon-notes-sheet.mjs 실행' : ''}\n`);
       hasBlockingIssue = true;
       continue;
     }

@@ -19,26 +19,10 @@
 // (docs/yearly-sheet-operation.md) 시트 내용이 곧 올해 기록이다.
 
 import { NextResponse } from 'next/server';
+import { countSundays } from '@/lib/date';
 import { readSheet, SHEET } from '@/lib/sheets';
 
 type Row = Record<string, string>;
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-/**
- * from~to(양끝 포함) 구간의 일요일 수. 반기 컬럼의 분모로 쓴다.
- * 날짜 문자열을 UTC로 고정해 다루므로 서버 타임존에 영향받지 않는다.
- */
-function countSundays(from: string, to: string): number {
-  const cursor = new Date(`${from}T00:00:00Z`);
-  const end = new Date(`${to}T00:00:00Z`);
-
-  // 구간의 첫 일요일로 이동 (getUTCDay: 0=일요일)
-  cursor.setUTCDate(cursor.getUTCDate() + ((7 - cursor.getUTCDay()) % 7));
-  if (cursor > end) return 0;
-
-  return Math.floor((end.getTime() - cursor.getTime()) / (7 * DAY_MS)) + 1;
-}
 
 /**
  * 기간 내 인원별 출석 '날짜 수'를 센다.

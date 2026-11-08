@@ -23,6 +23,7 @@ export const SHEET = {
   STUDENTS: 'Students',
   TEACHERS: 'Teachers',
   ATTENDANCE: 'Attendance',
+  SERMON_NOTES: 'SermonNotes',
 } as const;
 
 // 시트 이름 → sheetId(숫자) 매핑 (deleteRow의 batchUpdate에 필요)
@@ -44,6 +45,18 @@ async function getSheetTitleToIdMap(): Promise<Record<string, number>> {
   return map;
 }
 
+function rowsToObjects(rows: unknown[][]): Record<string, string>[] {
+  if (rows.length === 0) return [];
+
+  const [header, ...dataRows] = rows;
+  return dataRows.map((row) =>
+    header.reduce<Record<string, string>>((acc, key, i) => {
+      acc[String(key)] = String(row[i] ?? '');
+      return acc;
+    }, {}),
+  );
+}
+
 // 헤더 행(1행)을 키로 사용해 시트 데이터를 객체 배열로 읽기
 export async function readSheet(sheetName: string): Promise<Record<string, string>[]> {
   const sheets = getSheetsClient();
@@ -53,15 +66,20 @@ export async function readSheet(sheetName: string): Promise<Record<string, strin
     valueRenderOption: 'FORMATTED_VALUE',
   });
 
-  const rows = (res.data.values ?? []) as unknown[][];
-  if (rows.length === 0) return [];
+  return rowsToObjects((res.data.values ?? []) as unknown[][]);
+}
 
-  const [header, ...dataRows] = rows;
-  return dataRows.map((row) =>
-    header.reduce<Record<string, string>>((acc, key, i) => {
-      acc[String(key)] = String(row[i] ?? '');
-      return acc;
-    }, {}),
+// 여러 탭을 요청 1번으로 읽기 — polling 화면이 분당 읽기 한도를 덜 쓰게 한다. 결과 순서는 sheetNames와 같다
+export async function readSheets(sheetNames: string[]): Promise<Record<string, string>[][]> {
+  const sheets = getSheetsClient();
+  const res = await sheets.spreadsheets.values.batchGet({
+    spreadsheetId: SPREADSHEET_ID,
+    ranges: sheetNames,
+    valueRenderOption: 'FORMATTED_VALUE',
+  });
+
+  return (res.data.valueRanges ?? []).map((range) =>
+    rowsToObjects((range.values ?? []) as unknown[][]),
   );
 }
 
@@ -95,6 +113,32 @@ export async function updateRow(sheetName: string, rowNumber: number, values: st
     range: `${sheetName}!A${rowNumber}`,
     valueInputOption: 'RAW',
     requestBody: { values: [values] },
+  });
+}
+
+// 조건에 맞는 행을 지우는 대신 첫 칸만 표시를 남기고 비운다 — 행 번호가 밀리지 않아, 서로 다른 반이
+// 동시에 해제해도 남의 행을 건드리지 않는다. 줄을 완전히 비우지 않는 건 append가 표의 끝을 찾기 때문이다.
+// rows는 readSheet·readSheets로 읽은 전체 행(번호 계산 기준). 추가는 끝에만 일어나므로 조금 전 값이어도 안전하다
+export const RETIRED_ROW_MARK = '해제';
+
+export async function retireRowsWhere(
+  sheetName: string,
+  rows: Record<string, string>[],
+  predicate: (row: Record<string, string>) => boolean,
+): Promise<void> {
+  const data = rows.flatMap((row, i) =>
+    predicate(row)
+      ? [{
+          range: `${sheetName}!A${i + 2}`, // +2: 헤더(1) + 0-based → 1-based
+          values: [[RETIRED_ROW_MARK, ...Object.keys(row).slice(1).map(() => '')]],
+        }]
+      : [],
+  );
+  if (data.length === 0) return;
+
+  await getSheetsClient().spreadsheets.values.batchUpdate({
+    spreadsheetId: SPREADSHEET_ID,
+    requestBody: { valueInputOption: 'RAW', data },
   });
 }
 

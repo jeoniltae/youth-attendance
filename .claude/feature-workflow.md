@@ -1,7 +1,7 @@
 ---
 plans_dir: docs/plans
 design: existing   # 기존 디자인 토큰(paper/ink/stamp/teal/gold/celebrate)·티켓 스타일 유지
-test: auto         # 테스트 러너 없음 → 타입체크 + 빌드 + 브라우저 확인으로 대체됨
+test: npm run test:e2e  # auto는 `test` 스크립트만 찾아 test:e2e를 놓친다
 base_branch: main  # 작업은 dev, Vercel 배포 기준은 main
 ---
 
@@ -29,7 +29,7 @@ base_branch: main  # 작업은 dev, Vercel 배포 기준은 main
 - **커밋 시점 예외:** `docs/coding-guidelines.md` 9번("논리적 변경이 끝나면 요청 없이 커밋")은 이 워크플로우로 진행하는 기능에는 적용하지 않는다. BUILD 중에는 커밋하지 않고, SHIP 단계에서 사용자 확인 후 커밋한다 (2026-10-02 사용자 결정)
 
 ## VERIFY
-- 검증 명령: `npx tsc --noEmit` → `npm run build` (테스트·린트 스크립트 없음)
+- 검증 명령: `npm run test:e2e` → `npx tsc --noEmit` → `npm run build` (린트 스크립트 없음). `test:e2e`는 포트 3200에 자체 dev 서버를 띄우므로 평소 dev 서버를 끄고 실행한다
 - 화면 확인은 `npm run dev` + 브라우저. **게이트 화면을 건드렸으면** 두 경로를 모두 본다
   1. 주소창으로 직접 진입
   2. 다른 화면에서 데이터를 받은 뒤 이동해 진입 (캐시 누수는 이 경로에서만 드러난다)
