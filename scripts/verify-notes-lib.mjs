@@ -4,8 +4,8 @@
 import assert from 'node:assert/strict';
 import { makeClassToken, resolveClassToken } from '../src/lib/notes-token.ts';
 import { redactNoteToken } from '../src/lib/analytics.ts';
-import { periodFromKey, periodOfDate, periodsOfYear } from '../src/lib/notes-period.ts';
-import { countSundays } from '../src/lib/date.ts';
+import { checkableSundays, periodFromKey, periodOfDate, periodsOfYear } from '../src/lib/notes-period.ts';
+import { countSundays, parseInputDate, sundaysThisYear } from '../src/lib/date.ts';
 
 process.env.NOTES_QR_SECRET = 'test-secret';
 
@@ -53,10 +53,22 @@ for (const year of [2025, 2026, 2027, 2028]) {
 }
 assert.equal(countSundays('2026-05-01', '2026-08-31'), 18);
 
+// 체크 가능 날짜 — 지금 기수 + 새 기수 시작 후 21일(첫날 포함) 동안 같은 해 지난 기수
+const window = (today) => checkableSundays(sundaysThisYear(parseInputDate(today)), today);
+const ends = (list) => [list[0], list.at(-1), list.length];
+assert.deepEqual(ends(window('2026-11-08')), ['2026-11-08', '2026-09-06', 10], '3기 진행 중 — 3기만');
+assert.deepEqual(ends(window('2026-09-21')), ['2026-09-20', '2026-05-03', 21], '유예 마지막 날 — 2기 전체 포함');
+assert.deepEqual(ends(window('2026-09-22')), ['2026-09-20', '2026-09-06', 3], '유예 끝난 다음 날 — 3기만');
+assert.deepEqual(ends(window('2026-05-01')), ['2026-04-26', '2026-01-04', 17], '2기 첫날 — 1기 전체');
+assert.deepEqual(ends(window('2026-05-22')), ['2026-05-17', '2026-05-03', 3], '2기 22일째 — 2기만');
+assert.deepEqual(window('2026-01-10'), ['2026-01-04'], '1기 — 지난해 기수는 유예 없음');
+assert.deepEqual(window('2026-01-03'), [], '새해 첫 일요일 전');
+assert.ok(!window('2026-11-08').includes('2026-08-30'), '유예 지난 뒤 지난 기수 마지막 주는 빠진다');
+
 // 분석 전송 주소에서 토큰 가리기
 const noteUrl = 'https://example.com/notes/c/abc_DEF-123';
 assert.equal(redactNoteToken(noteUrl), 'https://example.com/notes/c/[token]');
 assert.equal(redactNoteToken(`${noteUrl}?a=1#b`), 'https://example.com/notes/c/[token]?a=1#b');
 assert.equal(redactNoteToken('https://example.com/notes/summary'), 'https://example.com/notes/summary');
 
-console.log('통과: 토큰·기간 경계·일요일 수·분석 주소');
+console.log('통과: 토큰·기간 경계·일요일 수·체크 가능 날짜·분석 주소');

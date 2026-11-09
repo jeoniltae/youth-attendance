@@ -5,13 +5,19 @@
 import assert from 'node:assert/strict';
 import { google } from 'googleapis';
 import { makeClassToken } from '../src/lib/notes-token.ts';
+import { checkableSundays, periodOfDate } from '../src/lib/notes-period.ts';
+import { addDays, countSundays, getTodayInSeoul, sundaysThisYear, toInputDateValue } from '../src/lib/date.ts';
 
 process.loadEnvFile(new URL('../.env.local', import.meta.url));
 
 const BASE = process.argv[2] ?? 'http://localhost:3000';
-const DATE = '2026-03-01'; // 지나간 일요일
-const DATE2 = '2026-03-08';
-const PERIOD = '2026-1';
+// 지금 체크할 수 있는 일요일 중 최근 2개로 검사한다 (지난 기수·유예 밖 날짜는 400이어야 한다)
+const WINDOW = checkableSundays(sundaysThisYear(), toInputDateValue(getTodayInSeoul()));
+if (WINDOW.length < 2) throw new Error('체크 가능한 일요일이 2개 이상일 때 실행하세요');
+const [DATE, DATE2] = WINDOW;
+const OUTSIDE = addDays(WINDOW.at(-1), -7); // 범위 바로 앞 일요일 (연초면 지난해라 역시 400)
+const PERIOD = periodOfDate(DATE).key;
+const SUNDAYS = countSundays(periodOfDate(DATE).from, periodOfDate(DATE).to);
 
 const auth = new google.auth.GoogleAuth({
   credentials: {
@@ -78,13 +84,14 @@ async function main() {
   assert.equal((await save({ studentId: idB })).status, 403);
   console.log('✅ 잘못된 토큰 404, 다른 반 학생 403');
 
-  for (const date of ['2026-03-02', '2099-01-04', '2025-12-28', '2026-3-1', 'x']) {
+  for (const date of [addDays(DATE, 1), '2099-01-04', '2025-12-28', '2026-3-1', 'x', OUTSIDE]) {
     assert.equal((await save({ date })).status, 400, date);
   }
-  assert.equal((await fetch(`${BASE}/api/notes/class?token=${token}&date=2026-03-02`)).status, 400);
+  assert.equal((await fetch(`${BASE}/api/notes/class?token=${token}&date=${addDays(DATE, 1)}`)).status, 400);
+  assert.equal((await fetch(`${BASE}/api/notes/class?token=${token}&date=${OUTSIDE}`)).status, 400);
   assert.equal((await save({ status: '결석' })).status, 400);
   assert.equal((await noteRows(idA)).length, 0, '거부된 요청이 행을 남김');
-  console.log('✅ 평일·미래·지난해·잘못된 형식 400');
+  console.log('✅ 평일·미래·지난해·잘못된 형식·체크 범위 밖 400');
 
   // 멱등
   assert.equal((await save()).status, 200);
@@ -103,14 +110,14 @@ async function main() {
   });
   assert.equal((await noteRows(idA)).length, 2);
   const s1 = await summary();
-  assert.equal(s1.sundays, 17);
+  assert.equal(s1.sundays, SUNDAYS);
   assert.equal(s1.students.find((s) => s.id === idA).count, 1);
   assert.equal(s1.students[0].count >= 1, true, '횟수 내림차순');
   assert.ok(!s1.students.some((s) => s.grade === '새친구'), '집계에 새친구');
   assert.equal((await save({ status: '미작성' })).status, 200);
   assert.equal((await noteRows(idA)).length, 0);
   assert.equal((await save({ status: '미작성' })).status, 200);
-  console.log('✅ 중복 행도 1회 집계, 해제 시 모두 삭제, 분모 17, 집계에 새친구 없음');
+  console.log(`✅ 중복 행도 1회 집계, 해제 시 모두 삭제, 분모 ${SUNDAYS}, 집계에 새친구 없음`);
 
   // 동시 해제 — 행 번호가 밀리면 남의 기록이 지워진다. B의 다른 날짜 기록은 남아야 한다
   const saveB = (over) => post('/api/notes/class', { token: makeClassToken('오전', '1', '98'), date: DATE, studentId: idB, status: '작성', ...over });

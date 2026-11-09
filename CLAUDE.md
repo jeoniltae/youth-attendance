@@ -78,7 +78,7 @@ Google Sheets는 WebSocket을 지원하지 않으므로 Polling 방식을 사용
 - **말씀노트 체크 화면은 게이트 없이 반별 비밀 토큰 링크로 엽니다**(`/notes/c/[token]`). 토큰은
   `HMAC-SHA256(NOTES_QR_SECRET, "오전-1-2")` 앞 16자라 저장하지 않고, 서버가 Students의 반 목록으로
   계산해 찾습니다. 토큰 API만 예외적으로 서버가 범위를 강제합니다 — 그 반 학생의 id·이름만 내려주고,
-  저장 시 같은 반 소속과 날짜(올해 지난 일요일)를 검증합니다. 주소가 분석 도구로 나가지 않도록 `SiteAnalytics`가 토큰을 가립니다. 비밀값이 유출되면 교체 후 QR을 전부
+  저장 시 같은 반 소속과 날짜(지금 기수의 지난 일요일, 새 기수 시작 후 21일까지는 지난 기수 포함 — `checkableSundays`)를 검증합니다. 주소가 분석 도구로 나가지 않도록 `SiteAnalytics`가 토큰을 가립니다. 비밀값이 유출되면 교체 후 QR을 전부
   다시 인쇄합니다. 주소가 곧 권한이므로 토큰·QR URL을 저장소에 남기지 않습니다.
 - **보호 수준은 화면(UI) 레벨입니다.** 데이터 API(`/api/students` 등)에는 서버사이드
   인증 체크가 없어 URL을 알면 직접 호출은 가능합니다 — "외부인이 화면 URL로 못 들어오게"가
@@ -226,7 +226,7 @@ interface AttendanceRecord {
 | `/registry` | `app/registry/page.tsx` | 교적부 — 교사용(session) 열람 전용 학생 명단 데이터 그리드 (TanStack Table: 세션/학년 탭 필터·이름 검색·컬럼 정렬, sticky 헤더/좌측 열, 반별 담당교사 칩) |
 | `/teachers` | `app/teachers/page.tsx` | 교사 현황 — 관리자(admin) 전용 교사 명단 데이터 그리드 (교적부의 교사판: 세션/팀 탭 필터·이름 검색·정렬·sticky, 컬럼 번호·이름·팀·연락처·생년월일·주소·출석률(1년기준)·비고). `/members`에서 "교사 현황" 버튼으로 진입 |
 | `/guide` | `app/guide/page.tsx` | 사용 안내 — 교사용(session) 게이트. 출석 체크(학생)·출석 확인(교사)·출석현황·생일자·말씀노트 체크·학생 관리(등록·고치기·지난 출석·지우기·교사 현황·말씀노트 시상 명단)·자주 묻는 것을 휴대폰 캡처와 함께 안내 (교적부는 제외). 단계가 42개라 **절을 모두 접은 채 시작**하고, 맨 위 대상별 카드(학생용·교사용·총무팀용)·상단 고정 칩 줄(PC는 왼쪽 목차)·주소 앵커로 필요한 절만 펼친다. 메인 화면의 PC 헤더 `사용 안내` 버튼(768px 미만은 `?` 아이콘만)·모바일 메뉴 맨 아래 항목으로 진입. 캡처는 저장소 루트 `guide/`에서 가짜 데이터로 만들어 `public/guide/`에 복사한 완성본만 사용 |
-| `/notes/c/[token]` | `app/notes/c/[token]/page.tsx` | 말씀노트 체크 — 인증 없음(반별 비밀 토큰 링크, QR로 진입), `noindex`. 상단 고정 영역(반·진행 막대·날짜 칩) + 세로 명단. 기본 날짜는 최근 일요일이고 올해 지난 일요일을 가로 스크롤 칩으로 고른다. 그날 결석한 학생은 흐리게 `결석` 표시(체크는 가능). 카드 토글은 Optimistic + 롤백, 30초 polling |
+| `/notes/c/[token]` | `app/notes/c/[token]/page.tsx` | 말씀노트 체크 — 인증 없음(반별 비밀 토큰 링크, QR로 진입), `noindex`. 상단 고정 영역(반·진행 막대·날짜 칩) + 세로 명단. 기본 날짜는 최근 일요일이고 **지금 기수**의 지난 일요일을 가로 스크롤 칩으로 고른다(새 기수 시작 후 21일 동안은 지난 기수 날짜도 표시, 서버 검증과 같은 함수). 그날 결석한 학생은 흐리게 `결석` 표시(체크는 가능). 카드 토글은 Optimistic + 롤백, 30초 polling |
 | `/notes/summary` | `app/notes/summary/page.tsx` | 말씀노트 시상 — 관리자(admin) 게이트. `/members`의 `말씀노트` 버튼으로 진입. 기간 드롭다운(올해 3개)·점수판·세션 탭·횟수순 카드 행 + `시상 기준 12회` 구분선. `시상 명단 복사`는 세션 탭 안의 12회 이상만 탭 구분 텍스트로 복사. 표·컬럼 정렬 없음(순서 고정) |
 
 ### 관리자 모드 진입 플로우
@@ -425,7 +425,7 @@ src/
 │   ├── attendance-range.ts             ✅ 기간 조회 유틸 — resolveRange(기준일+기간→구간, 올해 밖으로 안 나감) / buildRangeStats(집계)
 │   ├── date.ts                         ✅ 한국 시간 기준 날짜 유틸 (formatDateLabel 전체 표기 / formatDateLabelShort 연도 생략 — 폭이 빠듯한 조회 컨트롤 전용 / countSundays 구간의 일요일 수)
 │   ├── analytics.ts                    ✅ redactNoteToken — 분석 전송 주소에서 말씀노트 토큰 가리기
-│   ├── notes-period.ts                 ✅ 말씀노트 기간 — 키(2026-3) ↔ 날짜 구간, 올해 기간 목록
+│   ├── notes-period.ts                 ✅ 말씀노트 기간 — 키(2026-3) ↔ 날짜 구간, 올해 기간 목록, checkableSundays(체크 가능 일요일 — 화면·서버 공용, import 없는 순수 함수)
 │   ├── notes-token.ts                  ✅ 반별 토큰 생성·해석(HMAC + timingSafeEqual), isNoteTarget(새친구 제외)
 │   ├── birthdays.ts                    ✅ 생일 계산 유틸
 │   ├── lunar.ts                        ✅ 음력→해당 연도 양력 변환 (korean-lunar-calendar) — 교사 Lunar 생일자 처리

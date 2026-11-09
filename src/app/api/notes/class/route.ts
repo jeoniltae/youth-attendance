@@ -5,7 +5,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { appendRow, readSheets, retireRowsWhere, SHEET } from '@/lib/sheets';
 import { isNoteTarget, resolveClassToken } from '@/lib/notes-token';
 import type { ClassKey } from '@/lib/notes-token';
-import { sundaysThisYear } from '@/lib/date';
+import { getTodayInSeoul, sundaysThisYear, toInputDateValue } from '@/lib/date';
+import { checkableSundays } from '@/lib/notes-period';
 
 type Row = Record<string, string>;
 
@@ -33,7 +34,7 @@ function isInClass(r: Row, klass: ClassKey): boolean {
 
 // 올해 지나간 일요일만 허용 — 형식·요일·미래·지난해를 이 한 줄로 거른다
 function isCheckableDate(date: string): boolean {
-  return sundaysThisYear().includes(date);
+  return checkableSundays(sundaysThisYear(), toInputDateValue(getTodayInSeoul())).includes(date);
 }
 
 export async function GET(request: NextRequest) {

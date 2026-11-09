@@ -5,8 +5,14 @@ import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/common/Skeleton";
 import { NoteCheckCard } from "@/components/notes/NoteCheckCard";
 import { useClassNotes } from "@/hooks/useClassNotes";
-import { formatDateLabelShort, parseInputDate, sundaysThisYear } from "@/lib/date";
+import { formatDateLabelShort, getTodayInSeoul, parseInputDate, sundaysThisYear, toInputDateValue } from "@/lib/date";
+import { checkableSundays } from "@/lib/notes-period";
 import type { ClassNotesResponse } from "@/api/notes";
+
+// 서버와 같은 기준 — 지금 기수 + 새 기수 시작 후 3주 동안은 지난 기수
+function noteSundays(): string[] {
+  return checkableSundays(sundaysThisYear(), toInputDateValue(getTodayInSeoul()));
+}
 
 function Notice({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -18,7 +24,7 @@ function Notice({ title, children }: { title: string; children: React.ReactNode 
 }
 
 export function ClassNotesScreen({ token }: { token: string }) {
-  const [sundays, setSundays] = useState(() => sundaysThisYear());
+  const [sundays, setSundays] = useState(noteSundays);
   const [picked, setPicked] = useState<string | null>(null);
   const date = picked ?? sundays[0] ?? "";
   const { data, students, isLoading, isPlaceholderData, isError, toggle } = useClassNotes(
@@ -26,15 +32,15 @@ export function ClassNotesScreen({ token }: { token: string }) {
     date,
   );
 
-  // 며칠 열어 둔 탭으로 돌아오면 새 일요일을 기본으로 — 지난주에 고정되면 이번 주 체크가 지난주로 저장된다
+  // 며칠 열어 둔 탭으로 돌아오면 날짜 목록을 다시 계산 — 새 일요일이 생겼으면 그날을 기본으로(지난주에 고정되면
+  // 이번 주 체크가 지난주로 저장된다), 유예가 끝나 고른 날짜가 빠졌으면 기본으로 되돌린다
   useEffect(() => {
     function refreshSundays() {
       if (document.visibilityState !== "visible") return;
-      const next = sundaysThisYear();
-      if (next[0] !== sundays[0]) {
-        setSundays(next);
-        setPicked(null);
-      }
+      const next = noteSundays();
+      if (next.join() === sundays.join()) return;
+      setSundays(next);
+      setPicked((p) => (p && next[0] === sundays[0] && next.includes(p) ? p : null));
     }
     document.addEventListener("visibilitychange", refreshSundays);
     return () => document.removeEventListener("visibilitychange", refreshSundays);
