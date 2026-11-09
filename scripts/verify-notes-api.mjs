@@ -6,13 +6,13 @@ import assert from 'node:assert/strict';
 import { google } from 'googleapis';
 import { makeClassToken } from '../src/lib/notes-token.ts';
 import { checkableSundays, periodOfDate } from '../src/lib/notes-period.ts';
-import { addDays, countSundays, getTodayInSeoul, sundaysThisYear, toInputDateValue } from '../src/lib/date.ts';
+import { addDays, countSundays, getTodayInSeoul, toInputDateValue } from '../src/lib/date.ts';
 
 process.loadEnvFile(new URL('../.env.local', import.meta.url));
 
 const BASE = process.argv[2] ?? 'http://localhost:3000';
 // 지금 체크할 수 있는 일요일 중 최근 2개로 검사한다 (지난 기수·유예 밖 날짜는 400이어야 한다)
-const WINDOW = checkableSundays(sundaysThisYear(), toInputDateValue(getTodayInSeoul()));
+const WINDOW = checkableSundays(toInputDateValue(getTodayInSeoul()));
 if (WINDOW.length < 2) throw new Error('체크 가능한 일요일이 2개 이상일 때 실행하세요');
 const [DATE, DATE2] = WINDOW;
 const OUTSIDE = addDays(WINDOW.at(-1), -7); // 범위 바로 앞 일요일 (연초면 지난해라 역시 400)

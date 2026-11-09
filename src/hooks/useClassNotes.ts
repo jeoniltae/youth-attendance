@@ -4,7 +4,7 @@
 
 import { useMemo, useReducer, useRef, useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getClassNotes, saveClassNote } from "@/api/notes";
+import { getClassNotes, NotesDateError, saveClassNote } from "@/api/notes";
 import type { SaveClassNotePayload } from "@/api/notes";
 
 const SAVE_MUTATION_KEY = ["notes-save"] as const;
@@ -37,8 +37,13 @@ export function useClassNotes(token: string, date: string) {
   const query = useQuery({
     queryKey: ["notes-class", token, date],
     queryFn: () => getClassNotes(token, date),
-    refetchInterval: () =>
-      queryClient.isMutating({ mutationKey: SAVE_MUTATION_KEY }) > 0 ? false : 30_000,
+    // 날짜를 거절당하면 다시 물어도 같으니 재시도·polling을 멈춘다 (날짜를 바꾸면 새 쿼리로 시작)
+    retry: (count, error) => !(error instanceof NotesDateError) && count < 3,
+    refetchInterval: (q) =>
+      q.state.error instanceof NotesDateError ||
+      queryClient.isMutating({ mutationKey: SAVE_MUTATION_KEY }) > 0
+        ? false
+        : 30_000,
     enabled: date !== "",
     placeholderData: keepPreviousData, // 날짜를 바꾸는 동안 반 제목 유지 — 명단은 화면이 isPlaceholderData로 가린다
   });
@@ -103,6 +108,7 @@ export function useClassNotes(token: string, date: string) {
     isLoading: query.isLoading,
     isPlaceholderData: query.isPlaceholderData,
     isError: query.isError,
+    isDateRejected: query.error instanceof NotesDateError,
     toggle,
   };
 }

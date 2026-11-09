@@ -14,6 +14,14 @@ export interface ClassNotesResponse {
   students: ClassNoteStudent[];
 }
 
+// 서버가 날짜를 거절함(400) — 휴대폰 시계가 틀렸거나 체크 기간이 막 끝났을 때. 재시도해도 같은 결과다
+export class NotesDateError extends Error {
+  constructor() {
+    super("체크할 수 없는 날짜입니다");
+    this.name = "NotesDateError";
+  }
+}
+
 // 잘못된 토큰(404)이면 null — 화면이 오류가 아니라 안내로 보여 준다
 export async function getClassNotes(
   token: string,
@@ -23,6 +31,7 @@ export async function getClassNotes(
     `/api/notes/class?token=${encodeURIComponent(token)}&date=${encodeURIComponent(date)}`,
   );
   if (res.status === 404) return null;
+  if (res.status === 400) throw new NotesDateError();
   if (!res.ok) throw new Error("말씀노트 명단을 불러오지 못했습니다");
   return res.json();
 }

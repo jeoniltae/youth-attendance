@@ -51,3 +51,13 @@ test("다른 날짜 조회가 실패해도 반 제목과 날짜 칩은 남는다
   await expect(page.getByRole("heading", { name: "오전 · 1학년 1반" })).toBeVisible();
   await expect(page.locator("main .overflow-x-auto button").nth(1)).toHaveAttribute("aria-pressed", "true");
 });
+
+test("서버가 날짜를 거절하면 다시 고르라고 안내한다", async ({ page }) => {
+  await page.route("**/api/notes/class?*", (route) =>
+    route.fulfill({ status: 400, json: { error: "날짜가 올바르지 않습니다" } }),
+  );
+  await page.goto(`/notes/c/${CLASS_TOKEN}`);
+
+  // 재시도하지 않으므로 바로 안내가 나온다
+  await expect(page.getByText("고를 수 없는 날짜예요")).toBeVisible();
+});

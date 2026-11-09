@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { appendRow, readSheets, retireRowsWhere, SHEET } from '@/lib/sheets';
 import { isNoteTarget, resolveClassToken } from '@/lib/notes-token';
 import type { ClassKey } from '@/lib/notes-token';
-import { getTodayInSeoul, sundaysThisYear, toInputDateValue } from '@/lib/date';
+import { getTodayInSeoul, toInputDateValue } from '@/lib/date';
 import { checkableSundays } from '@/lib/notes-period';
 
 type Row = Record<string, string>;
@@ -32,9 +32,10 @@ function isInClass(r: Row, klass: ClassKey): boolean {
   );
 }
 
-// 올해 지나간 일요일만 허용 — 형식·요일·미래·지난해를 이 한 줄로 거른다
+// 화면의 날짜 칩과 같은 기준 — 지금 기수의 지난 일요일(새 기수 시작 후 21일까지는 지난 기수 포함)만 허용.
+// 형식·요일·미래·지난해·범위 밖 기수를 이 한 줄로 거른다
 function isCheckableDate(date: string): boolean {
-  return checkableSundays(sundaysThisYear(), toInputDateValue(getTodayInSeoul())).includes(date);
+  return checkableSundays(toInputDateValue(getTodayInSeoul())).includes(date);
 }
 
 export async function GET(request: NextRequest) {
