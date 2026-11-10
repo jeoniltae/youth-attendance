@@ -5,8 +5,14 @@ import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/common/Skeleton";
 import { NoteCheckCard } from "@/components/notes/NoteCheckCard";
 import { useClassNotes } from "@/hooks/useClassNotes";
-import { formatDateLabelShort, parseInputDate, sundaysThisYear } from "@/lib/date";
+import { formatDateLabelShort, getTodayInSeoul, parseInputDate, toInputDateValue } from "@/lib/date";
+import { checkableSundays } from "@/lib/notes-period";
 import type { ClassNotesResponse } from "@/api/notes";
+
+// 서버와 같은 기준 — 지금 기수 + 새 기수 시작 후 3주 동안은 지난 기수
+function noteSundays(): string[] {
+  return checkableSundays(toInputDateValue(getTodayInSeoul()));
+}
 
 function Notice({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -18,26 +24,31 @@ function Notice({ title, children }: { title: string; children: React.ReactNode 
 }
 
 export function ClassNotesScreen({ token }: { token: string }) {
-  const [sundays, setSundays] = useState(() => sundaysThisYear());
+  const [sundays, setSundays] = useState(noteSundays);
   const [picked, setPicked] = useState<string | null>(null);
   const date = picked ?? sundays[0] ?? "";
-  const { data, students, isLoading, isPlaceholderData, isError, toggle } = useClassNotes(
+  const { data, students, isLoading, isPlaceholderData, isError, isDateRejected, toggle } = useClassNotes(
     token,
     date,
   );
 
-  // 며칠 열어 둔 탭으로 돌아오면 새 일요일을 기본으로 — 지난주에 고정되면 이번 주 체크가 지난주로 저장된다
+  // 날짜 목록을 다시 계산 — 새 일요일이 생겼으면 그날을 기본으로(지난주에 고정되면 이번 주 체크가 지난주로
+  // 저장된다), 유예가 끝나 고른 날짜가 빠졌으면 기본으로 되돌린다. 탭으로 돌아올 때와, 켜 둔 채 자정을
+  // 넘길 때를 위해 1분마다 확인한다
   useEffect(() => {
     function refreshSundays() {
       if (document.visibilityState !== "visible") return;
-      const next = sundaysThisYear();
-      if (next[0] !== sundays[0]) {
-        setSundays(next);
-        setPicked(null);
-      }
+      const next = noteSundays();
+      if (next.join() === sundays.join()) return;
+      setSundays(next);
+      setPicked((p) => (p && next[0] === sundays[0] && next.includes(p) ? p : null));
     }
     document.addEventListener("visibilitychange", refreshSundays);
-    return () => document.removeEventListener("visibilitychange", refreshSundays);
+    const timer = setInterval(refreshSundays, 60_000);
+    return () => {
+      document.removeEventListener("visibilitychange", refreshSundays);
+      clearInterval(timer);
+    };
   }, [sundays]);
 
   // 다른 날짜 조회가 실패해도 반 제목과 날짜 칩은 남긴다 (렌더 중 파생 상태 갱신 — 효과 불필요)
@@ -50,6 +61,12 @@ export function ClassNotesScreen({ token }: { token: string }) {
   }
   if (data === null) {
     return <Notice title="잘못된 주소예요">보관함에 붙은 QR을 다시 찍어주세요.</Notice>;
+  }
+  // 첫 조회부터 날짜를 거절당함 — 반 정보가 없어 날짜 칩도 못 그리므로 휴대폰 시계를 의심한다
+  if (isDateRejected && !klass) {
+    return (
+      <Notice title="고를 수 없는 날짜예요">휴대폰의 날짜·시간이 맞는지 확인한 뒤 다시 열어주세요.</Notice>
+    );
   }
   if (isError && !klass) {
     return (
@@ -110,7 +127,11 @@ export function ClassNotesScreen({ token }: { token: string }) {
       </div>
 
       <div className="flex flex-col gap-2 px-4 pt-3 pb-6">
-        {isError && !list ? (
+        {isDateRejected && !list ? (
+          <p className="py-12 text-center text-sm text-celebrate">
+            고를 수 없는 날짜예요. 다른 날짜를 고르거나, 휴대폰의 날짜·시간이 맞는지 확인해주세요.
+          </p>
+        ) : isError && !list ? (
           <p className="py-12 text-center text-sm text-celebrate">
             명단을 불러오지 못했습니다. 잠시 뒤 자동으로 다시 불러옵니다.
           </p>

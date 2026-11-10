@@ -45,6 +45,7 @@ export function MemberCard({
       onClick={onToggle}
       disabled={locked}
       aria-disabled={locked}
+      aria-pressed={attended}
       title={locked ? '지난 예배는 학생 관리에서만 수정할 수 있습니다' : undefined}
       className={`ticket-notch min-h-11 rounded-lg border-[1.5px] bg-paper px-4 py-2 text-sm font-medium transition-all ${
         attended
