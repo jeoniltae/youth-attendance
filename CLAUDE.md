@@ -371,7 +371,7 @@ src/
 │   │   ├── GuideWarning.tsx            ✅ 되돌릴 수 없는 작업 앞 경고 상자
 │   │   └── GuideFaq.tsx                ✅ 자주 묻는 것 — 네이티브 <details> 접기
 │   ├── notes/                          # 말씀노트 전용
-│   │   ├── ClassNotesScreen.tsx        ✅ 체크 화면 본체 — 상단 고정 영역 + 명단. 잘못된 토큰·날짜 없음·조회 실패 안내 포함
+│   │   ├── ClassNotesScreen.tsx        ✅ 체크 화면 본체 — 상단 고정 영역 + 명단. 잘못된 토큰·날짜 없음·조회 실패·날짜 거절 안내 포함. 날짜 칩은 탭 복귀와 1분 주기로 다시 계산(자정에 유예가 끝나도 반영)
 │   │   ├── NoteCheckCard.tsx           ✅ 세로 명단 한 줄 토글 카드 (56px, 결석 흐림)
 │   │   └── NotesSummaryList.tsx        ✅ 시상 목록 — 기간·점수판·세션 탭·12회 구분선·복사. AWARD_COUNT 상수
 │   ├── stats/
@@ -404,7 +404,7 @@ src/
 ├── hooks/
 │   ├── useAttendance.ts                ✅ 출석 데이터 + 30초 polling + Optimistic Update (토글 전용 — 기간 조회는 아래 훅)
 │   ├── useAttendanceRange.ts           ✅ 기간 출석 데이터 (읽기 전용) — 진행 중인 주를 볼 때만 30초 polling
-│   ├── useClassNotes.ts                ✅ 말씀노트 체크 + 30초 polling + Optimistic(요청 직렬화·델타 키에 날짜 포함). 날짜 전환 중에는 keepPreviousData로 반 제목만 유지하고 명단은 화면이 가린다
+│   ├── useClassNotes.ts                ✅ 말씀노트 체크 + 30초 polling + Optimistic(요청 직렬화·델타 키에 날짜 포함). 서버가 날짜를 거절(400, NotesDateError)하면 재시도·polling 중지. 날짜 전환 중에는 keepPreviousData로 반 제목만 유지하고 명단은 화면이 가린다
 │   ├── useNotesSummary.ts              ✅ 말씀노트 기간 집계 (polling 없음)
 │   ├── useRoster.ts                    ✅ 학생/교사 명단 + 30초 polling
 │   ├── useBirthdays.ts                 ✅ 생일자 데이터 (polling 없음)
