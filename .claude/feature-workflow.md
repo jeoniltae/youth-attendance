@@ -41,6 +41,7 @@ base_branch: main  # 작업은 dev, Vercel 배포 기준은 main
 - **커밋 시점 예외:** `docs/coding-guidelines.md` 9번("논리적 변경이 끝나면 요청 없이 커밋")은 이 워크플로우로 진행하는 기능에는 적용하지 않는다. BUILD 중에는 커밋하지 않는다 (2026-10-02 사용자 결정). **커밋·푸시는 사용자가 직접 한다** — SHIP에서도 커밋 메시지 초안만 제시하고 git commit·push를 실행하지 않는다 (2026-11-08 사용자 결정)
 
 ## VERIFY
+- 기존 기능 영향도는 `regression-check` 스킬(`.claude/skills/regression-check/`)로 먼저 확인한다 — 실시트를 건드리지 않는 검사만 한다. 아래 실시트·dev 서버 확인은 그 뒤 필요할 때만
 - 검증 명령: `npm run test:e2e` → `npx tsc --noEmit` → `npm run build` (린트 스크립트 없음). `test:e2e`는 포트 3200에 자체 dev 서버를 띄우므로 평소 dev 서버를 끄고 실행한다
 - 화면 확인은 `npm run dev` + 브라우저. **게이트 화면을 건드렸으면** 두 경로를 모두 본다
   1. 주소창으로 직접 진입
