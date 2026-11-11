@@ -1,7 +1,7 @@
 "use client";
 // 말씀노트 체크 화면 본체 — 상단 고정 영역(반·진행 막대·날짜 칩)과 세로 명단
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Skeleton } from "@/components/common/Skeleton";
 import { NoteCheckCard } from "@/components/notes/NoteCheckCard";
 import { useClassNotes } from "@/hooks/useClassNotes";
@@ -12,6 +12,16 @@ import type { ClassNotesResponse } from "@/api/notes";
 // 서버와 같은 기준 — 지금 기수 + 새 기수 시작 후 3주 동안은 지난 기수
 function noteSundays(): string[] {
   return checkableSundays(toInputDateValue(getTodayInSeoul()));
+}
+
+// 칩을 칩 줄 가운데로 — 칩 줄만 움직인다. scrollIntoView는 페이지(확대한 화면 포함)까지 함께 움직일 수 있어
+// 쓰지 않는다(사용 안내 칩 줄 GuideNav와 같은 방식). 끝 칩은 브라우저가 갈 수 있는 끝까지만 보낸다
+function centerChip(row: HTMLElement, chip: HTMLElement) {
+  const rowBox = row.getBoundingClientRect();
+  const chipBox = chip.getBoundingClientRect();
+  const left = row.scrollLeft + chipBox.left - rowBox.left - (rowBox.width - chipBox.width) / 2;
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  row.scrollTo({ left, behavior: reduceMotion ? "auto" : "smooth" });
 }
 
 function Notice({ title, children }: { title: string; children: React.ReactNode }) {
@@ -50,6 +60,19 @@ export function ClassNotesScreen({ token }: { token: string }) {
       clearInterval(timer);
     };
   }, [sundays]);
+
+  // 선택한 날짜가 바뀌면 그 칩을 칩 줄 가운데로 — 기본 날짜로 자동으로 돌아갈 때(탭 복귀·자정에 유예 종료)
+  // 칩 줄을 밀어 둔 상태여도 선택 칩이 보이게. 직전 날짜와 비교해 실제로 바뀐 때만 움직인다(처음 열 때·
+  // 개발 모드의 효과 두 번 실행에는 움직이지 않음). 누를 때는 onClick에서 바로 옮긴다(같은 칩을 다시 눌러도)
+  const chipsRef = useRef<HTMLDivElement>(null);
+  const shownDate = useRef(date);
+  useEffect(() => {
+    if (shownDate.current === date) return;
+    shownDate.current = date;
+    const row = chipsRef.current;
+    const chip = row?.querySelector<HTMLElement>(`[data-date="${date}"]`);
+    if (row && chip) centerChip(row, chip);
+  }, [date]);
 
   // 다른 날짜 조회가 실패해도 반 제목과 날짜 칩은 남긴다 (렌더 중 파생 상태 갱신 — 효과 불필요)
   const [lastClass, setLastClass] = useState<ClassNotesResponse | null>(null);
@@ -102,13 +125,17 @@ export function ClassNotesScreen({ token }: { token: string }) {
             style={{ width: `${total ? (done / total) * 100 : 0}%` }}
           />
         </div>
-        <div className="flex gap-1.5 overflow-x-auto">
+        <div ref={chipsRef} className="flex gap-1.5 overflow-x-auto">
           {sundays.map((sunday) => (
             <button
               key={sunday}
               type="button"
+              data-date={sunday}
               aria-pressed={sunday === date}
-              onClick={() => setPicked(sunday)}
+              onClick={(e) => {
+                setPicked(sunday);
+                if (chipsRef.current) centerChip(chipsRef.current, e.currentTarget);
+              }}
               className={`min-h-11 flex-none rounded-full border-[1.5px] px-3.5 text-sm font-medium tabular-nums ${
                 sunday === date
                   ? "border-ink bg-ink text-paper"
@@ -136,7 +163,10 @@ export function ClassNotesScreen({ token }: { token: string }) {
             명단을 불러오지 못했습니다. 잠시 뒤 자동으로 다시 불러옵니다.
           </p>
         ) : isLoading || !list ? (
-          Array.from({ length: 8 }, (_, i) => <Skeleton key={i} className="h-14 rounded-[10px]" />)
+          // 날짜를 바꾸는 동안은 직전 명단과 같은 줄 수로 — 페이지가 짧아지면 스크롤이 맨 위로 밀린다
+          Array.from({ length: klass?.students.length || 8 }, (_, i) => (
+            <Skeleton key={i} className="h-14 rounded-[10px]" />
+          ))
         ) : (
           list.map((student) => (
             <NoteCheckCard
