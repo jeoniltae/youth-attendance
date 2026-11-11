@@ -255,5 +255,5 @@ GAS → Next.js 마이그레이션의 단계별 실행 이력입니다. `CLAUDE.
   - [x] 8단계 체크 날짜를 기수 단위로(2026-11-10 SHIP GO) — 지난 기수 날짜는 칩에서 숨기고, 새 기수 시작 후 21일 동안만 같은 해 지난 기수 포함. 화면·서버가 같은 `checkableSundays(today)` 사용. 리뷰 지적 8건 중 7건 수정(자정 넘김 갱신, 날짜 거절 안내, 1월 유예 없음 안내 등). E2E 7개·tsc·build·실시트 API·시계 이동 화면 확인 — plan.md 8단계
   - [ ] 배포 전 필수: Vercel `NOTES_QR_SECRET` 등록(`.env.local`과 같은 값), 새 시트마다 `SermonNotes` 탭 확인
   - [ ] 배포 후: 실제 QR 1장으로 휴대폰 확인, Analytics 대시보드에 토큰이 없는지 확인, 반별 QR 인쇄·부착
-  - [ ] 후속: 기존 코드의 같은 약점 4건(`docs/context-notes.md`), `next` 16.4.5 이상으로 올리기
+  - [ ] 후속: 기존 코드의 같은 약점 5건(`docs/context-notes.md`), `next` 16.4.5 이상으로 올리기
   - 결정 근거는 `docs/context-notes.md`의 "말씀노트 기록 관리" 섹션 참조
