@@ -1,7 +1,7 @@
 "use client";
 // 말씀노트 체크 화면 본체 — 상단 고정 영역(반·진행 막대·날짜 칩)과 세로 명단
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Skeleton } from "@/components/common/Skeleton";
 import { NoteCheckCard } from "@/components/notes/NoteCheckCard";
 import { useClassNotes } from "@/hooks/useClassNotes";
@@ -50,6 +50,19 @@ export function ClassNotesScreen({ token }: { token: string }) {
       clearInterval(timer);
     };
   }, [sundays]);
+
+  // 선택한 날짜가 바뀌면(눌러서든, 기본 날짜로 자동으로 돌아가서든) 그 칩을 칩 줄 가운데로 — 오른쪽 끝 칩이
+  // 반쯤 잘린 채 선택되거나 화면 밖에 남지 않게. 직전 날짜와 비교해 실제로 바뀐 때만 움직인다(처음 열 때·
+  // 개발 모드의 효과 두 번 실행에는 움직이지 않음). block: "nearest"라 페이지는 위아래로 움직이지 않는다
+  const chipsRef = useRef<HTMLDivElement>(null);
+  const shownDate = useRef(date);
+  useEffect(() => {
+    if (shownDate.current === date) return;
+    shownDate.current = date;
+    const chip = chipsRef.current?.querySelector<HTMLElement>("button[aria-pressed=\"true\"]");
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    chip?.scrollIntoView({ inline: "center", block: "nearest", behavior: reduceMotion ? "auto" : "smooth" });
+  }, [date]);
 
   // 다른 날짜 조회가 실패해도 반 제목과 날짜 칩은 남긴다 (렌더 중 파생 상태 갱신 — 효과 불필요)
   const [lastClass, setLastClass] = useState<ClassNotesResponse | null>(null);
@@ -102,7 +115,7 @@ export function ClassNotesScreen({ token }: { token: string }) {
             style={{ width: `${total ? (done / total) * 100 : 0}%` }}
           />
         </div>
-        <div className="flex gap-1.5 overflow-x-auto">
+        <div ref={chipsRef} className="flex gap-1.5 overflow-x-auto">
           {sundays.map((sunday) => (
             <button
               key={sunday}
