@@ -1,4 +1,4 @@
-// 말씀노트 체크 화면 E2E — 저장 실패 롤백과 잘못된 토큰 안내
+// 말씀노트 체크 화면 E2E — 저장 실패 롤백, 잘못된 토큰·날짜 안내, 날짜 칩 가운데 정렬
 
 import { expect, test } from "@playwright/test";
 import { CLASS_TOKEN, FIRST_STUDENT, mockClassNotes } from "./mock";
@@ -60,4 +60,39 @@ test("서버가 날짜를 거절하면 다시 고르라고 안내한다", async 
 
   // 재시도하지 않으므로 바로 안내가 나온다
   await expect(page.getByText("고를 수 없는 날짜예요")).toBeVisible();
+});
+
+test("칩 줄 오른쪽 끝에 걸친 날짜를 누르면 그 칩이 가운데로 온다", async ({ page }) => {
+  // 새 기수 유예 기간이라 칩이 20개(2기 + 3기) — 휴대폰 폭에서 칩 줄이 가로로 넘친다
+  await page.clock.install({ time: new Date("2026-09-15T12:00:00+09:00") });
+  await page.setViewportSize({ width: 375, height: 812 });
+  await mockClassNotes(page);
+  await page.goto(`/notes/c/${CLASS_TOKEN}`);
+  await expect(page.getByRole("button", { name: FIRST_STUDENT })).toBeVisible();
+
+  const row = page.locator("main .overflow-x-auto");
+  // 처음 열 때는 움직이지 않는다
+  expect(await row.evaluate((el) => el.scrollLeft)).toBe(0);
+
+  // 오른쪽 끝에 반쯤 걸친 칩
+  const index = await row.evaluate((el) => {
+    const right = el.getBoundingClientRect().right;
+    return [...el.querySelectorAll("button")].findIndex((b) => {
+      const r = b.getBoundingClientRect();
+      return r.left < right && r.right > right;
+    });
+  });
+  expect(index).toBeGreaterThan(0);
+  const chip = row.locator("button").nth(index);
+  await chip.click();
+  await expect(chip).toHaveAttribute("aria-pressed", "true");
+
+  const offset = () =>
+    chip.evaluate((b) => {
+      const r = b.getBoundingClientRect();
+      const box = b.parentElement!.getBoundingClientRect();
+      return Math.abs(r.left + r.width / 2 - (box.left + box.width / 2));
+    });
+  await expect.poll(offset).toBeLessThan(2);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });

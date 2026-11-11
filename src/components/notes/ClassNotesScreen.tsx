@@ -59,7 +59,7 @@ export function ClassNotesScreen({ token }: { token: string }) {
   useEffect(() => {
     if (shownDate.current === date) return;
     shownDate.current = date;
-    const chip = chipsRef.current?.querySelector<HTMLElement>("button[aria-pressed=\"true\"]");
+    const chip = chipsRef.current?.querySelector<HTMLElement>('button[aria-pressed="true"]');
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     chip?.scrollIntoView({ inline: "center", block: "nearest", behavior: reduceMotion ? "auto" : "smooth" });
   }, [date]);
