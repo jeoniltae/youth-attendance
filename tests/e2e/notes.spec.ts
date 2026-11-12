@@ -1,6 +1,6 @@
-// 말씀노트 체크 화면 E2E — 저장 실패 롤백, 잘못된 토큰·날짜 안내, 날짜 칩 가운데 정렬
+// 말씀노트 E2E — 체크 화면(저장 실패 롤백, 잘못된 토큰·날짜 안내, 날짜 칩 가운데 정렬)과 시상 화면(복사·더 보기·휴대폰 폭)
 
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { CLASS_TOKEN, FIRST_STUDENT, mockClassNotes } from "./mock";
 
 test("저장에 실패하면 카드가 체크 전 상태로 돌아간다", async ({ page }) => {
@@ -107,4 +107,70 @@ test("칩 줄 오른쪽 끝의 날짜를 누르면 그 칩이 가운데로 오�
   await expect.poll(offset).toBeLessThan(2);
   await expect(page.getByRole("button", { name: "홍길동1", exact: true })).toBeVisible();
   expect(await page.evaluate(() => window.scrollY)).toBe(pageY);
+});
+
+// 시상 화면 — 기준선 위 18명(12~17회), 아래 42명. 이름·번호는 더미
+const SUMMARY_STUDENTS = Array.from({ length: 60 }, (_, i) => ({
+  id: `d${i}`,
+  session: i % 3 ? "오전" : "오후",
+  grade: String((i % 3) + 1),
+  class: String((i % 7) + 1),
+  name: `홍길동${i + 1}`,
+  phone: i % 2 ? "010-0000-0000\n010-0000-0001" : "010-0000-0000",
+  count: Math.max(0, 17 - Math.floor(i / 3)),
+}));
+
+async function openSummary(page: Page) {
+  await page.addInitScript(() => sessionStorage.setItem("admin_token", "e2e"));
+  await page.route("**/api/notes/summary?*", (route) =>
+    route.fulfill({ json: { sundays: 17, students: SUMMARY_STUDENTS } }),
+  );
+  await page.goto("/notes/summary");
+  await expect(page.getByText("시상 기준 12회")).toBeVisible();
+}
+
+test("시상 명단 복사를 누르면 복사했다고 알리고 12회 이상만 복사한다", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await openSummary(page);
+
+  await page.getByRole("button", { name: "시상 명단 복사" }).click();
+  await expect(page.getByRole("button", { name: "복사했어요" })).toBeVisible();
+  await expect(page.getByRole("status")).toHaveText("시상 명단 18명을 복사했어요");
+
+  const lines = (await page.evaluate(() => navigator.clipboard.readText())).split(/\r?\n/); // Windows 클립보드는 \r\n으로 돌려준다
+  expect(lines).toHaveLength(18);
+  // 세션·학년·반·이름·연락처·횟수 — 연락처의 줄바꿈은 쉼표로 바뀌어 한 줄을 지킨다
+  expect(lines[1].split("\t")).toEqual(["오전", "2", "2", "홍길동2", "010-0000-0000, 010-0000-0001", "17"]);
+
+  // 성공 표시는 잠깐 뒤 원래 글자로 돌아온다
+  await expect(page.getByRole("button", { name: "시상 명단 복사" })).toBeVisible({ timeout: 4000 });
+});
+
+test("기준선 아래는 20명씩 더 보고, 탭을 바꾸면 처음으로 돌아간다", async ({ page }) => {
+  await openSummary(page);
+  const rows = page.locator("main li");
+  await expect(rows).toHaveCount(18 + 20);
+
+  await page.getByRole("button", { name: /20명 더 보기/ }).click();
+  await expect(rows).toHaveCount(18 + 40);
+  await page.getByRole("button", { name: /2명 더 보기/ }).click();
+  await expect(rows).toHaveCount(60);
+  await expect(page.getByRole("button", { name: /더 보기/ })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "오전", exact: true }).click();
+  await page.getByRole("button", { name: "전체", exact: true }).click();
+  await expect(rows).toHaveCount(18 + 20);
+});
+
+test("휴대폰 폭에서 시상 화면이 가로로 넘치지 않고 행이 두 줄을 넘지 않는다", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await openSummary(page);
+
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+  // 횟수는 이름과 같은 줄, 행은 두 줄(이름 줄 + 연락처·막대 줄) — 고치기 전에는 횟수가 셋째 줄로 밀렸다(72px)
+  const row = page.locator("main li").first();
+  const top = (text: string) =>
+    row.getByText(text, { exact: true }).evaluate((el) => el.getBoundingClientRect().top);
+  expect(Math.abs((await top("홍길동1")) - (await top("17 / 17")))).toBeLessThan(6);
+  expect(await row.evaluate((el) => el.getBoundingClientRect().height)).toBeLessThan(70);
 });
