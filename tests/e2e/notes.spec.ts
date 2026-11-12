@@ -174,3 +174,38 @@ test("휴대폰 폭에서 시상 화면이 가로로 넘치지 않고 행이 두
   expect(Math.abs((await top("홍길동1")) - (await top("17 / 17")))).toBeLessThan(6);
   expect(await row.evaluate((el) => el.getBoundingClientRect().height)).toBeLessThan(70);
 });
+
+test("기간을 바꾸면 더 보기와 복사 결과 문구가 처음으로 돌아간다", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await openSummary(page);
+  const rows = page.locator("main li");
+
+  await page.getByRole("button", { name: /20명 더 보기/ }).click();
+  await expect(rows).toHaveCount(18 + 40);
+  await page.getByRole("button", { name: "시상 명단 복사" }).click();
+  await expect(page.getByRole("button", { name: "복사했어요" })).toBeVisible();
+
+  await page.locator("select").selectOption({ index: 0 });
+  // 기다리는 단언은 2초 뒤 저절로 돌아온 것도 통과시키므로 바로 읽는다
+  expect(await page.locator("main button.bg-teal").innerText()).toBe("시상 명단 복사");
+  await expect(rows).toHaveCount(18 + 20);
+});
+
+test("복사가 끝나기 전에 탭을 바꾸면 바뀐 탭에 복사 완료를 띄우지 않는다", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  // 클립보드 쓰기를 1초 늦춘다 — 권한 확인 등으로 늦게 끝나는 경우
+  await page.addInitScript(() => {
+    const write = navigator.clipboard.writeText.bind(navigator.clipboard);
+    navigator.clipboard.writeText = (text) =>
+      new Promise((resolve) => setTimeout(resolve, 1000)).then(() => write(text));
+  });
+  await openSummary(page);
+
+  await page.getByRole("button", { name: "시상 명단 복사" }).click();
+  await page.getByRole("button", { name: "오후", exact: true }).click();
+  await page.waitForTimeout(1500);
+  // 성공이든 실패든 앞 탭의 결과 문구가 바뀐 탭에 뜨지 않는다 — 기다리는 단언은 2초 뒤 원래 글자로
+  // 돌아온 것까지 통과시키므로, 지금 이 순간의 글자를 한 번 읽어 비교한다
+  expect(await page.locator("main button.bg-teal").innerText()).toBe("시상 명단 복사");
+  expect(await page.getByRole("status").textContent()).toBe("");
+});

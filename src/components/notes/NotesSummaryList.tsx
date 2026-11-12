@@ -18,10 +18,14 @@ const COPIED_MS = 2000;
 const SESSIONS = ["전체", "오전", "오후"] as const;
 type SessionTab = (typeof SESSIONS)[number];
 
-// 연락처 칸에 줄바꿈이 있으면 엑셀에 붙일 때 행이 갈라진다
+// 연락처는 번호마다 하이픈 표기 — 화면 행과 복사가 같은 함수를 쓴다(교적부 RegistryTable과 같은 경로)
+function phoneParts(phone: string): string[] {
+  return splitPhones(phone).map(formatPhoneDisplay);
+}
+
+// 한 칸에 번호가 여러 개면 쉼표로 이어 한 줄을 지킨다 — 줄바꿈이 남으면 엑셀에 붙일 때 행이 갈라진다
 function toCopyLine(s: NotesSummaryStudent): string {
-  const phone = formatPhoneDisplay(s.phone).replace(/\s*\n\s*/g, ", ");
-  return [s.session, s.grade, s.class, s.name, phone, s.count].join("\t");
+  return [s.session, s.grade, s.class, s.name, phoneParts(s.phone).join(", "), s.count].join("\t");
 }
 
 // 메인 점수판(SummaryBar)과 같은 방식 — 숫자는 굴러가고, 단위는 suffix가 아니라 옆 span(숫자 크기로 그려져 좁은 칸에서 넘친다)
@@ -61,8 +65,9 @@ function SummaryRow({
       }`}
     >
       <span className="text-sm tabular-nums sm:w-6">{rank}</span>
-      <div className="flex min-w-0 items-baseline gap-2 sm:contents">
-        <span className={`truncate sm:min-w-[72px] ${award ? "font-semibold" : "font-medium"}`}>
+      {/* 이름은 자르지 않는다(시상 대상을 확인하는 화면) — 길면 반 정보가 다음 줄로 */}
+      <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 sm:contents">
+        <span className={`break-all sm:min-w-[72px] ${award ? "font-semibold" : "font-medium"}`}>
           {student.name}
         </span>
         <span className="whitespace-nowrap text-xs text-ink/70 sm:w-[120px] sm:text-sm sm:text-ink">
@@ -72,9 +77,9 @@ function SummaryRow({
       <div className="col-span-2 col-start-2 row-start-2 flex items-center gap-3 sm:contents">
         {/* 번호 안의 하이픈에서 줄이 꺾이지 않게 번호마다 한 덩어리로 */}
         <span className="flex min-w-0 flex-1 flex-wrap gap-x-2 text-xs tabular-nums text-ink/70 sm:flex-[1_1_130px] sm:text-sm sm:text-ink">
-          {splitPhones(student.phone).map((phone, i) => (
+          {phoneParts(student.phone).map((phone, i) => (
             <span key={i} className="whitespace-nowrap">
-              {formatPhoneDisplay(phone)}
+              {phone}
             </span>
           ))}
         </span>
@@ -104,7 +109,7 @@ export function NotesSummaryList() {
   const [today] = useState(() => periodOfDate(toInputDateValue(getTodayInSeoul())));
   const [periodKey, setPeriodKey] = useState(today.key);
   const [session, setSession] = useState<SessionTab>("전체");
-  const [copied, setCopied] = useState<{ ok: boolean } | null>(null);
+  const [copyResult, setCopyResult] = useState<{ view: string; ok: boolean; count: number } | null>(null);
   const [shownCount, setShownCount] = useState(PAGE_SIZE);
 
   const { data, isLoading, isError } = useNotesSummary(periodKey);
@@ -115,27 +120,32 @@ export function NotesSummaryList() {
   const shownOthers = others.slice(0, shownCount);
   const hiddenCount = others.length - shownOthers.length;
 
+  // 복사는 비동기라 끝나기 전에 탭·기간이 바뀔 수 있다 — 누를 때의 화면과 지금 화면이 같을 때만 결과를 보여 준다
+  const view = `${periodKey}|${session}`;
+  const copied = copyResult?.view === view ? copyResult : null;
+
   // 기간·세션을 바꾸면 복사 결과 문구와 더 보기 개수를 처음으로 — 다른 명단의 결과가 남지 않게
   function changeView(next: { period?: string; session?: SessionTab }) {
     if (next.period) setPeriodKey(next.period);
     if (next.session) setSession(next.session);
-    setCopied(null);
+    setCopyResult(null);
     setShownCount(PAGE_SIZE);
   }
 
   // 성공 표시는 잠깐만 — 실패 문구는 다시 누를 때까지 남긴다
   useEffect(() => {
-    if (!copied?.ok) return;
-    const timer = setTimeout(() => setCopied(null), COPIED_MS);
+    if (!copyResult?.ok) return;
+    const timer = setTimeout(() => setCopyResult(null), COPIED_MS);
     return () => clearTimeout(timer);
-  }, [copied]);
+  }, [copyResult]);
 
   async function copyWinners() {
+    const lines = winners.map(toCopyLine);
     try {
-      await navigator.clipboard.writeText(winners.map(toCopyLine).join("\n"));
-      setCopied({ ok: true });
+      await navigator.clipboard.writeText(lines.join("\n"));
+      setCopyResult({ view, ok: true, count: lines.length });
     } catch {
-      setCopied({ ok: false });
+      setCopyResult({ view, ok: false, count: 0 });
     }
   }
 
@@ -182,14 +192,14 @@ export function NotesSummaryList() {
           type="button"
           onClick={copyWinners}
           disabled={winners.length === 0}
-          className="ml-auto inline-flex min-h-10 min-w-36 items-center justify-center gap-1.5 rounded-full bg-teal px-4.5 font-semibold text-paper disabled:opacity-40"
+          className="ml-auto inline-flex min-h-10 min-w-44 items-center justify-center gap-1.5 rounded-full bg-teal px-4.5 font-semibold text-paper disabled:opacity-40"
         >
           {copied?.ok && <Check aria-hidden="true" className="size-4" strokeWidth={3} />}
           {copied ? (copied.ok ? "복사했어요" : "복사하지 못했어요") : "시상 명단 복사"}
         </button>
         {/* 버튼 글자가 바뀐 것을 화면 읽기 프로그램에도 알린다 */}
         <span role="status" className="sr-only">
-          {copied ? (copied.ok ? `시상 명단 ${winners.length}명을 복사했어요` : "복사하지 못했어요") : ""}
+          {copied ? (copied.ok ? `시상 명단 ${copied.count}명을 복사했어요` : "복사하지 못했어요") : ""}
         </span>
       </div>
 
@@ -206,8 +216,9 @@ export function NotesSummaryList() {
       ) : (
         // 탭은 받은 데이터를 거르기만 해 즉시 바뀐다 — 스켈레톤 대신 목록이 살짝 올라오며 바뀐 것을 알린다
         <div
-          key={`${periodKey}|${session}`}
-          className="flex flex-col gap-1.5 animate-[rise-in_0.35s_ease-out_both] motion-reduce:animate-none"
+          key={view}
+          // fill-mode backwards — 끝난 뒤 transform이 남으면 이 목록이 position:fixed 자식의 기준이 된다(template.tsx 주의와 같은 이유)
+          className="flex flex-col gap-1.5 animate-[rise-in_0.35s_ease-out_backwards] motion-reduce:animate-none"
         >
           <ol className="flex flex-col gap-1.5">
             {winners.map((student, i) => (
