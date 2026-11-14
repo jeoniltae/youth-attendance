@@ -55,6 +55,8 @@ export function GuideStep({ n, title, shot, alt = "", danger = false, children }
             height={SHOT_HEIGHT}
             sizes="300px"
             onLoad={() => setLoaded(true)}
+            // 못 받았을 때도 스켈레톤을 끈다 — 계속 깜빡이고 투명한 이미지에 가려 대체 글자(alt)도 안 보이게 되므로
+            onError={() => setLoaded(true)}
             className={cn(
               "w-full transition-opacity duration-300 motion-reduce:transition-none",
               loaded ? "opacity-100" : "opacity-0",

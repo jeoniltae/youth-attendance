@@ -62,12 +62,13 @@ export function GuideShareButton({ id, label }: { id: string; label: string }) {
           <Link2 aria-hidden className="size-5" />
         )}
       </button>
-      {/* 버튼 안에 글자를 넣으면 좁은 화면에서 제목이 밀린다 — 버튼 위에 띄운다 */}
+      {/* 버튼 안에 글자를 넣으면 좁은 화면에서 제목이 밀린다 — 버튼 왼쪽에 띄운다.
+          위에 띄우면 칩 줄로 이동한 직후(머리가 고정 칩 줄 바로 아래)에 칩 줄(z-20) 뒤로 가려진다 */}
       {message ? (
         <span
           aria-hidden
           className={cn(
-            "pointer-events-none absolute right-0 bottom-full z-10 mb-1 rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-paper",
+            "pointer-events-none absolute top-1/2 right-full z-10 mr-1 -translate-y-1/2 rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-paper",
             result === "copied" ? "bg-ink" : "bg-stamp",
           )}
         >

@@ -155,3 +155,57 @@ test.describe("주소창 갱신", () => {
     await expect(page.locator("#members-delete").getByRole("button", { name: "지우기", exact: true })).toHaveAttribute("aria-expanded", "true");
   });
 });
+
+test.describe("리뷰 수정", () => {
+  test("캡처를 못 받으면 스켈레톤을 끄고 대체 글자가 보인다", async ({ page }) => {
+    await page.route("**/_next/image**", (route) => route.fulfill({ status: 404, body: "" }));
+    await page.goto("/guide");
+    await openMembers(page);
+    await page.locator("#members-enter").getByRole("button", { name: "들어가기", exact: true }).click();
+    await expect(page.locator("#members-enter-panel img").first()).toBeAttached();
+    await expect(page.locator("#members-enter-panel [data-loading]")).toHaveCount(0);
+    await expect(page.locator("#members-enter-panel img").first()).toHaveCSS("opacity", "1");
+  });
+
+  test("휴대폰에서 머리가 칩 줄 바로 아래 있어도 '링크 복사됨'이 칩 줄에 가려지지 않는다", async ({ page }) => {
+    await page.addInitScript(() => Object.defineProperty(Navigator.prototype, "share", { value: undefined, configurable: true }));
+    await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto("/guide");
+    // 절이 모두 접혀 있으면 페이지가 짧아 머리를 칩 줄까지 올릴 수 없다 — 아래 절을 펼쳐 길게 만든다
+    await openMembers(page);
+    await page.locator("#members-register").getByRole("button", { name: "등록하기", exact: true }).click();
+    // 손으로 스크롤해 절 머리를 고정 칩 줄 바로 아래에 붙인다(칩으로 이동하면 scroll-mt 여백이 있어 재현되지 않는다)
+    await page.evaluate(() => {
+      // 목차 nav는 둘(PC 왼쪽 목차는 숨김) — 보이는 칩 줄을 고른다
+      const nav = [...document.querySelectorAll("nav[aria-label='사용 안내 목차']")]
+        .map((n) => n.getBoundingClientRect())
+        .find((r) => r.height > 0)!;
+      const top = document.getElementById("history")!.getBoundingClientRect().top;
+      window.scrollTo({ top: window.scrollY + top - nav.height, behavior: "instant" });
+    });
+
+    await page.getByRole("button", { name: "출석현황 보기 링크 공유" }).click();
+    const pill = page.getByText("링크 복사됨", { exact: true }).first();
+    await expect(pill).toBeVisible();
+    const nav = (await page.getByRole("navigation", { name: "사용 안내 목차" }).boundingBox())!;
+    const box = (await pill.boundingBox())!;
+    expect(box.y).toBeGreaterThanOrEqual(nav.y + nav.height);
+    expect(box.x).toBeGreaterThanOrEqual(0);
+  });
+
+  test("머리 버튼으로 펼치면 주소가 그 항목으로 바뀌고, 접으면 그대로다", async ({ page }) => {
+    await page.goto("/guide");
+    const before = await page.evaluate(() => history.length);
+    const head = page.locator("#birthday").getByRole("button", { name: /생일자 보기/ }).first();
+    await head.click();
+    await expect(page).toHaveURL(/\/guide#birthday$/);
+    await openMembers(page);
+    await expect(page).toHaveURL(/\/guide#members$/);
+    await page.locator("#members-delete").getByRole("button", { name: "지우기", exact: true }).click();
+    await expect(page).toHaveURL(/\/guide#members-delete$/);
+    await head.click(); // 생일자 접기
+    await expect(page).toHaveURL(/\/guide#members-delete$/);
+    expect(await page.evaluate(() => history.length)).toBe(before);
+  });
+});

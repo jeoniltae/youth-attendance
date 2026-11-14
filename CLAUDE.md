@@ -225,7 +225,7 @@ interface AttendanceRecord {
 | `/birthday` | `app/birthday/page.tsx` | 생일자 조회 |
 | `/registry` | `app/registry/page.tsx` | 교적부 — 교사용(session) 열람 전용 학생 명단 데이터 그리드 (TanStack Table: 세션/학년 탭 필터·이름 검색·컬럼 정렬, sticky 헤더/좌측 열, 반별 담당교사 칩) |
 | `/teachers` | `app/teachers/page.tsx` | 교사 현황 — 관리자(admin) 전용 교사 명단 데이터 그리드 (교적부의 교사판: 세션/팀 탭 필터·이름 검색·정렬·sticky, 컬럼 번호·이름·팀·연락처·생년월일·주소·출석률(1년기준)·비고). `/members`에서 "교사 현황" 버튼으로 진입 |
-| `/guide` | `app/guide/page.tsx` | 사용 안내 — 교사용(session) 게이트. 출석 체크(학생)·출석 확인(교사)·출석현황·생일자·말씀노트 체크·학생 관리(등록·고치기·지난 출석·지우기·교사 현황·말씀노트 시상 명단)·자주 묻는 것을 휴대폰 캡처와 함께 안내 (교적부는 제외). 단계가 42개라 **절을 모두 접은 채 시작**하고, 맨 위 대상별 카드(학생용·교사용·총무팀용)·상단 고정 칩 줄(PC는 왼쪽 목차)·주소 앵커로 필요한 절만 펼친다. 절·작은 주제 머리의 공유 버튼으로 그 항목 링크(`/guide#id`)를 공유 시트(카톡 등)나 복사로 보내고, 이동하면 주소창 #도 바뀐다. 카톡 미리보기는 사용 안내 전용 제목·설명(항목별 카드는 불가 — #은 서버로 안 옴). 캡처는 받는 동안 스켈레톤. 메인 화면의 PC 헤더 `사용 안내` 버튼(768px 미만은 `?` 아이콘만)·모바일 메뉴 맨 아래 항목으로 진입. 캡처는 저장소 루트 `guide/`에서 가짜 데이터로 만들어 `public/guide/`에 복사한 완성본만 사용 |
+| `/guide` | `app/guide/page.tsx` | 사용 안내 — 교사용(session) 게이트. 출석 체크(학생)·출석 확인(교사)·출석현황·생일자·말씀노트 체크·학생 관리(등록·고치기·지난 출석·지우기·교사 현황·말씀노트 시상 명단)·자주 묻는 것을 휴대폰 캡처와 함께 안내 (교적부는 제외). 단계가 42개라 **절을 모두 접은 채 시작**하고, 맨 위 대상별 카드(학생용·교사용·총무팀용)·상단 고정 칩 줄(PC는 왼쪽 목차)·주소 앵커로 필요한 절만 펼친다. 절·작은 주제 머리의 공유 버튼으로 그 항목 링크(`/guide#id`)를 공유 시트(카톡 등)나 복사로 보내고, 이동하거나 펼치면 주소창 #도 바뀐다. 카톡 미리보기는 사용 안내 전용 제목·설명(항목별 카드는 불가 — #은 서버로 안 옴). 캡처는 받는 동안 스켈레톤. 메인 화면의 PC 헤더 `사용 안내` 버튼(768px 미만은 `?` 아이콘만)·모바일 메뉴 맨 아래 항목으로 진입. 캡처는 저장소 루트 `guide/`에서 가짜 데이터로 만들어 `public/guide/`에 복사한 완성본만 사용 |
 | `/notes/c/[token]` | `app/notes/c/[token]/page.tsx` | 말씀노트 체크 — 인증 없음(반별 비밀 토큰 링크, QR로 진입), `noindex`. 상단 고정 영역(반·진행 막대·날짜 칩) + 세로 명단. 기본 날짜는 최근 일요일이고 **지금 기수**의 지난 일요일을 가로 스크롤 칩으로 고른다(새 기수 시작 후 21일 동안은 지난 기수 날짜도 표시, 서버 검증과 같은 함수). 그날 결석한 학생은 흐리게 `결석` 표시(체크는 가능). 카드 토글은 Optimistic + 롤백, 30초 polling |
 | `/notes/summary` | `app/notes/summary/page.tsx` | 말씀노트 시상 — 관리자(admin) 게이트. `/members`의 `말씀노트` 버튼으로 진입. 기간 드롭다운(올해 3개)·점수판·세션 탭·횟수순 카드 행 + `시상 기준 12회` 구분선. `시상 명단 복사`는 세션 탭 안의 12회 이상만 탭 구분 텍스트로 복사(성공 표시 2초). 기준선 아래는 20명씩 `더 보기`(기간·탭을 바꾸면 처음으로). 점수판은 RollingNumber + 로딩 스켈레톤, 세션 탭은 요청 없이 거르기만 해 스켈레톤 대신 목록 rise-in. 모바일 행은 두 줄 격자(sm 이상 한 줄). 표·컬럼 정렬 없음(순서 고정) |
 
@@ -310,7 +310,7 @@ POST /api/auth { password, role }                    → role별(session/admin) 
 src/
 ├── app/
 │   ├── page.tsx                        ✅ 출석체크 메인 (헤더 `사용 안내` 버튼·모바일 메뉴 항목 → /guide)
-│   ├── guide/page.tsx                  ✅ 사용 안내 — session 게이트(통과 전 본문 렌더 안 함). 본문·FAQ는 이 파일에 직접, 캡처는 public/guide/. 절은 모두 접힌 채 시작 — 대상별 카드·고정 내비·주소 앵커(#id)가 펼침 상태(Set)를 바꾸고 렌더 후 스크롤. 이동(goTo) 때 `history.replaceState`로 주소창 #도 갱신
+│   ├── guide/page.tsx                  ✅ 사용 안내 — session 게이트(통과 전 본문 렌더 안 함). 본문·FAQ는 이 파일에 직접, 캡처는 public/guide/. 절은 모두 접힌 채 시작 — 대상별 카드·고정 내비·주소 앵커(#id)가 펼침 상태(Set)를 바꾸고 렌더 후 스크롤. 이동(goTo)·머리 버튼으로 펼칠 때 `history.replaceState`로 주소창 #도 갱신(접을 때는 그대로)
 │   ├── guide/layout.tsx                ✅ /guide 링크 미리보기 metadata(페이지가 클라이언트라 여기서). openGraph는 얕게 합쳐져 루트 값을 통째로 덮으므로 이미지·사이트명도 다시 적음
 │   ├── history/page.tsx                ✅ 출석 현황 (1주 기본 / 기간 모드 — weeks=1이 곧 1주 모드라 렌더 경로는 하나)
 │   ├── members/page.tsx                ✅ 교적 관리 (관리자) — Google Sheets 실연동, 비밀번호 게이트
@@ -369,7 +369,7 @@ src/
 │   │   ├── GuideSection.tsx            ✅ 접히는 절·작은 주제(GuideSubSection) — 머리가 버튼(`aria-expanded`), 접힌 동안 본문·캡처를 그리지 않음. 펼침 상태는 GuideOpenContext(페이지가 관리). 머리 오른쪽에 공유 버튼(펼침 버튼의 형제 — 눌러도 펼침 불변), 절 제목을 컨텍스트로 내려 작은 주제 문구에 `절 · 주제`로 씀
 │   │   ├── GuideShareButton.tsx        ✅ 항목 링크 공유 — `navigator.share({ text })`(닫기 AbortError 무시) / 없으면 클립보드 + "링크 복사됨" 2초. 문구는 세 줄(제목·`교사 비밀번호가 필요해요`·`/guide#id`), url을 따로 넘기지 않음
 │   │   ├── GuideNav.tsx                ✅ 고정 내비 — 모바일 상단 칩 줄(GuideNavBar) / lg 왼쪽 목차(GuideNavSide). 누르면 펼치고 부드럽게 스크롤, 현재 절 강조
-│   │   ├── GuideStep.tsx               ✅ 단계(번호·제목·설명 + 완성 캡처 next/image) / GuideSteps 래퍼. 모바일 세로, md 이상 좌우. 캡처를 받는 동안 같은 크기의 휴대폰 모양 스켈레톤(`data-loading`), onLoad 후 페이드인(onLoad 때문에 클라이언트 컴포넌트)
+│   │   ├── GuideStep.tsx               ✅ 단계(번호·제목·설명 + 완성 캡처 next/image) / GuideSteps 래퍼. 모바일 세로, md 이상 좌우. 캡처를 받는 동안 같은 크기의 휴대폰 모양 스켈레톤(`data-loading`), onLoad 후 페이드인(onError여도 스켈레톤을 끔)(onLoad 때문에 클라이언트 컴포넌트)
 │   │   ├── GuideWarning.tsx            ✅ 되돌릴 수 없는 작업 앞 경고 상자
 │   │   └── GuideFaq.tsx                ✅ 자주 묻는 것 — 네이티브 <details> 접기
 │   ├── notes/                          # 말씀노트 전용
@@ -438,7 +438,7 @@ src/
 
 public/guide/*.png                      ✅ 사용 안내 완성 캡처(배포됨) — guide/output/과 같은 파일. 직접 고치지 말고 guide/에서 다시 만든다
 
-tests/e2e/                              ✅ Playwright — notes.spec.ts(롤백·잘못된 토큰) · gates.spec.ts(게이트 렌더 차단) · guide.spec.ts(캡처 스켈레톤·미리보기 메타·공유 버튼·주소 갱신) · mock.ts(가짜 응답, guide/mock/data.json 더미 재사용)
+tests/e2e/                              ✅ Playwright — notes.spec.ts(롤백·잘못된 토큰) · gates.spec.ts(게이트 렌더 차단) · guide.spec.ts(캡처 스켈레톤·오류·미리보기 메타·공유 버튼·주소 갱신) · mock.ts(가짜 응답, guide/mock/data.json 더미 재사용)
 playwright.config.ts                    ✅ webServer = 구글 환경변수 무효값 + 포트 3200. **평소 dev 서버를 끄고 실행한다**
 
 guide/                                  ✅ 사용 안내 캡처 작업 폴더(배포·앱 참조 없음) — 실행 방법은 guide/README.md
