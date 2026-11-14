@@ -1,7 +1,7 @@
 # 구현 계획: 사용 안내 항목 공유 · 캡처 스켈레톤
 
 - spec: ./spec.md (`docs/plans/2026-11-12-guide-share/`)
-- 상태: 진행 중
+- 상태: 검증 완료
 
 ## 개요
 사용 안내(`/guide`)의 각 절·작은 주제에 공유 버튼을 달고(휴대폰 공유 시트 / PC 복사), 내비 이동 시 주소창 `#`를 갱신하고, `/guide` 전용 카톡 미리보기 제목·설명을 넣고, 캡처를 받는 동안 휴대폰 모양 스켈레톤을 보여 준다. API·시트·환경변수 변경 없음, 게이트는 session 그대로.
@@ -24,24 +24,24 @@
 - [x] 작업 2: `/guide` 카톡 미리보기
 
 ### 체크포인트: 1단계
-- [ ] `npm run test:e2e`, `npx tsc --noEmit` 통과
-- [ ] 사용자 확인 후 다음으로 진행
+- [x] `npm run test:e2e`, `npx tsc --noEmit` 통과
+- [x] 사용자 확인 후 다음으로 진행
 
 ### 2단계: 공유
 - [x] 작업 3: 절·작은 주제 공유 버튼
 - [x] 작업 4: 내비 이동 시 주소창 갱신
 
 ### 체크포인트: 2단계
-- [ ] `npm run test:e2e` → `npx tsc --noEmit` → `npm run build` 통과
-- [ ] 375px·1280px에서 머리 줄 확인, 시나리오 1~6을 dev 서버로 따라가기
-- [ ] 사용자 확인 후 다음으로 진행
+- [x] `npm run test:e2e` → `npx tsc --noEmit` → `npm run build` 통과
+- [x] 375px·1280px에서 머리 줄 확인, 시나리오 1~6 확인 — dev 서버 대신 E2E·임시 E2E로 따라감(verify.md). 시나리오 1·2의 실기기 부분은 아래 남은 사람 확인
+- [x] 사용자 확인 후 다음으로 진행
 
 ### 3단계: 문서
 - [x] 작업 5: 문서 갱신
 
 ### 체크포인트: 완료
-- [ ] spec 성공 기준 모두 충족
-- [ ] REVIEW 준비됨
+- [x] spec 성공 기준 모두 충족
+- [x] REVIEW 준비됨
 - [ ] 남은 사람 확인: 실제 휴대폰에서 카톡 공유 시트·미리보기 카드(배포 후)
 
 ## 작업 상세
@@ -56,8 +56,8 @@
 - [x] 로딩 전후 단계(li) 높이가 같다
 
 **검증:**
-- [ ] `npm run test:e2e` — guide.spec.ts: `page.route("**/_next/image**")`로 응답을 붙잡아 스켈레톤 확인 → 풀어 준 뒤 사라짐·높이 비교 / 접었다 펼친 뒤 스켈레톤 없음
-- [ ] 수동 확인: dev 서버 + 개발자 도구 네트워크 제한으로 학생 관리 > 등록하기 펼치기
+- [x] `npm run test:e2e` — guide.spec.ts: `page.route("**/_next/image**")`로 응답을 붙잡아 스켈레톤 확인 → 풀어 준 뒤 사라짐·높이 비교 / 접었다 펼친 뒤 스켈레톤 없음
+- [x] 수동 확인: dev 서버 + 개발자 도구 네트워크 제한으로 학생 관리 > 등록하기 펼치기 — 대신 E2E에서 `_next/image` 응답을 붙잡아 확인(들어가기 주제)
 
 **의존:** 없음
 
@@ -76,8 +76,8 @@
 - [x] `/` HTML의 미리보기는 기존 값 그대로다
 
 **검증:**
-- [ ] `npm run test:e2e` — guide.spec.ts: `request.get("/guide")`·`request.get("/")` HTML의 meta 비교
-- [ ] 수동 확인: `npm run build` 후 출력 HTML 확인(작업 4 체크포인트에서)
+- [x] `npm run test:e2e` — guide.spec.ts: `request.get("/guide")`·`request.get("/")` HTML의 meta 비교
+- [x] 수동 확인: `npm run build` 후 출력 HTML 확인 — `.next/server/app/guide.html`의 og 4개·title 확인
 
 **의존:** 없음
 
@@ -97,8 +97,8 @@
 - [x] 375px에서 머리 줄 가로 넘침 없음
 
 **검증:**
-- [ ] `npm run test:e2e` — guide.spec.ts: 버튼 개수 14, 펼침 `aria-expanded` 불변, clipboard 권한 부여 후 내용 비교·문구 사라짐, 가짜 share 인자 확인·AbortError 시 오류 문구 없음, 375px `scrollWidth <= clientWidth`
-- [ ] 수동 확인: dev 서버 375px·1280px에서 머리 줄 모양
+- [x] `npm run test:e2e` — guide.spec.ts: 버튼 개수 14, 펼침 `aria-expanded` 불변, clipboard 권한 부여 후 내용 비교·문구 사라짐, 가짜 share 인자 확인·AbortError 시 오류 문구 없음, 375px `scrollWidth <= clientWidth`
+- [x] 수동 확인: dev 서버 375px·1280px에서 머리 줄 모양
 
 **의존:** 없음 (작업 1·2와 독립)
 
@@ -118,8 +118,8 @@
 - [x] `/guide#members-delete`로 진입·인증 통과 시 학생 관리·지우기가 펼쳐진다(기존 동작)
 
 **검증:**
-- [ ] `npm run test:e2e` — guide.spec.ts: 칩 클릭 후 URL·history.length, 해시 진입 후 `aria-expanded=true`
-- [ ] 수동 확인: dev 서버에서 칩 이동 후 주소창 복사 → 새 탭 붙여넣기
+- [x] `npm run test:e2e` — guide.spec.ts: 칩 클릭 후 URL·history.length, 해시 진입 후 `aria-expanded=true`
+- [x] 수동 확인: dev 서버에서 칩 이동 후 주소창 복사 → 새 탭 붙여넣기 — 대신 PC 목차·대상 카드 E2E + 해시 진입·비밀번호 통과(임시 E2E)로 확인
 
 **의존:** 없음
 
@@ -137,7 +137,7 @@
 - [x] 세 문서에 이번 변경이 반영되고 서로 어긋나는 설명이 없다
 
 **검증:**
-- [ ] 수동 확인: 문서 diff 읽기, 실제 값(주소·토큰·비밀번호) 없음 확인
+- [x] 수동 확인: 문서 diff 읽기, 실제 값(주소·토큰·비밀번호) 없음 확인
 
 **의존:** 작업 1~4
 
