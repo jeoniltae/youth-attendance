@@ -116,13 +116,17 @@ function GuideContent() {
   const openState = useMemo<GuideOpenState>(
     () => ({
       isOpen: (id) => openIds.has(id),
-      toggle: (id) =>
+      toggle: (id) => {
+        // 머리 버튼으로 펼칠 때도 주소창을 그 항목으로(goTo와 같은 이유). 접을 때는 그대로 둔다 —
+        // 접은 뒤 주소가 다른 곳을 가리키면 "지금 보던 곳"이 사라진다
+        if (!openIds.has(id)) window.history.replaceState(null, "", `#${id}`);
         setOpenIds((prev) => {
           const next = new Set(prev);
           if (next.has(id)) next.delete(id);
           else next.add(id);
           return next;
-        }),
+        });
+      },
     }),
     [openIds],
   );
@@ -141,6 +145,9 @@ function GuideContent() {
         ]),
     );
     pendingScroll.current = id;
+    // 주소창도 그 항목으로 — 주소를 그대로 복사해 보내도 같은 위치가 열린다(머리 버튼으로 펼칠 때도 같음, 위 toggle).
+    // replaceState라 뒤로가기 기록이 쌓이지 않고 hashchange도 일어나지 않아 아래 앵커 처리와 겹치지 않는다
+    window.history.replaceState(null, "", `#${id}`);
   }, []);
 
   useEffect(() => {
