@@ -240,6 +240,14 @@ GAS → Next.js 마이그레이션의 단계별 실행 이력입니다. `CLAUDE.
   - [x] VERIFY 2차(2026-10-07): tsc·build exit 0, 탐색 구조 23/23·시나리오 25/25 PASS, 서버 로그 `/api` 0건 — `verify.md` "2차 검증"
   - [x] REVIEW(2026-10-07): code-review 8건 중 6건 수정(현재 절 강조 오판·제목 구조·aria-controls·미사용 eager·합성 치환·도구 정리)·2건 보류, 보안 점검 이상 없음, 수정 후 tsc·build·탐색 23/23·시나리오 25/25 — `verify.md` "REVIEW"
   - 결정 근거는 `docs/context-notes.md`의 "사용 안내 페이지와 가짜 데이터 캡처" 섹션 참조
+- [ ] 사용 안내 항목 공유 · 캡처 스켈레톤 — 2026-11-14 BUILD 완료, VERIFY 전 (spec·plan은 `docs/plans/2026-11-12-guide-share/`)
+  - [x] 절 7개·작은 주제 7개 머리에 공유 버튼(`GuideShareButton.tsx` 신규) — 휴대폰은 공유 시트, PC는 복사 + "링크 복사됨" 2초. 문구 세 줄(제목 · `교사 비밀번호가 필요해요` · `/guide#id`)
+  - [x] 내비·대상 카드로 이동하면 주소창 #도 그 항목으로(`replaceState`, 기록 안 쌓임)
+  - [x] `/guide` 전용 링크 미리보기(`src/app/guide/layout.tsx` 신규) — 제목·설명만 사용 안내용, 이미지는 기존 `og-img.png`. 카카오 API·SDK 사용 안 함
+  - [x] 캡처를 받는 동안 휴대폰 모양 스켈레톤(`GuideStep.tsx` 클라이언트 전환) — 높이 불변, 캐시된 캡처에 남지 않음
+  - [x] E2E `guide.spec.ts` 9개 추가(전체 23개) · tsc · build 통과, 375·1280px 화면 확인. 사용 안내 캡처 재촬영 없음(촬영 목록에 /guide 화면 없음)
+  - [ ] 배포 후: 실제 휴대폰에서 카톡 공유 시트·미리보기 카드 확인(이미 공유된 적 있는 주소면 카카오 공유 디버거에서 캐시 삭제)
+  - 결정 근거는 `docs/context-notes.md`의 "사용 안내 항목 공유와 캡처 스켈레톤" 섹션 참조
 - [x] 말씀노트 기록 관리 — 2026-11-07 (spec·plan·verify는 `docs/plans/2026-10-31-sermon-notes/`)
   - [x] `SermonNotes` 탭(헤더 7개) 실시트 생성 + `scripts/add-sermon-notes-sheet.mjs`, `verify-sheets.mjs` 탭 4개 확인
   - [x] 반별 비밀 토큰 링크 — `NOTES_QR_SECRET`, `src/lib/notes-token.ts`, `scripts/print-notes-qr-urls.mjs`(출력은 커밋 금지)

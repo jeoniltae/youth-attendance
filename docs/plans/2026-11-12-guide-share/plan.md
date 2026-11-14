@@ -28,8 +28,8 @@
 - [ ] 사용자 확인 후 다음으로 진행
 
 ### 2단계: 공유
-- [ ] 작업 3: 절·작은 주제 공유 버튼
-- [ ] 작업 4: 내비 이동 시 주소창 갱신
+- [x] 작업 3: 절·작은 주제 공유 버튼
+- [x] 작업 4: 내비 이동 시 주소창 갱신
 
 ### 체크포인트: 2단계
 - [ ] `npm run test:e2e` → `npx tsc --noEmit` → `npm run build` 통과
@@ -37,7 +37,7 @@
 - [ ] 사용자 확인 후 다음으로 진행
 
 ### 3단계: 문서
-- [ ] 작업 5: 문서 갱신
+- [x] 작업 5: 문서 갱신
 
 ### 체크포인트: 완료
 - [ ] spec 성공 기준 모두 충족
@@ -92,9 +92,9 @@
 **설명:** `src/components/guide/GuideShareButton.tsx`(새 파일, 상단 한국어 주석) — props `id`, `label`(문구 첫 줄 뒤쪽). 누르면 문구 `고등부 출석부 사용 안내 — ${label}\n교사 비밀번호가 필요해요\n${location.origin}/guide#${id}`를 만들어 `navigator.share`가 있으면 `share({ text })`(AbortError 무시, 그 밖의 실패는 복사로 넘김), 없으면 `clipboard.writeText` → Check 아이콘 + 버튼 위 "링크 복사됨" 2초(실패면 "복사하지 못했어요"). 44px 원형, 링크 아이콘, aria-label `${label} 링크 공유`. `GuideSection`은 머리를 flex 줄로 바꾸고 공유 버튼을 펼침 버튼 옆에 두며 자기 title을 컨텍스트로 내려준다. `GuideSubSection`은 `절 제목 · 주제 제목`으로 버튼을 단다.
 
 **완료 기준:**
-- [ ] 절 7개·작은 주제 7개 머리에 공유 버튼이 있고(접힌 상태 포함), 눌러도 펼침 상태가 바뀌지 않는다
-- [ ] 공유 시트 없는 환경: 클립보드에 세 줄 문구, "링크 복사됨"이 보였다 2초 뒤 사라진다 / 공유 시트 있는 환경: `share`가 같은 문구로 불리고 취소(AbortError) 시 오류 문구가 없다
-- [ ] 375px에서 머리 줄 가로 넘침 없음
+- [x] 절 7개·작은 주제 7개 머리에 공유 버튼이 있고(접힌 상태 포함), 눌러도 펼침 상태가 바뀌지 않는다
+- [x] 공유 시트 없는 환경: 클립보드에 세 줄 문구, "링크 복사됨"이 보였다 2초 뒤 사라진다 / 공유 시트 있는 환경: `share`가 같은 문구로 불리고 취소(AbortError) 시 오류 문구가 없다
+- [x] 375px에서 머리 줄 가로 넘침 없음
 
 **검증:**
 - [ ] `npm run test:e2e` — guide.spec.ts: 버튼 개수 14, 펼침 `aria-expanded` 불변, clipboard 권한 부여 후 내용 비교·문구 사라짐, 가짜 share 인자 확인·AbortError 시 오류 문구 없음, 375px `scrollWidth <= clientWidth`
@@ -114,8 +114,8 @@
 **설명:** `src/app/guide/page.tsx`의 `goTo`에서 `history.replaceState(null, "", \`#${id}\`)`. 기존 hash 진입 효과(`fromHash`)는 그대로.
 
 **완료 기준:**
-- [ ] 칩·목차·대상 카드로 이동하면 주소가 `/guide#<id>`가 되고 `history.length`는 그대로다
-- [ ] `/guide#members-delete`로 진입·인증 통과 시 학생 관리·지우기가 펼쳐진다(기존 동작)
+- [x] 칩·목차·대상 카드로 이동하면 주소가 `/guide#<id>`가 되고 `history.length`는 그대로다
+- [x] `/guide#members-delete`로 진입·인증 통과 시 학생 관리·지우기가 펼쳐진다(기존 동작)
 
 **검증:**
 - [ ] `npm run test:e2e` — guide.spec.ts: 칩 클릭 후 URL·history.length, 해시 진입 후 `aria-expanded=true`
@@ -134,7 +134,7 @@
 **설명:** `CLAUDE.md` 폴더 구조(`guide/layout.tsx`, `GuideShareButton.tsx`, GuideStep 스켈레톤, `tests/e2e/guide.spec.ts`)·`/guide` 화면 설명(공유 버튼·주소 갱신·미리보기). `docs/migration-progress.md` 완료 항목, `docs/context-notes.md` 맨 위 날짜 섹션 + 목차("항목별 카드는 불가 → 공통 카드 + 공유 문구 첫 줄", "share는 text 하나로", "openGraph 얕은 병합"). plan.md 체크 갱신.
 
 **완료 기준:**
-- [ ] 세 문서에 이번 변경이 반영되고 서로 어긋나는 설명이 없다
+- [x] 세 문서에 이번 변경이 반영되고 서로 어긋나는 설명이 없다
 
 **검증:**
 - [ ] 수동 확인: 문서 diff 읽기, 실제 값(주소·토큰·비밀번호) 없음 확인

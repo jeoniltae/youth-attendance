@@ -24,7 +24,7 @@ test.describe("캡처 스켈레톤", () => {
 
     await page.goto("/guide");
     await openMembers(page);
-    const enter = page.locator("#members-enter").getByRole("button", { name: "들어가기" });
+    const enter = page.locator("#members-enter").getByRole("button", { name: "들어가기", exact: true });
     await enter.click();
 
     const box = page.locator("#members-enter-panel [data-loading]").first();
@@ -42,7 +42,7 @@ test.describe("캡처 스켈레톤", () => {
   test("접었다 다시 펼친(캐시된) 캡처에는 스켈레톤이 남지 않는다", async ({ page }) => {
     await page.goto("/guide");
     await openMembers(page);
-    const enter = page.locator("#members-enter").getByRole("button", { name: "들어가기" });
+    const enter = page.locator("#members-enter").getByRole("button", { name: "들어가기", exact: true });
     await enter.click();
     await expect(page.locator("#members-enter-panel [data-loading]")).toHaveCount(0);
 
@@ -66,5 +66,92 @@ test.describe("링크 미리보기", () => {
 
     const home = await (await request.get("/")).text();
     expect(og(home, "og:title")).toBe("서울광염교회 고등부 출석체크");
+  });
+});
+
+test.describe("항목 공유 버튼", () => {
+  const shareButtons = (page: Page) => page.getByRole("button", { name: / 링크 공유$/ });
+  const statusText = (page: Page) => page.locator("main [role=status]").filter({ hasText: /\S/ });
+
+  test("절 7개·작은 주제 7개에 공유 버튼이 있고, 눌러도 펼침이 바뀌지 않는다", async ({ page }) => {
+    // 공유 시트 없는 환경으로 고정 — 복사 경로
+    await page.addInitScript(() => Object.defineProperty(Navigator.prototype, "share", { value: undefined, configurable: true }));
+    await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page.goto("/guide");
+    await expect(shareButtons(page)).toHaveCount(7); // 접힌 상태에서도 절마다 하나
+
+    const history = page.locator("#history").getByRole("button", { name: /출석현황 보기/ }).first();
+    await expect(history).toHaveAttribute("aria-expanded", "false");
+    await page.getByRole("button", { name: "출석현황 보기 링크 공유" }).click();
+    await expect(history).toHaveAttribute("aria-expanded", "false");
+
+    await openMembers(page);
+    await expect(shareButtons(page)).toHaveCount(14);
+  });
+
+  test("공유 시트가 없으면 세 줄 문구를 복사하고 '링크 복사됨'을 2초 보인다", async ({ page, baseURL }) => {
+    await page.addInitScript(() => Object.defineProperty(Navigator.prototype, "share", { value: undefined, configurable: true }));
+    await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page.goto("/guide");
+    await openMembers(page);
+
+    await page.getByRole("button", { name: "학생 관리 · 지우기 링크 공유" }).click();
+    await expect(page.getByText("링크 복사됨", { exact: true }).first()).toBeVisible();
+    // Windows 클립보드는 읽을 때 줄바꿈을 CRLF로 돌려준다 — 운영체제 차이라 맞춰서 비교
+    const copied = (await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, "\n");
+    expect(copied).toBe(`고등부 출석부 사용 안내 — 학생 관리 · 지우기\n교사 비밀번호가 필요해요\n${baseURL}/guide#members-delete`);
+    await expect(page.getByText("링크 복사됨", { exact: true })).toHaveCount(0, { timeout: 4000 });
+  });
+
+  test("공유 시트가 있으면 같은 문구로 공유하고, 닫아도 오류 문구가 없다", async ({ page, baseURL }) => {
+    // 첫 호출은 공유 성공, 두 번째는 사용자가 닫음(AbortError)
+    await page.addInitScript(() => {
+      const w = window as unknown as { __shared: unknown[] };
+      w.__shared = [];
+      Object.defineProperty(Navigator.prototype, "share", {
+        configurable: true,
+        value: async (data: unknown) => {
+          w.__shared.push(data);
+          if (w.__shared.length > 1) throw new DOMException("닫음", "AbortError");
+        },
+      });
+    });
+    await page.goto("/guide");
+
+    const button = page.getByRole("button", { name: "출석현황 보기 링크 공유" });
+    await button.click();
+    await button.click();
+    const shared = await page.evaluate(() => (window as unknown as { __shared: unknown[] }).__shared);
+    expect(shared).toHaveLength(2);
+    expect(shared[0]).toEqual({ text: `고등부 출석부 사용 안내 — 출석현황 보기\n교사 비밀번호가 필요해요\n${baseURL}/guide#history` });
+    await expect(statusText(page)).toHaveCount(0);
+  });
+
+  test("휴대폰 폭에서 머리 줄이 가로로 넘치지 않는다", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto("/guide");
+    await openMembers(page);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+});
+
+test.describe("주소창 갱신", () => {
+  test("목차·대상 카드로 이동하면 주소가 그 항목으로 바뀌고 기록은 늘지 않는다", async ({ page }) => {
+    await page.goto("/guide");
+    const before = await page.evaluate(() => history.length);
+
+    await page.getByRole("navigation", { name: "사용 안내 목차" }).getByRole("button", { name: "생일자" }).click();
+    await expect(page).toHaveURL(/\/guide#birthday$/);
+    await page.getByRole("button", { name: /총무팀용/ }).first().click();
+    await expect(page).toHaveURL(/\/guide#members$/);
+
+    expect(await page.evaluate(() => history.length)).toBe(before);
+  });
+
+  test("공유 주소로 들어오면 그 절과 작은 주제가 펼쳐진다", async ({ page }) => {
+    await page.goto("/guide#members-delete");
+    await expect(page.locator("#members").getByRole("button", { name: /학생 관리/ }).first()).toHaveAttribute("aria-expanded", "true");
+    await expect(page.locator("#members-delete").getByRole("button", { name: "지우기", exact: true })).toHaveAttribute("aria-expanded", "true");
   });
 });

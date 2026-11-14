@@ -141,6 +141,9 @@ function GuideContent() {
         ]),
     );
     pendingScroll.current = id;
+    // 주소창도 그 항목으로 — 주소를 그대로 복사해 보내도 같은 위치가 열린다.
+    // replaceState라 뒤로가기 기록이 쌓이지 않고 hashchange도 일어나지 않아 아래 앵커 처리와 겹치지 않는다
+    window.history.replaceState(null, "", `#${id}`);
   }, []);
 
   useEffect(() => {
