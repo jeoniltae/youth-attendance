@@ -1,7 +1,9 @@
 "use client";
 // 사용 안내 절·작은 주제 링크 공유 버튼 — 휴대폰은 공유 시트(카톡 등), 공유 시트가 없는 PC는 클립보드 복사
 //
-// 문구는 세 줄(제목 · 비밀번호 안내 · 링크). 링크를 마지막 줄에 둬야 카톡이 그 주소로 미리보기 카드를 만든다.
+// 문구는 📖 머리말 · ✅ 제목 · (절 설명) · 빈 줄 · 🔒 비밀번호 안내 · 👉 링크. 카톡에서 줄바꿈 하나가 공백으로
+// 붙어 보일 때가 있어, 이모지로 줄의 경계를 표시하고 빈 줄로 링크 묶음을 나눈다.
+// 링크를 마지막 줄에 둬야 카톡이 그 주소로 미리보기 카드를 만든다.
 // share()에 url을 따로 넘기지 않는다 — 문구에 링크가 이미 있어 앱에 따라 링크가 두 번 붙는다.
 // 주소의 #id는 사용 안내 페이지가 읽어 그 절을 펼친다(비밀번호를 통과한 뒤에도 유지된다).
 
@@ -12,11 +14,19 @@ import { cn } from "@/lib/utils";
 // 시상 명단 복사와 같은 시간 — 성공 표시는 잠깐만
 const COPIED_MS = 2000;
 
-function shareText(label: string, id: string) {
-  return `고등부 출석부 사용 안내 — ${label}\n교사 비밀번호가 필요해요\n${window.location.origin}/guide#${id}`;
+// 절 설명은 절에만 있다 — 작은 주제는 설명 줄 없이 보낸다(부모 절 설명은 그 주제와 어긋날 수 있어 쓰지 않음)
+function shareText(label: string, id: string, description?: string) {
+  return [
+    "📖 [고등부 출석부 사용 안내]",
+    `✅ ${label}`,
+    ...(description ? [description] : []),
+    "",
+    "🔒 교사 비밀번호로 들어가요",
+    `👉 ${window.location.origin}/guide#${id}`,
+  ].join("\n");
 }
 
-export function GuideShareButton({ id, label }: { id: string; label: string }) {
+export function GuideShareButton({ id, label, description }: { id: string; label: string; description?: string }) {
   const [result, setResult] = useState<"copied" | "failed" | null>(null);
 
   // 성공 표시는 2초 뒤 지우고, 실패 문구는 다시 누를 때까지 남긴다
@@ -28,7 +38,7 @@ export function GuideShareButton({ id, label }: { id: string; label: string }) {
 
   async function share() {
     setResult(null);
-    const text = shareText(label, id);
+    const text = shareText(label, id, description);
     if (typeof navigator.share === "function") {
       try {
         await navigator.share({ text });

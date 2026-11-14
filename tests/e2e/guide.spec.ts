@@ -89,7 +89,7 @@ test.describe("항목 공유 버튼", () => {
     await expect(shareButtons(page)).toHaveCount(14);
   });
 
-  test("공유 시트가 없으면 세 줄 문구를 복사하고 '링크 복사됨'을 2초 보인다", async ({ page, baseURL }) => {
+  test("공유 시트가 없으면 문구를 복사하고 '링크 복사됨'을 2초 보인다 — 작은 주제는 설명 줄 없음", async ({ page, baseURL }) => {
     await page.addInitScript(() => Object.defineProperty(Navigator.prototype, "share", { value: undefined, configurable: true }));
     await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
     await page.goto("/guide");
@@ -99,11 +99,19 @@ test.describe("항목 공유 버튼", () => {
     await expect(page.getByText("링크 복사됨", { exact: true }).first()).toBeVisible();
     // Windows 클립보드는 읽을 때 줄바꿈을 CRLF로 돌려준다 — 운영체제 차이라 맞춰서 비교
     const copied = (await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, "\n");
-    expect(copied).toBe(`고등부 출석부 사용 안내 — 학생 관리 · 지우기\n교사 비밀번호가 필요해요\n${baseURL}/guide#members-delete`);
+    expect(copied).toBe(
+      [
+        "📖 [고등부 출석부 사용 안내]",
+        "✅ 학생 관리 · 지우기",
+        "",
+        "🔒 교사 비밀번호로 들어가요",
+        `👉 ${baseURL}/guide#members-delete`,
+      ].join("\n"),
+    );
     await expect(page.getByText("링크 복사됨", { exact: true })).toHaveCount(0, { timeout: 4000 });
   });
 
-  test("공유 시트가 있으면 같은 문구로 공유하고, 닫아도 오류 문구가 없다", async ({ page, baseURL }) => {
+  test("공유 시트가 있으면 절 설명을 넣은 문구로 공유하고, 닫아도 오류 문구가 없다", async ({ page, baseURL }) => {
     // 첫 호출은 공유 성공, 두 번째는 사용자가 닫음(AbortError)
     await page.addInitScript(() => {
       const w = window as unknown as { __shared: unknown[] };
@@ -123,7 +131,16 @@ test.describe("항목 공유 버튼", () => {
     await button.click();
     const shared = await page.evaluate(() => (window as unknown as { __shared: unknown[] }).__shared);
     expect(shared).toHaveLength(2);
-    expect(shared[0]).toEqual({ text: `고등부 출석부 사용 안내 — 출석현황 보기\n교사 비밀번호가 필요해요\n${baseURL}/guide#history` });
+    expect(shared[0]).toEqual({
+      text: [
+        "📖 [고등부 출석부 사용 안내]",
+        "✅ 출석현황 보기",
+        "주별·기간별 출석을 반마다 확인해요.",
+        "",
+        "🔒 교사 비밀번호로 들어가요",
+        `👉 ${baseURL}/guide#history`,
+      ].join("\n"),
+    });
     await expect(statusText(page)).toHaveCount(0);
   });
 
