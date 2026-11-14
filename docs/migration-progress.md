@@ -240,7 +240,7 @@ GAS → Next.js 마이그레이션의 단계별 실행 이력입니다. `CLAUDE.
   - [x] VERIFY 2차(2026-10-07): tsc·build exit 0, 탐색 구조 23/23·시나리오 25/25 PASS, 서버 로그 `/api` 0건 — `verify.md` "2차 검증"
   - [x] REVIEW(2026-10-07): code-review 8건 중 6건 수정(현재 절 강조 오판·제목 구조·aria-controls·미사용 eager·합성 치환·도구 정리)·2건 보류, 보안 점검 이상 없음, 수정 후 tsc·build·탐색 23/23·시나리오 25/25 — `verify.md` "REVIEW"
   - 결정 근거는 `docs/context-notes.md`의 "사용 안내 페이지와 가짜 데이터 캡처" 섹션 참조
-- [ ] 사용 안내 항목 공유 · 캡처 스켈레톤 — 2026-11-14 REVIEW 완료, SHIP 전 (spec·plan·verify는 `docs/plans/2026-11-12-guide-share/`)
+- [x] 사용 안내 항목 공유 · 캡처 스켈레톤 — 2026-11-14 SHIP GO (spec·plan·verify는 `docs/plans/2026-11-12-guide-share/`)
   - [x] 절 7개·작은 주제 7개 머리에 공유 버튼(`GuideShareButton.tsx` 신규) — 휴대폰은 공유 시트, PC는 복사 + "링크 복사됨" 2초. 문구 세 줄(제목 · `교사 비밀번호가 필요해요` · `/guide#id`)
   - [x] 내비·대상 카드로 이동하거나 머리 버튼으로 펼치면 주소창 #도 그 항목으로(`replaceState`, 기록 안 쌓임, 접을 때는 그대로)
   - [x] `/guide` 전용 링크 미리보기(`src/app/guide/layout.tsx` 신규) — 제목·설명만 사용 안내용, 이미지는 기존 `og-img.png`. 카카오 API·SDK 사용 안 함
@@ -248,6 +248,7 @@ GAS → Next.js 마이그레이션의 단계별 실행 이력입니다. `CLAUDE.
   - [x] E2E `guide.spec.ts` 9개 추가(전체 23개) · tsc · build 통과, 375·1280px 화면 확인. 사용 안내 캡처 재촬영 없음(촬영 목록에 /guide 화면 없음)
   - [x] VERIFY(2026-11-14, `fbbca7a`): tsc·E2E 23개·verify-notes-lib·build 통과, 시나리오 6개(실기기 부분 제외), 게이트 두 경로(비밀번호 통과·다른 화면 거쳐 진입), build 출력 og 메타 확인 — `verify.md`
   - [x] REVIEW(2026-11-14): code-review 9건 중 3건 수정(캡처 오류 시 스켈레톤 고착, 복사 표시가 칩 줄에 가려짐, 머리로 펼칠 때 주소 미갱신)·6건 수용, 보안 점검 이상 없음. 수정 후 tsc·E2E 26개·build 통과 — plan.md "리뷰 결과"
+  - [x] SHIP 판정(2026-11-14, `37117f7`): GO — 배포 델타는 이 기능 5커밋·12파일뿐(`origin/main`과 충돌 없음), tsc·build 0, E2E 26개 통과, 클라이언트 번들 36개에 비밀값 0건, 의존성 변경 없음(취약점 30건은 모두 기존)
   - [ ] 배포 후: 실제 휴대폰에서 카톡 공유 시트·미리보기 카드 확인(이미 공유된 적 있는 주소면 카카오 공유 디버거에서 캐시 삭제)
   - 결정 근거는 `docs/context-notes.md`의 "사용 안내 항목 공유와 캡처 스켈레톤" 섹션 참조
 - [x] 말씀노트 기록 관리 — 2026-11-07 (spec·plan·verify는 `docs/plans/2026-10-31-sermon-notes/`)
