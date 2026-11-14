@@ -62,7 +62,7 @@ export function GuideSection({ id, tag, title, description, children }: GuideSec
             />
           </button>
         </h2>
-        <GuideShareButton id={id} label={title} />
+        <GuideShareButton id={id} label={title} description={description} />
       </div>
       {open ? (
         <div id={`${id}-panel`} className="pb-8">

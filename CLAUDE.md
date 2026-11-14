@@ -367,7 +367,7 @@ src/
 │   │   └── AttendanceHighlights.tsx    ✅ 개근/부분 출석/결석 인원 칩 → AttendanceListModal 재사용 — 기간 모드 전용. 세 칩의 합 = 명단 인원
 │   ├── guide/                          # 사용 안내(/guide) 전용
 │   │   ├── GuideSection.tsx            ✅ 접히는 절·작은 주제(GuideSubSection) — 머리가 버튼(`aria-expanded`), 접힌 동안 본문·캡처를 그리지 않음. 펼침 상태는 GuideOpenContext(페이지가 관리). 머리 오른쪽에 공유 버튼(펼침 버튼의 형제 — 눌러도 펼침 불변), 절 제목을 컨텍스트로 내려 작은 주제 문구에 `절 · 주제`로 씀
-│   │   ├── GuideShareButton.tsx        ✅ 항목 링크 공유 — `navigator.share({ text })`(닫기 AbortError 무시) / 없으면 클립보드 + "링크 복사됨" 2초. 문구는 세 줄(제목·`교사 비밀번호가 필요해요`·`/guide#id`), url을 따로 넘기지 않음
+│   │   ├── GuideShareButton.tsx        ✅ 항목 링크 공유 — `navigator.share({ text })`(닫기 AbortError 무시) / 없으면 클립보드 + "링크 복사됨" 2초. 문구는 📖 머리말·✅ 제목·절 설명(작은 주제는 없음)·빈 줄·🔒 `교사 비밀번호로 들어가요`·👉 `/guide#id`, url을 따로 넘기지 않음
 │   │   ├── GuideNav.tsx                ✅ 고정 내비 — 모바일 상단 칩 줄(GuideNavBar) / lg 왼쪽 목차(GuideNavSide). 누르면 펼치고 부드럽게 스크롤, 현재 절 강조
 │   │   ├── GuideStep.tsx               ✅ 단계(번호·제목·설명 + 완성 캡처 next/image) / GuideSteps 래퍼. 모바일 세로, md 이상 좌우. 캡처를 받는 동안 같은 크기의 휴대폰 모양 스켈레톤(`data-loading`), onLoad 후 페이드인(onError여도 스켈레톤을 끔)(onLoad 때문에 클라이언트 컴포넌트)
 │   │   ├── GuideWarning.tsx            ✅ 되돌릴 수 없는 작업 앞 경고 상자
